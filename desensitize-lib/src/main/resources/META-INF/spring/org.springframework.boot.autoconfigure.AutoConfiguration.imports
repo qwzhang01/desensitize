@@ -1,2 +1,3 @@
 # Desensitize Auto Configuration
 io.github.qwzhang01.desensitize.config.MaskAutoConfig
+io.github.qwzhang01.desensitize.config.MyBatisInterceptorAutoConfig
