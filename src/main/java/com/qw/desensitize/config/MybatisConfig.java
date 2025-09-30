@@ -21,16 +21,20 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.qw.desensitize.common.encrypt1.DecryptInterceptor;
 import com.qw.desensitize.common.encrypt1.EncryptInterceptor;
 import com.qw.desensitize.common.encrypt2.EncryptTypeHandler;
+import com.qw.desensitize.core.ExecutorInterceptor;
 import com.qw.desensitize.dto.Encrypt;
+import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.type.JdbcType;
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
+import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.List;
@@ -125,5 +129,19 @@ public class MybatisConfig {
     @Bean
     public MappingJackson2HttpMessageConverter recruitConverter() {
         return new MappingJackson2HttpMessageConverter(this.objectMapper());
+    }
+
+
+    @Autowired
+    private SqlSessionFactory sqlSessionFactory;
+
+    @Bean
+    public ExecutorInterceptor executorInterceptor() {
+        return new ExecutorInterceptor();
+    }
+
+    @PostConstruct
+    public void addInterceptor() {
+        sqlSessionFactory.getConfiguration().addInterceptor(executorInterceptor());
     }
 }

@@ -10,7 +10,6 @@ import org.apache.ibatis.reflection.DefaultReflectorFactory;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
@@ -22,6 +21,9 @@ import static com.qw.desensitize.kit.DesKit.KEY;
 
 
 /**
+ * ResultSetHandler 拦截
+ * ResultSetHandler 负责将数据库查询结果集映射为 Java 对象。拦截 ResultSetHandler 可以自定义结果集的处理逻辑。
+ * <p>
  * Intercepts 拦截器
  * Signature拦截器类型设置
  * <p>

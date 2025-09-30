@@ -14,6 +14,9 @@ import java.util.Objects;
 import java.util.Properties;
 
 /**
+ * ParameterHandler 拦截
+ * ParameterHandler 负责将 SQL 参数绑定到预编译语句（PreparedStatement）中。拦截 ParameterHandler 可以控制参数的设置过程。
+ *
  * 这里是对找出来的字符串结果集进行解密所以是ResultSetHandler
  * args是指定预编译语句
  *
