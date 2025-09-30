@@ -54,7 +54,7 @@ public class RoutineCoverAlgo implements CoverAlgo {
         }
 
         // 中间4位替换为*：1381****5678
-        return phone.substring(0, 4) + "****" + phone.substring(8);
+        return phone.substring(0, 4) + "****" + phone.substring(7);
     }
 
     /**
