@@ -1,5 +1,6 @@
 package io.github.qwzhang01.desensitize.advice;
 
+import io.github.qwzhang01.desensitize.domain.MaskContext;
 import io.github.qwzhang01.desensitize.kit.MaskAlgoContainer;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.io.InputStreamResource;
@@ -65,7 +66,14 @@ public class MaskAdvice implements ResponseBodyAdvice<Object> {
         if (body == null) {
             return body;
         }
-        return maskAlgoContainer.mask(body);
+
+        if (MaskContext.isMask()) {
+            Object mask = maskAlgoContainer.mask(body);
+            MaskContext.stop();
+            return mask;
+        }
+
+        return body;
     }
 
 }

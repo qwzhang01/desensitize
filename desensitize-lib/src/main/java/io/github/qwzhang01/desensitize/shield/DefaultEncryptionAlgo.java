@@ -8,53 +8,87 @@ import java.security.Key;
 import java.util.Base64;
 
 /**
- * 加密算法
+ * Default encryption algorithm implementation using DES (Data Encryption Standard).
+ * Provides symmetric encryption and decryption capabilities for sensitive data protection.
+ * 
+ * <p>This implementation uses DES algorithm with CBC mode and PKCS5 padding
+ * for secure data transformation. The encryption key and initialization vector
+ * are predefined for consistency across the application.</p>
+ * 
+ * <p><strong>Security Note:</strong> DES is considered weak by modern standards.
+ * For production use, consider upgrading to AES or other stronger algorithms.</p>
+ *
+ * @author qwzhang01
+ * @since 1.0.0
+ * @see EncryptionAlgo
  */
 public class DefaultEncryptionAlgo implements EncryptionAlgo {
+
+    /**
+     * Encrypts the given value using the default DES encryption algorithm.
+     * 
+     * @param value the plain text value to encrypt
+     * @return the encrypted value encoded in Base64, or null if input is null
+     */
     @Override
     public String encrypt(String value) {
         return DesKit.encrypt(DesKit.KEY, value);
     }
 
+    /**
+     * Decrypts the given encrypted value using the default DES decryption algorithm.
+     * 
+     * @param value the encrypted value (Base64 encoded) to decrypt
+     * @return the decrypted plain text value, or null if input is null
+     */
     @Override
     public String decrypt(String value) {
         return DesKit.decrypt(DesKit.KEY, value);
     }
 
-
     /**
-     * 加密解密算法
-     *
+     * Internal utility class for DES encryption and decryption operations.
+     * Encapsulates all cryptographic operations and configuration constants.
+     * 
      * @author avinzhang
      */
     private static class DesKit {
+
         /**
-         * 秘钥
+         * Default encryption key (must be at least 8 characters for DES).
+         * In production environments, this should be externalized and secured.
          */
         public static final String KEY = "key12345678";
+
         /**
-         * 偏移变量，固定占8位字节
+         * Initialization Vector parameter for CBC mode (must be exactly 8 bytes for DES).
+         * Provides additional security by ensuring identical plaintexts produce different ciphertexts.
          */
-        private final static String IV_PARAMETER = "12345678";
+        private static final String IV_PARAMETER = "12345678";
+
         /**
-         * 加密算法
+         * The DES encryption algorithm identifier.
          */
         private static final String ALGORITHM = "DES";
+
         /**
-         * 加密/解密算法-工作模式-填充模式
+         * Complete cipher transformation string specifying algorithm, mode, and padding.
+         * DES/CBC/PKCS5Padding provides secure encryption with proper padding.
          */
         private static final String CIPHER_ALGORITHM = "DES/CBC/PKCS5Padding";
+
         /**
-         * 默认编码
+         * Character encoding used for string-to-byte conversions.
          */
         private static final String CHARSET = "utf-8";
 
         /**
-         * 生成key
-         *
-         * @param password
-         * @return
-         * @throws Exception
+         * Generates a DES secret key from the provided password string.
+         * The password is converted to bytes and used to create a DES key specification.
+         * 
+         * @param password the password string to generate key from (must be at least 8 characters)
+         * @return the generated DES secret key
+         * @throws Exception if key generation fails due to invalid password or algorithm issues
          */
         private static Key generateKey(String password) throws Exception {
             DESKeySpec dks = new DESKeySpec(password.getBytes(CHARSET));
@@ -62,71 +96,77 @@ public class DefaultEncryptionAlgo implements EncryptionAlgo {
             return keyFactory.generateSecret(dks);
         }
 
-
         /**
-         * DES加密字符串
-         *
-         * @param password 加密密码，长度不能够小于8位
-         * @param data     待加密字符串
-         * @return 加密后内容
+         * Encrypts a string using DES algorithm with CBC mode and PKCS5 padding.
+         * The encrypted result is encoded in Base64 for safe string representation.
+         * 
+         * @param password the encryption password (must be at least 8 characters long)
+         * @param data the plain text data to encrypt
+         * @return the encrypted data encoded in Base64, or null if input data is null
+         * @throws RuntimeException if password is invalid (null or less than 8 characters)
          */
         public static String encrypt(String password, String data) {
             if (password == null || password.length() < 8) {
-                throw new RuntimeException("加密失败，key不能小于8位");
+                throw new RuntimeException("Encryption failed: key must be at least 8 characters long");
             }
-            if (data == null)
+            if (data == null) {
                 return null;
+            }
+            
             try {
                 Key secretKey = generateKey(password);
                 Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
                 IvParameterSpec iv = new IvParameterSpec(IV_PARAMETER.getBytes(CHARSET));
                 cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv);
 
-                // 加密
-                byte[] bytes = cipher.doFinal(data.getBytes(CHARSET));
+                // Perform encryption
+                byte[] encryptedBytes = cipher.doFinal(data.getBytes(CHARSET));
 
-                // base64编码  JDK1.8及以上可直接使用Base64，JDK1.7及以下可以使用BASE64Encoder
-                byte[] encode = Base64.getEncoder().encode(bytes);
+                // Encode to Base64 for safe string representation
+                byte[] encodedBytes = Base64.getEncoder().encode(encryptedBytes);
 
-                return new String(encode);
+                return new String(encodedBytes);
 
             } catch (Exception e) {
                 e.printStackTrace();
-                return data;
+                return data; // Return original data if encryption fails
             }
         }
 
         /**
-         * DES解密字符串
-         *
-         * @param password 解密密码，长度不能够小于8位
-         * @param data     待解密字符串
-         * @return 解密后内容
+         * Decrypts a Base64-encoded encrypted string using DES algorithm.
+         * The input should be a Base64-encoded string produced by the encrypt method.
+         * 
+         * @param password the decryption password (must be at least 8 characters long)
+         * @param data the encrypted data (Base64 encoded) to decrypt
+         * @return the decrypted plain text, or null if input data is null
+         * @throws RuntimeException if password is invalid (null or less than 8 characters)
          */
         public static String decrypt(String password, String data) {
             if (password == null || password.length() < 8) {
-                throw new RuntimeException("加密失败，key不能小于8位");
+                throw new RuntimeException("Decryption failed: key must be at least 8 characters long");
             }
-            if (data == null)
+            if (data == null) {
                 return null;
+            }
+            
             try {
                 Key secretKey = generateKey(password);
                 Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
                 IvParameterSpec iv = new IvParameterSpec(IV_PARAMETER.getBytes(CHARSET));
                 cipher.init(Cipher.DECRYPT_MODE, secretKey, iv);
 
-                // base64解码
-                byte[] decode = Base64.getDecoder().decode(data.getBytes(CHARSET));
+                // Decode from Base64
+                byte[] decodedBytes = Base64.getDecoder().decode(data.getBytes(CHARSET));
 
-                // 解密
-                byte[] decrypt = cipher.doFinal(decode);
+                // Perform decryption
+                byte[] decryptedBytes = cipher.doFinal(decodedBytes);
 
-                return new String(decrypt, CHARSET);
+                return new String(decryptedBytes, CHARSET);
             } catch (Exception e) {
                 e.printStackTrace();
-                return data;
+                return data; // Return original data if decryption fails
             }
         }
     }
-
 }

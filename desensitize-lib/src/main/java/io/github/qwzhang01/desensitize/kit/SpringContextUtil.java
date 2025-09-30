@@ -3,118 +3,154 @@ package io.github.qwzhang01.desensitize.kit;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
 
 /**
- * Spring 上下文工具类
- * 用于在非 Spring 管理的类中获取 Spring 容器中的 Bean
- *
+ * Spring context utility class for accessing Spring-managed beans from non-Spring managed classes.
+ * 
+ * <p>This utility provides static methods to retrieve beans from the Spring application context,
+ * enabling access to Spring-managed components from classes that are not under Spring's control.
+ * It implements ApplicationContextAware to automatically receive the application context during
+ * Spring container initialization.</p>
+ * 
+ * <p>Common use cases include:</p>
+ * <ul>
+ *   <li>Accessing Spring beans from utility classes</li>
+ *   <li>Retrieving services from static methods</li>
+ *   <li>Getting configuration beans from non-Spring components</li>
+ * </ul>
+ * 
  * @author qwzhang01
+ * @since 1.0.0
+ * @see ApplicationContextAware
  */
+@Component
 public class SpringContextUtil implements ApplicationContextAware {
 
+    /**
+     * The Spring application context instance.
+     * This is set automatically by Spring during container initialization.
+     */
     private static ApplicationContext applicationContext;
 
     /**
-     * 获取 ApplicationContext
+     * Gets the Spring application context.
+     * 
+     * @return the current application context, or null if not initialized
      */
     public static ApplicationContext getApplicationContext() {
         return applicationContext;
     }
 
+    /**
+     * Sets the application context. This method is called automatically by Spring
+     * during the container initialization process.
+     * 
+     * @param applicationContext the Spring application context
+     * @throws BeansException if context setting fails
+     */
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         SpringContextUtil.applicationContext = applicationContext;
     }
 
     /**
-     * 通过 name 获取 Bean
-     *
-     * @param name Bean 名称
-     * @return Bean 实例
+     * Retrieves a bean by its name from the Spring application context.
+     * 
+     * @param name the name of the bean to retrieve
+     * @return the bean instance
+     * @throws BeansException if the bean cannot be found or created
      */
     public static Object getBean(String name) {
         return getApplicationContext().getBean(name);
     }
 
     /**
-     * 通过 class 获取 Bean
-     *
-     * @param clazz Bean 类型
-     * @param <T>   泛型
-     * @return Bean 实例
+     * Retrieves a bean by its type from the Spring application context.
+     * 
+     * @param clazz the class type of the bean to retrieve
+     * @param <T> the generic type of the bean
+     * @return the bean instance of the specified type
+     * @throws BeansException if the bean cannot be found or created
      */
     public static <T> T getBean(Class<T> clazz) {
         return getApplicationContext().getBean(clazz);
     }
 
     /**
-     * 通过 name 和 class 获取指定的 Bean
-     *
-     * @param name  Bean 名称
-     * @param clazz Bean 类型
-     * @param <T>   泛型
-     * @return Bean 实例
+     * Retrieves a bean by both name and type from the Spring application context.
+     * 
+     * @param name the name of the bean to retrieve
+     * @param clazz the class type of the bean to retrieve
+     * @param <T> the generic type of the bean
+     * @return the bean instance of the specified name and type
+     * @throws BeansException if the bean cannot be found or created
      */
     public static <T> T getBean(String name, Class<T> clazz) {
         return getApplicationContext().getBean(name, clazz);
     }
 
     /**
-     * 检查是否包含指定名称的 Bean
-     *
-     * @param name Bean 名称
-     * @return 是否包含
+     * Checks whether the application context contains a bean with the specified name.
+     * 
+     * @param name the name of the bean to check
+     * @return true if the context contains a bean with the given name, false otherwise
      */
     public static boolean containsBean(String name) {
         return getApplicationContext().containsBean(name);
     }
 
     /**
-     * 判断以给定名字注册的 Bean 定义是一个 singleton 还是一个 prototype
-     * 如果与给定名字相应的 Bean 定义没有被找到，将会抛出一个异常（NoSuchBeanDefinitionException）
-     *
-     * @param name Bean 名称
-     * @return 是否为单例
+     * Determines whether the bean with the given name is a singleton or prototype.
+     * If no bean definition with the given name is found, a NoSuchBeanDefinitionException is thrown.
+     * 
+     * @param name the name of the bean to check
+     * @return true if the bean is a singleton, false if it's a prototype
+     * @throws org.springframework.beans.factory.NoSuchBeanDefinitionException if no bean definition is found
      */
     public static boolean isSingleton(String name) {
         return getApplicationContext().isSingleton(name);
     }
 
     /**
-     * 获取指定 Bean 的类型
-     *
-     * @param name Bean 名称
-     * @return Bean 类型
+     * Gets the type of the bean with the specified name.
+     * 
+     * @param name the name of the bean to check
+     * @return the type of the bean, or null if not determinable
+     * @throws org.springframework.beans.factory.NoSuchBeanDefinitionException if no bean definition is found
      */
     public static Class<?> getType(String name) {
         return getApplicationContext().getType(name);
     }
 
     /**
-     * 如果给定的 Bean 名字在 Bean 定义中有别名，则返回这些别名
-     *
-     * @param name Bean 名称
-     * @return Bean 别名数组
+     * Returns the aliases for the given bean name, if any are defined in the bean definition.
+     * 
+     * @param name the bean name to check for aliases
+     * @return an array of aliases, or an empty array if none
+     * @throws org.springframework.beans.factory.NoSuchBeanDefinitionException if no bean definition is found
      */
     public static String[] getAliases(String name) {
         return getApplicationContext().getAliases(name);
     }
 
     /**
-     * 检查 ApplicationContext 是否已初始化
-     *
-     * @return 是否已初始化
+     * Checks whether the Spring application context has been initialized.
+     * 
+     * @return true if the application context is available, false otherwise
      */
     public static boolean isInitialized() {
         return applicationContext != null;
     }
 
     /**
-     * 安全获取 Bean，如果获取失败返回 null
-     *
-     * @param clazz Bean 类型
-     * @param <T>   泛型
-     * @return Bean 实例或 null
+     * Safely retrieves a bean by its type, returning null if the operation fails.
+     * This method does not throw exceptions and is safe to use in scenarios where
+     * bean availability is uncertain.
+     * 
+     * @param clazz the class type of the bean to retrieve
+     * @param <T> the generic type of the bean
+     * @return the bean instance of the specified type, or null if not available
      */
     public static <T> T getBeanSafely(Class<T> clazz) {
         try {
@@ -128,10 +164,12 @@ public class SpringContextUtil implements ApplicationContextAware {
     }
 
     /**
-     * 安全获取 Bean，如果获取失败返回 null
-     *
-     * @param name Bean 名称
-     * @return Bean 实例或 null
+     * Safely retrieves a bean by its name, returning null if the operation fails.
+     * This method does not throw exceptions and is safe to use in scenarios where
+     * bean availability is uncertain.
+     * 
+     * @param name the name of the bean to retrieve
+     * @return the bean instance, or null if not available
      */
     public static Object getBeanSafely(String name) {
         try {
@@ -145,12 +183,14 @@ public class SpringContextUtil implements ApplicationContextAware {
     }
 
     /**
-     * 安全获取 Bean，如果获取失败返回 null
-     *
-     * @param name  Bean 名称
-     * @param clazz Bean 类型
-     * @param <T>   泛型
-     * @return Bean 实例或 null
+     * Safely retrieves a bean by both name and type, returning null if the operation fails.
+     * This method does not throw exceptions and is safe to use in scenarios where
+     * bean availability is uncertain.
+     * 
+     * @param name the name of the bean to retrieve
+     * @param clazz the class type of the bean to retrieve
+     * @param <T> the generic type of the bean
+     * @return the bean instance of the specified name and type, or null if not available
      */
     public static <T> T getBeanSafely(String name, Class<T> clazz) {
         try {

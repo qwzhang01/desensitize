@@ -1,15 +1,21 @@
 package io.github.qwzhang01.desensitize.shield;
 
 /**
- * 脱敏算法接口
- * 用于对敏感数据进行脱敏处理
+ * Data masking algorithm interface.
+ * Provides contract for implementing various data masking strategies
+ * to protect sensitive information.
+ *
+ * @author qwzhang01
+ * @since 1.0.0
  */
 public interface CoverAlgo {
+
     /**
-     * 对敏感数据进行脱敏处理
+     * Masks sensitive data content according to the specific algorithm implementation.
+     * This is the main entry point for data masking operations.
      *
-     * @param content 待脱敏的敏感数据
-     * @return 脱敏后的数据
+     * @param content the sensitive data content to be masked, can be null or empty
+     * @return the masked data content, or original content if masking is not applicable
      */
     String mask(String content);
 }

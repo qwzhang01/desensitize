@@ -4,6 +4,7 @@ import com.qw.desensitize.common.R;
 import com.qw.desensitize.dto.UserDto;
 import com.qw.desensitize.entity.User;
 import com.qw.desensitize.mapper.UserMapper;
+import io.github.qwzhang01.desensitize.domain.MaskContext;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -25,28 +26,29 @@ public class UserController {
         // 获取数据库数据
         User user = mapper.selectById(userId);
         if (user == null) {
-            return R.error();
+            return R.error("用户不存在");
         }
         // 转化为dto
         UserDto dto = new UserDto();
         BeanUtils.copyProperties(user, dto);
 
         // 标注需要脱敏
-        dto.setSensitiveFlag(true);
+        MaskContext.start();
 
         return R.success(dto);
     }
 
     @PostMapping("save")
-    public R save(@RequestBody UserDto user) {
+    public R<String> save(@RequestBody UserDto user) {
         User dto = new User();
         BeanUtils.copyProperties(user, dto);
         mapper.insert(dto);
-        return R.success();
+        return R.success("");
     }
 
     /**
      * 保存，保存后还需要使用
+     *
      * @param userDto
      * @return
      */

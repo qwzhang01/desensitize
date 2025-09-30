@@ -4,9 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.qw.desensitize.common.encrypt1.EncryptField;
-import com.qw.desensitize.common.encrypt1.EncryptObj;
-import com.qw.desensitize.dto.Encrypt;
+import io.github.qwzhang01.desensitize.annotation.EncryptField;
+import io.github.qwzhang01.desensitize.domain.Encrypt;
 import lombok.Data;
 
 /**
@@ -14,7 +13,6 @@ import lombok.Data;
  */
 @Data
 @TableName("user")
-@EncryptObj
 public class User {
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private String id;
