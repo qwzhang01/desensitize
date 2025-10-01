@@ -46,6 +46,15 @@ public class UserController {
         return R.success("");
     }
 
+
+    @PostMapping("update")
+    public R<String> update(@RequestBody UserDto user) {
+        User dto = new User();
+        BeanUtils.copyProperties(user, dto);
+        mapper.updateById(dto);
+        return R.success("");
+    }
+
     /**
      * 保存，保存后还需要使用
      *

@@ -11,6 +11,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 public class UserDto {
+    private Long id;
     private String name;
     /**
      * 对手机号码做脱敏的主机，脱敏算法是手机号码

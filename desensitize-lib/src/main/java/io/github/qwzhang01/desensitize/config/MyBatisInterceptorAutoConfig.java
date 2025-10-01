@@ -25,15 +25,13 @@
 
 package io.github.qwzhang01.desensitize.config;
 
-import io.github.qwzhang01.desensitize.core.DecryptInterceptor;
-import io.github.qwzhang01.desensitize.core.EncryptInterceptor;
-import io.github.qwzhang01.desensitize.core.ExecutorInterceptor;
-import io.github.qwzhang01.desensitize.core.SqlRewriteInterceptor;
+import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import io.github.qwzhang01.desensitize.core.*;
+import io.github.qwzhang01.desensitize.domain.Encrypt;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.mybatis.MybatisAutoConfiguration;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PostConstruct;
@@ -54,7 +52,7 @@ import java.util.List;
  */
 @Configuration
 @ConditionalOnClass({SqlSessionFactory.class})
-@AutoConfigureAfter(MybatisAutoConfiguration.class)
+@AutoConfigureAfter(MybatisPlusAutoConfiguration.class)
 public class MyBatisInterceptorAutoConfig {
 
     @Autowired(required = false)
@@ -83,6 +81,8 @@ public class MyBatisInterceptorAutoConfig {
                 
                 // SqlRewriteInterceptor for SQL modification if needed
                 configuration.addInterceptor(new SqlRewriteInterceptor());
+
+                configuration.getTypeHandlerRegistry().register(Encrypt.class, EncryptTypeHandler.class);
             }
         }
     }
