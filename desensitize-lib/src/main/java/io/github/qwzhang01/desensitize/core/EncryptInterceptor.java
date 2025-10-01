@@ -29,7 +29,11 @@ import io.github.qwzhang01.desensitize.annotation.EncryptField;
 import io.github.qwzhang01.desensitize.kit.ClazzUtil;
 import io.github.qwzhang01.desensitize.kit.EncryptionAlgoContainer;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
+import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.plugin.*;
+import org.apache.ibatis.reflection.DefaultReflectorFactory;
+import org.apache.ibatis.reflection.MetaObject;
+import org.apache.ibatis.reflection.SystemMetaObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -71,6 +75,14 @@ public class EncryptInterceptor implements Interceptor {
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         ParameterHandler parameterHandler = (ParameterHandler) invocation.getTarget();
+
+        MetaObject metaObject = MetaObject.forObject(parameterHandler, SystemMetaObject.DEFAULT_OBJECT_FACTORY, SystemMetaObject.DEFAULT_OBJECT_WRAPPER_FACTORY, new DefaultReflectorFactory());
+        MappedStatement mappedStatement = (MappedStatement) metaObject.getValue("mappedStatement");
+        // sql语句类型：UNKNOWN, INSERT, UPDATE, DELETE, SELECT, FLUSH、update,SqlCommandType是个enum
+        String sqlCommandType = mappedStatement.getSqlCommandType().toString();
+        if (!"INSERT".equals(sqlCommandType) && !"UPDATE".equals(sqlCommandType)) {
+            return invocation.proceed();
+        }
 
         // Get parameter object
         Object parameterObject = parameterHandler.getParameterObject();

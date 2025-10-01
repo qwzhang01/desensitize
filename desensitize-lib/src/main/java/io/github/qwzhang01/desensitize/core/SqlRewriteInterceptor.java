@@ -59,6 +59,8 @@ public class SqlRewriteInterceptor implements Interceptor {
 
         // 获取原始 SQL
         String originalSql = boundSql.getSql();
+        Object parameterObject = boundSql.getParameterObject();
+
         // 修改 SQL，添加软删除条件
         String modifiedSql = originalSql + " WHERE deleted = 0";
 
@@ -84,6 +86,12 @@ public class SqlRewriteInterceptor implements Interceptor {
     }
 
     private void queryEncrypt(Invocation invocation) {
-        // todo 待实现
+        StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
+        BoundSql boundSql = statementHandler.getBoundSql();
+
+        String originalSql = boundSql.getSql();
+        Object parameterObject = boundSql.getParameterObject();
+
+        System.out.println("");
     }
 }
