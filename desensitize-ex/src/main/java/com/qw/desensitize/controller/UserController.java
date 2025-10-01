@@ -33,12 +33,12 @@ public class UserController {
         UserParam userParam = new UserParam();
         userParam.setPhoneNo("13900139002");
 
-        Page<UserDto> userPage = mapper.list(new Page<>(1, 10), userParam);
+//        Page<UserDto> userPage = mapper.list(new Page<>(1, 10), userParam);
 
 
-//        QueryWrapper<User> query1 = Wrappers.query();
-//        query1.eq("phoneNo", userParam.getPhoneNo());
-//        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query1);
+        QueryWrapper<User> query1 = Wrappers.query();
+        query1.eq("phoneNo", userParam.getPhoneNo());
+        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query1);
 
 //        LambdaQueryWrapper<User> query = Wrappers.lambdaQuery();
 //        query.eq(User::getPhoneNo, new Encrypt("13900139002"));
