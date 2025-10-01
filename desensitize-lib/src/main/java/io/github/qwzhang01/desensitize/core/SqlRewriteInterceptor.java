@@ -40,11 +40,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.Connection;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -137,7 +135,6 @@ public class SqlRewriteInterceptor implements Interceptor {
                 log.debug("未找到表信息，跳过加密处理");
                 return;
             }
-
 
             // 获取 ParameterHandler 中的参数对象
             Object parameterObject = statementHandler.getParameterHandler().getParameterObject();
@@ -247,9 +244,16 @@ public class SqlRewriteInterceptor implements Interceptor {
                 parameterObject.getClass().getSimpleName(), parameterMappings.size());
 
         if (parameterObject instanceof Map) {
-            // 处理 Map 参数（MyBatis 常见场景）
-            analyzeMapParameters((Map<String, Object>) parameterObject,
-                    parameterMappings, sqlAnalysis, encryptInfos);
+            Map<String, Object> paramMap = (Map<String, Object>) parameterObject;
+
+            // 检查是否为 QueryWrapper 参数
+            if (isQueryWrapperParameter(parameterObject)) {
+                log.debug("检测到 QueryWrapper 参数，使用专门的解析逻辑");
+                analyzeQueryWrapperParameters(paramMap, sqlAnalysis, encryptInfos);
+            } else {
+                // 处理普通 Map 参数（MyBatis 常见场景）
+                analyzeMapParameters(paramMap, parameterMappings, sqlAnalysis, encryptInfos);
+            }
         } else {
             // 处理实体对象参数
             analyzeObjectParameters(parameterObject, parameterMappings,
@@ -291,7 +295,7 @@ public class SqlRewriteInterceptor implements Interceptor {
 
                     // 提取实际的字段名（去掉对象前缀）
                     String fieldName = extractFieldName(property);
-                    
+
                     ParameterEncryptInfo encryptInfo = matchParameterToTableField(
                             fieldName, (String) value, sqlAnalysis);
                     if (encryptInfo != null) {
@@ -429,7 +433,12 @@ public class SqlRewriteInterceptor implements Interceptor {
                 String encryptedValue = algo.encrypt(encryptInfo.getOriginalValue());
 
                 // 根据参数类型更新加密后的值
-                if (encryptInfo.getParameterMap() != null && encryptInfo.getParameterKey() != null) {
+                if (encryptInfo.isQueryWrapperParam()) {
+                    // QueryWrapper 参数特殊处理
+                    updateQueryWrapperParameter(encryptInfo, encryptedValue);
+
+                } else if (encryptInfo.getParameterMap() != null && encryptInfo.getParameterKey() != null) {
+                    // 普通 Map 参数处理
                     // 优先使用 MetaObject 来设置嵌套属性
                     if (encryptInfo.getMetaObject() != null && encryptInfo.getMetaObject().hasSetter(encryptInfo.getParameterKey())) {
                         encryptInfo.getMetaObject().setValue(encryptInfo.getParameterKey(), encryptedValue);
@@ -453,6 +462,42 @@ public class SqlRewriteInterceptor implements Interceptor {
             } catch (Exception e) {
                 log.error("加密参数失败: {}.{}", encryptInfo.getTableName(), encryptInfo.getFieldName(), e);
             }
+        }
+    }
+
+    /**
+     * 更新 QueryWrapper 参数
+     */
+    private void updateQueryWrapperParameter(ParameterEncryptInfo encryptInfo, String encryptedValue) {
+        try {
+            // 获取 QueryWrapper 对象
+            Object wrapper = encryptInfo.getParameterMap().get("ew");
+            if (wrapper == null) {
+                log.error("无法获取 QueryWrapper 对象");
+                return;
+            }
+
+            // 获取 paramNameValuePairs
+            Map<String, Object> paramNameValuePairs = getParamNameValuePairs(wrapper);
+            if (paramNameValuePairs == null) {
+                log.error("无法获取 QueryWrapper 的 paramNameValuePairs");
+                return;
+            }
+
+            // 更新参数值
+            String paramName = encryptInfo.getQueryWrapperParamName();
+            paramNameValuePairs.put(paramName, encryptedValue);
+
+            log.debug("更新 QueryWrapper 参数: {} = {}", paramName, encryptedValue);
+
+            // 同时尝试通过 MetaObject 更新（如果可能的话）
+            if (encryptInfo.getMetaObject() != null && encryptInfo.getMetaObject().hasSetter(encryptInfo.getParameterKey())) {
+                encryptInfo.getMetaObject().setValue(encryptInfo.getParameterKey(), encryptedValue);
+                log.debug("通过 MetaObject 同步更新 QueryWrapper 参数: {}", encryptInfo.getParameterKey());
+            }
+
+        } catch (Exception e) {
+            log.error("更新 QueryWrapper 参数失败", e);
         }
     }
 
@@ -546,14 +591,226 @@ public class SqlRewriteInterceptor implements Interceptor {
         if (propertyPath == null || propertyPath.isEmpty()) {
             return propertyPath;
         }
-        
+
         // 如果包含点号，取最后一部分作为字段名
         int lastDotIndex = propertyPath.lastIndexOf('.');
         if (lastDotIndex >= 0 && lastDotIndex < propertyPath.length() - 1) {
             return propertyPath.substring(lastDotIndex + 1);
         }
-        
+
         return propertyPath;
+    }
+
+    /**
+     * 检测是否为 QueryWrapper 参数
+     */
+    private boolean isQueryWrapperParameter(Object parameterObject) {
+        if (parameterObject instanceof Map) {
+            Map<?, ?> paramMap = (Map<?, ?>) parameterObject;
+            // 检查是否包含 QueryWrapper 的特征参数
+            return paramMap.containsKey("ew") ||
+                    paramMap.keySet().stream().anyMatch(key ->
+                            key.toString().contains("paramNameValuePairs"));
+        }
+        return false;
+    }
+
+    /**
+     * 分析 QueryWrapper 类型的参数
+     */
+    private void analyzeQueryWrapperParameters(Map<String, Object> paramMap,
+                                               SqlAnalysisResult sqlAnalysis,
+                                               List<ParameterEncryptInfo> encryptInfos) {
+
+        log.debug("分析 QueryWrapper 参数: {}", paramMap.keySet());
+
+        // 获取 QueryWrapper 对象
+        Object wrapper = paramMap.get("ew");
+        if (wrapper == null) {
+            log.debug("未找到 QueryWrapper 对象 (ew)");
+            return;
+        }
+
+        try {
+            // 获取参数值映射
+            Map<String, Object> paramNameValuePairs = getParamNameValuePairs(wrapper);
+            if (paramNameValuePairs == null || paramNameValuePairs.isEmpty()) {
+                log.debug("QueryWrapper 中没有参数");
+                return;
+            }
+
+            // 获取 SQL 片段
+            String sqlSegment = getSqlSegment(wrapper);
+            if (sqlSegment == null || sqlSegment.isEmpty()) {
+                log.debug("QueryWrapper 中没有 SQL 片段");
+                return;
+            }
+
+            log.debug("QueryWrapper SQL 片段: {}", sqlSegment);
+            log.debug("QueryWrapper 参数: {}", paramNameValuePairs);
+
+            // 解析字段与参数的映射关系
+            Map<String, String> fieldParamMapping = parseFieldParamMapping(sqlSegment);
+
+            // 处理每个参数
+            for (Map.Entry<String, String> entry : fieldParamMapping.entrySet()) {
+                String fieldName = entry.getKey();
+                String paramName = entry.getValue();
+                Object paramValue = paramNameValuePairs.get(paramName);
+
+                if (paramValue instanceof String) {
+                    log.debug("检查 QueryWrapper 字段: {} -> 参数: {} = {}", fieldName, paramName, paramValue);
+
+                    ParameterEncryptInfo encryptInfo = matchParameterToTableField(
+                            fieldName, (String) paramValue, sqlAnalysis);
+                    if (encryptInfo != null) {
+                        // 设置 QueryWrapper 特有的参数路径
+                        String parameterKey = "ew.paramNameValuePairs." + paramName;
+                        encryptInfo.setParameterKey(parameterKey);
+                        encryptInfo.setParameterMap(paramMap);
+                        encryptInfo.setMetaObject(SystemMetaObject.forObject(paramMap));
+                        encryptInfo.setQueryWrapperParam(true);
+                        encryptInfo.setQueryWrapperParamName(paramName);
+                        encryptInfos.add(encryptInfo);
+                        log.debug("添加 QueryWrapper 加密参数: {} -> {}", fieldName, parameterKey);
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("解析 QueryWrapper 参数失败", e);
+        }
+    }
+
+    /**
+     * 获取 QueryWrapper 的 paramNameValuePairs
+     */
+    private Map<String, Object> getParamNameValuePairs(Object wrapper) {
+        try {
+            // 尝试通过字段直接访问
+            Field paramField = findFieldInHierarchy(wrapper.getClass(), "paramNameValuePairs");
+            if (paramField != null) {
+                paramField.setAccessible(true);
+                return (Map<String, Object>) paramField.get(wrapper);
+            }
+
+            // 尝试通过 getter 方法
+            Method getterMethod = findMethodInHierarchy(wrapper.getClass(), "getParamNameValuePairs");
+            if (getterMethod != null) {
+                getterMethod.setAccessible(true);
+                return (Map<String, Object>) getterMethod.invoke(wrapper);
+            }
+
+            log.debug("无法获取 QueryWrapper 的 paramNameValuePairs");
+            return null;
+
+        } catch (Exception e) {
+            log.error("获取 QueryWrapper paramNameValuePairs 失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 获取 QueryWrapper 的 SQL 片段
+     */
+    private String getSqlSegment(Object wrapper) {
+        try {
+            // 尝试通过 getSqlSegment 方法
+            Method getSqlSegmentMethod = findMethodInHierarchy(wrapper.getClass(), "getSqlSegment");
+            if (getSqlSegmentMethod != null) {
+                getSqlSegmentMethod.setAccessible(true);
+                Object result = getSqlSegmentMethod.invoke(wrapper);
+                return result != null ? result.toString() : null;
+            }
+
+            // 尝试通过 getCustomSqlSegment 方法
+            Method getCustomSqlSegmentMethod = findMethodInHierarchy(wrapper.getClass(), "getCustomSqlSegment");
+            if (getCustomSqlSegmentMethod != null) {
+                getCustomSqlSegmentMethod.setAccessible(true);
+                Object result = getCustomSqlSegmentMethod.invoke(wrapper);
+                return result != null ? result.toString() : null;
+            }
+
+            log.debug("无法获取 QueryWrapper 的 SQL 片段");
+            return null;
+
+        } catch (Exception e) {
+            log.error("获取 QueryWrapper SQL 片段失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 解析字段与参数的映射关系
+     */
+    private Map<String, String> parseFieldParamMapping(String sqlSegment) {
+        Map<String, String> mapping = new HashMap<>();
+
+        try {
+            // 匹配各种 SQL 条件模式
+            // 模式1: field_name = #{ew.paramNameValuePairs.MPGENVAL1}
+            Pattern pattern1 = Pattern.compile("(\\w+)\\s*=\\s*#\\{ew\\.paramNameValuePairs\\.(\\w+)\\}");
+            Matcher matcher1 = pattern1.matcher(sqlSegment);
+            while (matcher1.find()) {
+                String fieldName = matcher1.group(1);
+                String paramName = matcher1.group(2);
+                mapping.put(fieldName, paramName);
+                log.debug("解析到字段映射: {} -> {}", fieldName, paramName);
+            }
+
+            // 模式2: field_name LIKE #{ew.paramNameValuePairs.MPGENVAL1}
+            Pattern pattern2 = Pattern.compile("(\\w+)\\s+LIKE\\s+#\\{ew\\.paramNameValuePairs\\.(\\w+)\\}");
+            Matcher matcher2 = pattern2.matcher(sqlSegment);
+            while (matcher2.find()) {
+                String fieldName = matcher2.group(1);
+                String paramName = matcher2.group(2);
+                mapping.put(fieldName, paramName);
+                log.debug("解析到 LIKE 字段映射: {} -> {}", fieldName, paramName);
+            }
+
+            // 模式3: field_name IN (#{ew.paramNameValuePairs.MPGENVAL1}, ...)
+            Pattern pattern3 = Pattern.compile("(\\w+)\\s+IN\\s*\\([^)]*#\\{ew\\.paramNameValuePairs\\.(\\w+)\\}");
+            Matcher matcher3 = pattern3.matcher(sqlSegment);
+            while (matcher3.find()) {
+                String fieldName = matcher3.group(1);
+                String paramName = matcher3.group(2);
+                mapping.put(fieldName, paramName);
+                log.debug("解析到 IN 字段映射: {} -> {}", fieldName, paramName);
+            }
+
+        } catch (Exception e) {
+            log.error("解析字段参数映射失败", e);
+        }
+
+        return mapping;
+    }
+
+    /**
+     * 在类层次结构中查找字段
+     */
+    private Field findFieldInHierarchy(Class<?> clazz, String fieldName) {
+        while (clazz != null && clazz != Object.class) {
+            try {
+                return clazz.getDeclaredField(fieldName);
+            } catch (NoSuchFieldException e) {
+                clazz = clazz.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 在类层次结构中查找方法
+     */
+    private Method findMethodInHierarchy(Class<?> clazz, String methodName) {
+        while (clazz != null && clazz != Object.class) {
+            try {
+                return clazz.getDeclaredMethod(methodName);
+            } catch (NoSuchMethodException e) {
+                clazz = clazz.getSuperclass();
+            }
+        }
+        return null;
     }
 
     /**
@@ -696,6 +953,10 @@ public class SqlRewriteInterceptor implements Interceptor {
         private Object targetObject;
         private String propertyName;
 
+        // QueryWrapper 参数相关
+        private boolean isQueryWrapperParam = false;
+        private String queryWrapperParamName;
+
         // Getters and Setters
         public String getTableName() {
             return tableName;
@@ -767,6 +1028,22 @@ public class SqlRewriteInterceptor implements Interceptor {
 
         public void setMetaObject(MetaObject metaObject) {
             this.metaObject = metaObject;
+        }
+
+        public boolean isQueryWrapperParam() {
+            return isQueryWrapperParam;
+        }
+
+        public void setQueryWrapperParam(boolean queryWrapperParam) {
+            isQueryWrapperParam = queryWrapperParam;
+        }
+
+        public String getQueryWrapperParamName() {
+            return queryWrapperParamName;
+        }
+
+        public void setQueryWrapperParamName(String queryWrapperParamName) {
+            this.queryWrapperParamName = queryWrapperParamName;
         }
     }
 }

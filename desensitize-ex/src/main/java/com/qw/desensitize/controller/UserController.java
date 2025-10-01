@@ -27,22 +27,31 @@ public class UserController {
 
     private final UserMapper mapper;
 
-    @GetMapping("page")
-    public R<Page<?>> page() {
-
+    @GetMapping("page1")
+    public R<Page<?>> page1() {
         UserParam userParam = new UserParam();
         userParam.setPhoneNo("13900139002");
+        Page<UserDto> userPage = mapper.list(new Page<>(1, 10), userParam);
+        return R.ok(userPage);
+    }
 
-//        Page<UserDto> userPage = mapper.list(new Page<>(1, 10), userParam);
 
-
+    @GetMapping("page2")
+    public R<Page<?>> page2() {
+        UserParam userParam = new UserParam();
+        userParam.setPhoneNo("13900139002");
         QueryWrapper<User> query1 = Wrappers.query();
         query1.eq("phoneNo", userParam.getPhoneNo());
         Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query1);
+        return R.ok(userPage);
+    }
 
-//        LambdaQueryWrapper<User> query = Wrappers.lambdaQuery();
-//        query.eq(User::getPhoneNo, new Encrypt("13900139002"));
-//        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query);
+
+    @GetMapping("page3")
+    public R<Page<?>> page3() {
+        LambdaQueryWrapper<User> query = Wrappers.lambdaQuery();
+        query.eq(User::getPhoneNo, new Encrypt("13900139002"));
+        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query);
         return R.ok(userPage);
     }
 

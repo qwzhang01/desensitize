@@ -91,20 +91,20 @@ public class TableContainer {
         private String table;
         private Class<? extends EncryptionAlgo> algo;
 
-        public void setName(String name) {
-            this.name = name;
-        }
-
         public String getName() {
             return name;
         }
 
-        public void setAlgo(Class<? extends EncryptionAlgo> algo) {
-            this.algo = algo;
+        public void setName(String name) {
+            this.name = name;
         }
 
         public Class<? extends EncryptionAlgo> getAlgo() {
             return algo;
+        }
+
+        public void setAlgo(Class<? extends EncryptionAlgo> algo) {
+            this.algo = algo;
         }
 
         public String getTable() {

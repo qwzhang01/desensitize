@@ -1,5 +1,13 @@
 ### 1. 分页：获取用户信息 - GET请求
-GET http://127.0.0.1:2222/api/user/page
+GET http://127.0.0.1:2222/api/user/page1
+Accept: application/json
+
+### 1. 分页：获取用户信息 - GET请求
+GET http://127.0.0.1:2222/api/user/page2
+Accept: application/json
+
+### 1. 分页：获取用户信息 - GET请求
+GET http://127.0.0.1:2222/api/user/page3
 Accept: application/json
 
 ### 1. 查询：获取用户信息 - GET请求

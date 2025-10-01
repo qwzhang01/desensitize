@@ -34,20 +34,20 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Container for managing encryption algorithm instances.
  * Provides lazy initialization and caching to avoid circular dependency issues.
- * 
+ *
  * @author avinzhang
  * @since 1.0.0
  */
 public class EncryptionAlgoContainer {
-    
+
     /**
      * Cache for algorithm instances to avoid repeated creation
      */
     private static final ConcurrentHashMap<Class<? extends EncryptionAlgo>, EncryptionAlgo> ALGO_CACHE = new ConcurrentHashMap<>();
-    
+
     /**
      * Gets the default encryption algorithm instance.
-     * 
+     *
      * @return the default encryption algorithm instance
      */
     public static EncryptionAlgo getAlgo() {
@@ -57,7 +57,7 @@ public class EncryptionAlgoContainer {
     /**
      * Gets an encryption algorithm instance by class type.
      * First tries to get from Spring context, then falls back to direct instantiation.
-     * 
+     *
      * @param clazz the encryption algorithm class
      * @return the encryption algorithm instance
      */
@@ -70,7 +70,7 @@ public class EncryptionAlgoContainer {
                     return algo;
                 }
             }
-            
+
             // Fallback to direct instantiation
             try {
                 return key.getDeclaredConstructor().newInstance();
@@ -87,7 +87,7 @@ public class EncryptionAlgoContainer {
             }
         });
     }
-    
+
     /**
      * Clears the algorithm cache. Useful for testing or when algorithms need to be reloaded.
      */

@@ -32,11 +32,11 @@ import java.lang.annotation.*;
 
 /**
  * Annotation for marking phone number fields that require masking.
- * 
+ *
  * <p>This annotation specifically targets phone number fields and applies
  * phone number masking algorithm by default. The phone number masking
  * typically keeps the first 3 and last 4 digits while masking the middle digits.</p>
- * 
+ *
  * <p>Usage example:</p>
  * <pre>
  * public class User {
@@ -44,22 +44,22 @@ import java.lang.annotation.*;
  *     private String phoneNumber; // Will be masked as 138****5678
  * }
  * </pre>
- * 
+ *
  * @author avinzhang
- * @since 1.0.0
  * @see CoverAlgo
  * @see PhoneCoverAlgo
+ * @since 1.0.0
  */
 @Inherited
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface MaskPhone {
-    
+
     /**
      * Specifies the masking algorithm class to use for phone number masking.
      * Defaults to PhoneCoverAlgo which implements standard phone number masking.
-     * 
+     *
      * @return the masking algorithm class for phone numbers
      */
     Class<? extends CoverAlgo> value() default PhoneCoverAlgo.class;

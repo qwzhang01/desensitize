@@ -39,20 +39,21 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Container for managing masking algorithm instances and providing data masking functionality.
  * Provides lazy initialization and caching to avoid circular dependency issues.
- * 
+ *
  * @author avinzhang
  * @since 1.0.0
  */
 public class MaskAlgoContainer {
-    
+
     /**
      * Cache for algorithm instances to avoid repeated creation
      */
     private static final ConcurrentHashMap<Class<? extends CoverAlgo>, CoverAlgo> ALGO_CACHE = new ConcurrentHashMap<>();
+
     /**
      * Gets a masking algorithm instance by class type.
      * First tries to get from Spring context, then falls back to direct instantiation.
-     * 
+     *
      * @param clazz the masking algorithm class
      * @return the masking algorithm instance
      */
@@ -65,7 +66,7 @@ public class MaskAlgoContainer {
                     return algo;
                 }
             }
-            
+
             // Fallback to direct instantiation
             try {
                 return key.getDeclaredConstructor().newInstance();
@@ -82,7 +83,7 @@ public class MaskAlgoContainer {
             }
         });
     }
-    
+
     /**
      * Clears the algorithm cache. Useful for testing or when algorithms need to be reloaded.
      */
@@ -93,7 +94,7 @@ public class MaskAlgoContainer {
     /**
      * Masks sensitive data in the given object recursively.
      * Processes both single objects and lists of objects.
-     * 
+     *
      * @param data the data object to mask
      * @return the masked data object
      */
@@ -121,20 +122,20 @@ public class MaskAlgoContainer {
      * Recursively processes nested objects and collections.
      *
      * @param data the object to process for masking
-     * @throws IllegalAccessException if field access fails
-     * @throws InstantiationException if algorithm instantiation fails
-     * @throws NoSuchMethodException if constructor is not found
+     * @throws IllegalAccessException    if field access fails
+     * @throws InstantiationException    if algorithm instantiation fails
+     * @throws NoSuchMethodException     if constructor is not found
      * @throws InvocationTargetException if constructor invocation fails
      */
     private void maskParam(Object data) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         if (data == null) {
             return;
         }
-        
+
         List<Field> fields = getFields(data.getClass());
         for (Field field : fields) {
             field.setAccessible(true);
-            
+
             if (List.class.isAssignableFrom(field.getType())) {
                 // Handle list fields
                 Object objList = field.get(data);

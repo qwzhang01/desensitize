@@ -87,7 +87,7 @@ public class RoutineCoverAlgo implements CoverAlgo {
     /**
      * Masks phone number by replacing middle 4 digits with asterisks.
      * Preserves the first 3 digits and last 4 digits for identification purposes.
-     * 
+     *
      * @param phone the phone number to be masked (e.g., "13812345678")
      * @return masked phone number (e.g., "138****5678") or original if invalid format
      */
@@ -111,7 +111,7 @@ public class RoutineCoverAlgo implements CoverAlgo {
      * Masks ID card number by replacing birth date portion with asterisks.
      * For 18-digit ID cards, masks 8 middle digits (birth date).
      * For 15-digit ID cards, masks 6 middle digits (birth date).
-     * 
+     *
      * @param idCard the ID card number to be masked
      * @return masked ID card number or original if invalid format
      */
@@ -143,7 +143,7 @@ public class RoutineCoverAlgo implements CoverAlgo {
     /**
      * Masks email address by preserving first and last characters of username.
      * The domain part remains unchanged for functional purposes.
-     * 
+     *
      * @param email the email address to be masked (e.g., "example@gmail.com")
      * @return masked email address (e.g., "e****e@gmail.com") or original if invalid format
      */
@@ -188,7 +188,7 @@ public class RoutineCoverAlgo implements CoverAlgo {
      * Masks Chinese names according to traditional privacy protection rules.
      * For 2-character names: keeps family name, masks given name.
      * For names longer than 2 characters: keeps first and last characters, masks middle.
-     * 
+     *
      * @param name the Chinese name to be masked (e.g., "张三" or "张三丰")
      * @return masked Chinese name (e.g., "张*" or "张*丰") or original if not Chinese
      */
@@ -227,7 +227,7 @@ public class RoutineCoverAlgo implements CoverAlgo {
     /**
      * Masks English names by preserving first and last characters.
      * Replaces middle characters with asterisks for privacy protection.
-     * 
+     *
      * @param name the English name to be masked (e.g., "John" or "Smith")
      * @return masked English name (e.g., "J**n" or "S***h") or original if not English
      */

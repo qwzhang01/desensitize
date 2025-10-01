@@ -40,6 +40,19 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class ClazzUtil {
     private final static Set<Class<?>> NO_CLASS = new CopyOnWriteArraySet<>();
+    /**
+     * Cache for processed classes to avoid repeated reflection operations
+     */
+    private static final Map<Class<?>, List<Field>> FIELD_CACHE = new ConcurrentHashMap<>();
+    /**
+     * Cache for checked types to avoid infinite recursion
+     */
+    private static final Set<Class<?>> PRIMITIVE_TYPES = Set.of(
+            String.class, Integer.class, Long.class, Double.class, Float.class,
+            Boolean.class, Byte.class, Short.class, Character.class,
+            int.class, long.class, double.class, float.class,
+            boolean.class, byte.class, short.class, char.class
+    );
 
     public static boolean isWrapper(Class<?> clazz) {
         if (clazz == null) {
@@ -50,21 +63,6 @@ public class ClazzUtil {
                 && !packageName.startsWith("java.math")
                 && !packageName.startsWith("java.time");
     }
-
-    /**
-     * Cache for processed classes to avoid repeated reflection operations
-     */
-    private static final Map<Class<?>, List<Field>> FIELD_CACHE = new ConcurrentHashMap<>();
-
-    /**
-     * Cache for checked types to avoid infinite recursion
-     */
-    private static final Set<Class<?>> PRIMITIVE_TYPES = Set.of(
-            String.class, Integer.class, Long.class, Double.class, Float.class,
-            Boolean.class, Byte.class, Short.class, Character.class,
-            int.class, long.class, double.class, float.class,
-            boolean.class, byte.class, short.class, char.class
-    );
 
     /**
      * Recursively retrieves all fields with specified annotation from object and its complex properties
@@ -238,6 +236,12 @@ public class ClazzUtil {
                 (clazz.isArray() && !isPrimitiveOrCommonType(clazz.getComponentType()));
     }
 
+    private static boolean isFinalAndStatic(Field field) {
+        return Modifier.isStatic(field.getModifiers())
+                || Modifier.isFinal(field.getModifiers())
+                || Modifier.isTransient(field.getModifiers());
+    }
+
     /**
      * Annotated field result class
      */
@@ -305,11 +309,5 @@ public class ClazzUtil {
             return String.format("AnnotatedFieldResult{field=%s, path=%s, annotation=%s}",
                     field.getName(), fieldPath, annotation.annotationType().getSimpleName());
         }
-    }
-
-    private static boolean isFinalAndStatic(Field field) {
-        return Modifier.isStatic(field.getModifiers())
-                || Modifier.isFinal(field.getModifiers())
-                || Modifier.isTransient(field.getModifiers());
     }
 }

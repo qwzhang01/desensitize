@@ -31,15 +31,15 @@ import java.lang.annotation.*;
 
 /**
  * Annotation for marking email address fields that require masking.
- * 
+ *
  * <p>This annotation specifically targets email address fields and applies
  * email masking algorithm. The email masking typically keeps the first and
  * last characters of the username while masking the middle part, leaving
  * the domain unchanged.</p>
- * 
+ *
  * <p>This annotation is a specialized version of {@link Mask} annotation
  * with EmailCoverAlgo as the default masking algorithm.</p>
- * 
+ *
  * <p>Usage example:</p>
  * <pre>
  * public class User {
@@ -47,11 +47,11 @@ import java.lang.annotation.*;
  *     private String email; // Will be masked as u***r@example.com
  * }
  * </pre>
- * 
+ *
  * @author avinzhang
- * @since 1.0.0
  * @see Mask
  * @see EmailCoverAlgo
+ * @since 1.0.0
  */
 @Inherited
 @Target({ElementType.FIELD})

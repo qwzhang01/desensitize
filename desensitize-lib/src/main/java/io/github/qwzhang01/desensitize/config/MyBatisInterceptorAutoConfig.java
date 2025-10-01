@@ -28,22 +28,22 @@ package io.github.qwzhang01.desensitize.config;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import io.github.qwzhang01.desensitize.core.*;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
+import jakarta.annotation.PostConstruct;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
 
-import jakarta.annotation.PostConstruct;
 import java.util.List;
 
 /**
  * Auto-configuration for MyBatis interceptors.
- * 
+ *
  * <p>This configuration class is responsible for registering MyBatis interceptors
  * after the MyBatis auto-configuration is complete. It's separated from the main
  * configuration to avoid circular dependency issues.</p>
- * 
+ *
  * <p>The configuration runs after MybatisAutoConfiguration to ensure that
  * SqlSessionFactory is fully initialized before adding interceptors.</p>
  *
@@ -72,13 +72,13 @@ public class MyBatisInterceptorAutoConfig {
                 // Add interceptors in the correct order
                 // DecryptInterceptor should be first to decrypt data when reading
                 configuration.addInterceptor(new DecryptInterceptor());
-                
+
                 // EncryptInterceptor should be second to encrypt data when writing
                 configuration.addInterceptor(new EncryptInterceptor());
-                
+
                 // ExecutorInterceptor for general SQL execution interception
                 configuration.addInterceptor(new ExecutorInterceptor());
-                
+
                 // SqlRewriteInterceptor for SQL modification if needed
                 configuration.addInterceptor(new SqlRewriteInterceptor());
 

@@ -32,22 +32,22 @@ import org.springframework.stereotype.Component;
 
 /**
  * Spring context utility class for accessing Spring-managed beans from non-Spring managed classes.
- * 
+ *
  * <p>This utility provides static methods to retrieve beans from the Spring application context,
  * enabling access to Spring-managed components from classes that are not under Spring's control.
  * It implements ApplicationContextAware to automatically receive the application context during
  * Spring container initialization.</p>
- * 
+ *
  * <p>Common use cases include:</p>
  * <ul>
  *   <li>Accessing Spring beans from utility classes</li>
  *   <li>Retrieving services from static methods</li>
  *   <li>Getting configuration beans from non-Spring components</li>
  * </ul>
- * 
+ *
  * @author avinzhang
- * @since 1.0.0
  * @see ApplicationContextAware
+ * @since 1.0.0
  */
 @Component
 public class SpringContextUtil implements ApplicationContextAware {
@@ -60,7 +60,7 @@ public class SpringContextUtil implements ApplicationContextAware {
 
     /**
      * Gets the Spring application context.
-     * 
+     *
      * @return the current application context, or null if not initialized
      */
     public static ApplicationContext getApplicationContext() {
@@ -70,7 +70,7 @@ public class SpringContextUtil implements ApplicationContextAware {
     /**
      * Sets the application context. This method is called automatically by Spring
      * during the container initialization process.
-     * 
+     *
      * @param applicationContext the Spring application context
      * @throws BeansException if context setting fails
      */
@@ -81,7 +81,7 @@ public class SpringContextUtil implements ApplicationContextAware {
 
     /**
      * Retrieves a bean by its name from the Spring application context.
-     * 
+     *
      * @param name the name of the bean to retrieve
      * @return the bean instance
      * @throws BeansException if the bean cannot be found or created
@@ -92,9 +92,9 @@ public class SpringContextUtil implements ApplicationContextAware {
 
     /**
      * Retrieves a bean by its type from the Spring application context.
-     * 
+     *
      * @param clazz the class type of the bean to retrieve
-     * @param <T> the generic type of the bean
+     * @param <T>   the generic type of the bean
      * @return the bean instance of the specified type
      * @throws BeansException if the bean cannot be found or created
      */
@@ -104,10 +104,10 @@ public class SpringContextUtil implements ApplicationContextAware {
 
     /**
      * Retrieves a bean by both name and type from the Spring application context.
-     * 
-     * @param name the name of the bean to retrieve
+     *
+     * @param name  the name of the bean to retrieve
      * @param clazz the class type of the bean to retrieve
-     * @param <T> the generic type of the bean
+     * @param <T>   the generic type of the bean
      * @return the bean instance of the specified name and type
      * @throws BeansException if the bean cannot be found or created
      */
@@ -117,7 +117,7 @@ public class SpringContextUtil implements ApplicationContextAware {
 
     /**
      * Checks whether the application context contains a bean with the specified name.
-     * 
+     *
      * @param name the name of the bean to check
      * @return true if the context contains a bean with the given name, false otherwise
      */
@@ -128,7 +128,7 @@ public class SpringContextUtil implements ApplicationContextAware {
     /**
      * Determines whether the bean with the given name is a singleton or prototype.
      * If no bean definition with the given name is found, a NoSuchBeanDefinitionException is thrown.
-     * 
+     *
      * @param name the name of the bean to check
      * @return true if the bean is a singleton, false if it's a prototype
      * @throws org.springframework.beans.factory.NoSuchBeanDefinitionException if no bean definition is found
@@ -139,7 +139,7 @@ public class SpringContextUtil implements ApplicationContextAware {
 
     /**
      * Gets the type of the bean with the specified name.
-     * 
+     *
      * @param name the name of the bean to check
      * @return the type of the bean, or null if not determinable
      * @throws org.springframework.beans.factory.NoSuchBeanDefinitionException if no bean definition is found
@@ -150,7 +150,7 @@ public class SpringContextUtil implements ApplicationContextAware {
 
     /**
      * Returns the aliases for the given bean name, if any are defined in the bean definition.
-     * 
+     *
      * @param name the bean name to check for aliases
      * @return an array of aliases, or an empty array if none
      * @throws org.springframework.beans.factory.NoSuchBeanDefinitionException if no bean definition is found
@@ -161,7 +161,7 @@ public class SpringContextUtil implements ApplicationContextAware {
 
     /**
      * Checks whether the Spring application context has been initialized.
-     * 
+     *
      * @return true if the application context is available, false otherwise
      */
     public static boolean isInitialized() {
@@ -172,9 +172,9 @@ public class SpringContextUtil implements ApplicationContextAware {
      * Safely retrieves a bean by its type, returning null if the operation fails.
      * This method does not throw exceptions and is safe to use in scenarios where
      * bean availability is uncertain.
-     * 
+     *
      * @param clazz the class type of the bean to retrieve
-     * @param <T> the generic type of the bean
+     * @param <T>   the generic type of the bean
      * @return the bean instance of the specified type, or null if not available
      */
     public static <T> T getBeanSafely(Class<T> clazz) {
@@ -192,7 +192,7 @@ public class SpringContextUtil implements ApplicationContextAware {
      * Safely retrieves a bean by its name, returning null if the operation fails.
      * This method does not throw exceptions and is safe to use in scenarios where
      * bean availability is uncertain.
-     * 
+     *
      * @param name the name of the bean to retrieve
      * @return the bean instance, or null if not available
      */
@@ -211,10 +211,10 @@ public class SpringContextUtil implements ApplicationContextAware {
      * Safely retrieves a bean by both name and type, returning null if the operation fails.
      * This method does not throw exceptions and is safe to use in scenarios where
      * bean availability is uncertain.
-     * 
-     * @param name the name of the bean to retrieve
+     *
+     * @param name  the name of the bean to retrieve
      * @param clazz the class type of the bean to retrieve
-     * @param <T> the generic type of the bean
+     * @param <T>   the generic type of the bean
      * @return the bean instance of the specified name and type, or null if not available
      */
     public static <T> T getBeanSafely(String name, Class<T> clazz) {
