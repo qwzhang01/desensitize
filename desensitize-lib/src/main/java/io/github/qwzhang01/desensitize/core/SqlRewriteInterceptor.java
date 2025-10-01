@@ -51,6 +51,7 @@ public class SqlRewriteInterceptor implements Interceptor {
     public Object intercept(Invocation invocation) throws Throwable {
         boolean started = DataScopeHelper.isStarted();
         if (!Boolean.TRUE.equals(started)) {
+            queryEncrypt(invocation);
             return invocation.proceed();
         }
         StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
@@ -61,13 +62,14 @@ public class SqlRewriteInterceptor implements Interceptor {
         // 修改 SQL，添加软删除条件
         String modifiedSql = originalSql + " WHERE deleted = 0";
 
-// TODO 数据权限逻辑待实现
+        // TODO 数据权限逻辑待实现
         // 使用反射修改 BoundSql 的 sql 字段
         Field field = BoundSql.class.getDeclaredField("sql");
         field.setAccessible(true);
         field.set(boundSql, modifiedSql);
 
         // 继续执行
+        queryEncrypt(invocation);
         return invocation.proceed();
     }
 
@@ -79,5 +81,9 @@ public class SqlRewriteInterceptor implements Interceptor {
     @Override
     public void setProperties(Properties properties) {
         // 可选：处理配置属性
+    }
+
+    private void queryEncrypt(Invocation invocation) {
+        // todo 待实现
     }
 }

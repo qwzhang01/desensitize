@@ -1,12 +1,15 @@
 package com.qw.desensitize.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qw.desensitize.common.R;
 import com.qw.desensitize.dto.UserDto;
+import com.qw.desensitize.dto.UserParam;
 import com.qw.desensitize.entity.User;
 import com.qw.desensitize.mapper.UserMapper;
+import io.github.qwzhang01.desensitize.domain.Encrypt;
 import io.github.qwzhang01.desensitize.domain.MaskContext;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -25,10 +28,21 @@ public class UserController {
     private final UserMapper mapper;
 
     @GetMapping("page")
-    public R<Page<User>> page() {
-        LambdaQueryWrapper<User> query = Wrappers.lambdaQuery();
-        query.eq(User::getPhoneNo, "13800138000");
-        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query);
+    public R<Page<?>> page() {
+
+        UserParam userParam = new UserParam();
+        userParam.setPhoneNo("13900139002");
+
+        Page<UserDto> userPage = mapper.list(new Page<>(1, 10), userParam);
+
+
+//        QueryWrapper<User> query1 = Wrappers.query();
+//        query1.eq("phoneNo", userParam.getPhoneNo());
+//        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query1);
+
+//        LambdaQueryWrapper<User> query = Wrappers.lambdaQuery();
+//        query.eq(User::getPhoneNo, new Encrypt("13900139002"));
+//        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query);
         return R.ok(userPage);
     }
 

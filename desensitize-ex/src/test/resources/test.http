@@ -1,8 +1,8 @@
-### 1. 获取用户信息 - GET请求
+### 1. 分页：获取用户信息 - GET请求
 GET http://127.0.0.1:2222/api/user/page
 Accept: application/json
 
-### 1. 获取用户信息 - GET请求
+### 1. 查询：获取用户信息 - GET请求
 GET http://127.0.0.1:2222/api/user/info?userId=1973311168493334530
 Accept: application/json
 
