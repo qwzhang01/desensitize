@@ -25,6 +25,7 @@
 
 package io.github.qwzhang01.desensitize.kit;
 
+import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
 
@@ -79,10 +80,10 @@ public class EncryptionAlgoContainer {
                     try {
                         return new DefaultEncryptionAlgo();
                     } catch (Exception ex) {
-                        throw new RuntimeException("Failed to create encryption algorithm instance", ex);
+                        throw new DesensitizeException("Failed to create encryption algorithm instance", ex);
                     }
                 }
-                throw new RuntimeException("Failed to create encryption algorithm instance", e);
+                throw new DesensitizeException("Failed to create encryption algorithm instance", e);
             }
         });
     }

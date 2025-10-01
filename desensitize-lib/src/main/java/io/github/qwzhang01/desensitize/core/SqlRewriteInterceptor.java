@@ -25,6 +25,7 @@
 
 package io.github.qwzhang01.desensitize.core;
 
+import io.github.qwzhang01.desensitize.scope.DataScopeHelper;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.plugin.*;
@@ -48,6 +49,10 @@ public class SqlRewriteInterceptor implements Interceptor {
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
+        boolean started = DataScopeHelper.isStarted();
+        if (!Boolean.TRUE.equals(started)) {
+            return invocation.proceed();
+        }
         StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
         BoundSql boundSql = statementHandler.getBoundSql();
 

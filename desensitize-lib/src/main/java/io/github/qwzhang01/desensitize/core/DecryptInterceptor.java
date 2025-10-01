@@ -27,6 +27,7 @@ package io.github.qwzhang01.desensitize.core;
 
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import io.github.qwzhang01.desensitize.annotation.EncryptField;
+import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.kit.EncryptionAlgoContainer;
 import org.apache.ibatis.executor.resultset.ResultSetHandler;
 import org.apache.ibatis.plugin.*;
@@ -108,9 +109,7 @@ public class DecryptInterceptor implements Interceptor {
                 // 去除所有被 EncryptField 注解的字段
                 EncryptField sensitiveFiled = declaredField.getAnnotation(EncryptField.class);
                 if (!Objects.isNull(sensitiveFiled)) {
-
                     NO_CLASS.add(resultClass);
-
                     //将此对象的 accessible 标志设置为指示的布尔值。值为 true 则指示反射的对象在使用时应该取消 Java 语言访问检查。
                     declaredField.setAccessible(true);
                     //这里的result就相当于是字段的访问器
@@ -128,7 +127,7 @@ public class DecryptInterceptor implements Interceptor {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new DesensitizeException(e);
         }
     }
 }

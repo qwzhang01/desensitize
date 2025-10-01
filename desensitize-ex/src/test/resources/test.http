@@ -1,8 +1,6 @@
 ### 1. 获取用户信息 - GET请求
-GET http://127.0.0.1:2222/api/user/info?userId=1
+GET http://127.0.0.1:2222/api/user/info?userId=1973289482821758978
 Accept: application/json
-
-###
 
 ### 2. 保存用户 - POST请求
 POST http://127.0.0.1:2222/api/user/save
@@ -14,8 +12,6 @@ Content-Type: application/json
   "gender": "男",
   "idNo": "110101199001011234"
 }
-
-###
 
 ### 3. 更新用户 - POST请求
 POST http://127.0.0.1:2222/api/user/update
@@ -31,8 +27,6 @@ Content-Type: application/json
   }
 }
 
-###
-
 ### 4. 保存用户（错误示例）- POST请求
 POST http://127.0.0.1:2222/api/user/save-error
 Content-Type: application/json
@@ -46,13 +40,9 @@ Content-Type: application/json
   }
 }
 
-###
-
 ### 5. 获取不存在的用户信息 - 测试错误情况
 GET http://127.0.0.1:2222/api/user/info?userId=999
 Accept: application/json
-
-###
 
 ### 6. 保存用户 - 测试数据脱敏
 POST http://127.0.0.1:2222/api/user/save
@@ -66,8 +56,6 @@ Content-Type: application/json
     "value": "320101199012124567"
   }
 }
-
-###
 
 ### 7. 更新用户 - 测试完整数据
 POST http://127.0.0.1:2222/api/user/update

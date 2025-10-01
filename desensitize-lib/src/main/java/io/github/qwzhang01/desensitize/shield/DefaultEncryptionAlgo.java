@@ -25,6 +25,8 @@
 
 package io.github.qwzhang01.desensitize.shield;
 
+import io.github.qwzhang01.desensitize.exception.DesensitizeException;
+
 import javax.crypto.Cipher;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESKeySpec;
@@ -132,7 +134,7 @@ public class DefaultEncryptionAlgo implements EncryptionAlgo {
          */
         public static String encrypt(String password, String data) {
             if (password == null || password.length() < 8) {
-                throw new RuntimeException("Encryption failed: key must be at least 8 characters long");
+                throw new DesensitizeException("Encryption failed: key must be at least 8 characters long");
             }
             if (data == null) {
                 return null;
@@ -169,7 +171,7 @@ public class DefaultEncryptionAlgo implements EncryptionAlgo {
          */
         public static String decrypt(String password, String data) {
             if (password == null || password.length() < 8) {
-                throw new RuntimeException("Decryption failed: key must be at least 8 characters long");
+                throw new DesensitizeException("Decryption failed: key must be at least 8 characters long");
             }
             if (data == null) {
                 return null;

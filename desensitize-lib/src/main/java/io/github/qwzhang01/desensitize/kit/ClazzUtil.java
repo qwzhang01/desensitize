@@ -25,6 +25,11 @@
 
 package io.github.qwzhang01.desensitize.kit;
 
+/**
+ * 类操作工具
+ *
+ * @author avinzhang
+ */
 public class ClazzUtil {
     public static boolean isWrapper(Class<?> clazz) {
         if (clazz == null) {

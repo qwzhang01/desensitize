@@ -26,6 +26,7 @@
 package io.github.qwzhang01.desensitize.kit;
 
 import io.github.qwzhang01.desensitize.annotation.Mask;
+import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
 
@@ -74,10 +75,10 @@ public class MaskAlgoContainer {
                     try {
                         return new DefaultCoverAlgo();
                     } catch (Exception ex) {
-                        throw new RuntimeException("Failed to create masking algorithm instance", ex);
+                        throw new DesensitizeException("Failed to create masking algorithm instance", ex);
                     }
                 }
-                throw new RuntimeException("Failed to create masking algorithm instance", e);
+                throw new DesensitizeException("Failed to create masking algorithm instance", e);
             }
         });
     }
@@ -110,7 +111,7 @@ public class MaskAlgoContainer {
             }
         } catch (IllegalAccessException | InstantiationException | NoSuchMethodException |
                  InvocationTargetException e) {
-            throw new RuntimeException("Failed to mask data", e);
+            throw new DesensitizeException("Failed to mask data", e);
         }
         return data;
     }

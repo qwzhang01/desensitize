@@ -26,21 +26,20 @@
 package io.github.qwzhang01.desensitize.core;
 
 import io.github.qwzhang01.desensitize.annotation.EncryptField;
-import io.github.qwzhang01.desensitize.kit.ClazzUtil;
 import io.github.qwzhang01.desensitize.kit.EncryptionAlgoContainer;
 import org.apache.ibatis.binding.MapperMethod;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
-import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.plugin.*;
-import org.apache.ibatis.reflection.DefaultReflectorFactory;
-import org.apache.ibatis.reflection.MetaObject;
-import org.apache.ibatis.reflection.SystemMetaObject;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -65,130 +64,140 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 @Intercepts({@Signature(type = ParameterHandler.class, method = "setParameters", args = PreparedStatement.class)})
 public class EncryptInterceptor implements Interceptor {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(EncryptInterceptor.class);
+    private static final Logger log = LoggerFactory.getLogger(EncryptInterceptor.class);
     private static final String ENCRYPT_PREFIX = "_sensitive_start_";
-    private final static Set<Class<?>> NO_CLASS = new CopyOnWriteArraySet<>();
+
+    // 使用 ConcurrentHashMap 替代 CopyOnWriteArraySet
+    private static final Set<Class<?>> PROCESSED_CLASSES = ConcurrentHashMap.newKeySet();
+
+    // 缓存字段信息
+    private static final Map<Class<?>, List<Field>> ENCRYPT_FIELDS_CACHE = new ConcurrentHashMap<>();
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        // @Signature 指定了 type= parameterHandler 后，这里的 invocation.getTarget() 便是parameterHandler
-        // 若指定ResultSetHandler ，这里则能强转为ResultSetHandler
         ParameterHandler parameterHandler = (ParameterHandler) invocation.getTarget();
 
-        MetaObject metaObject = MetaObject.forObject(parameterHandler, SystemMetaObject.DEFAULT_OBJECT_FACTORY, SystemMetaObject.DEFAULT_OBJECT_WRAPPER_FACTORY, new DefaultReflectorFactory());
-        MappedStatement mappedStatement = (MappedStatement) metaObject.getValue("mappedStatement");
-        //sql语句类型：UNKNOWN, INSERT, UPDATE, DELETE, SELECT, FLUSH、update,SqlCommandType是个enum
-        String sqlCommandType = mappedStatement.getSqlCommandType().toString();
-//        if (!"INSERT".equals(sqlCommandType) && !"UPDATE".equals(sqlCommandType)) {
-//            return invocation.proceed();
-//        }
+        // 获取参数对象
+        Object parameterObject = getParameterObject(parameterHandler);
+        if (parameterObject == null) {
+            return invocation.proceed();
+        }
 
-        // 获取参数对象，即mapper中paramsType的实例
-        Field paramsFiled = parameterHandler.getClass().getDeclaredField("parameterObject");
-        // 将此对象的 accessible 标志设置为指示的布尔值。值为 true 则指示反射的对象在使用时应该取消 Java 语言访问检查。
-        paramsFiled.setAccessible(true);
-        // 取出实例
-        Object parameterObject = paramsFiled.get(parameterHandler);
-        List<Backup> plaintextBackup = new ArrayList<>();
-        if (parameterObject != null) {
-            Class<?> parameterObjectClass = null;
-            if (parameterObject instanceof MapperMethod.ParamMap) {
-                // 更新操作被拦截
-                Map paramMap = (Map) parameterObject;
-                if (paramMap.containsKey("et")) {
-                    parameterObject = paramMap.get("et");
-                    if (parameterObject != null) {
-                        parameterObjectClass = parameterObject.getClass();
-                    }
-                }
-            } else {
-                parameterObjectClass = parameterObject.getClass();
-            }
-            if (parameterObjectClass != null && needToDecrypt(parameterObject)) {
-                //取出当前类的所有字段，传入加密方法
-                Field[] declaredFields = parameterObjectClass.getDeclaredFields();
-                encryptObj(declaredFields, parameterObject, plaintextBackup);
+        // 检查是否需要处理
+        Object targetObject = extractTargetObject(parameterObject);
+        if (targetObject == null || !shouldProcess(targetObject)) {
+            return invocation.proceed();
+        }
+
+        // 执行加密
+        List<FieldBackup> backups = new ArrayList<>();
+        try {
+            encryptFields(targetObject, backups);
+            return invocation.proceed();
+        } finally {
+            // 确保明文能够还原
+            restoreFields(backups);
+        }
+    }
+
+    private Object getParameterObject(ParameterHandler parameterHandler) {
+        try {
+            return parameterHandler.getParameterObject();
+        } catch (Exception e) {
+            log.warn("获取参数对象失败", e);
+            return null;
+        }
+    }
+
+    private Object extractTargetObject(Object parameterObject) {
+        if (parameterObject instanceof MapperMethod.ParamMap paramMap) {
+            return paramMap.get("et"); // MyBatis-Plus 的实体参数
+        }
+        return parameterObject;
+    }
+
+    private boolean shouldProcess(Object object) {
+        Class<?> clazz = object.getClass();
+
+        // 跳过已知不需要处理的类
+        if (PROCESSED_CLASSES.contains(clazz)) {
+            return false;
+        }
+
+        // 检查是否有加密字段
+        List<Field> encryptFields = getEncryptFields(clazz);
+        if (encryptFields.isEmpty()) {
+            PROCESSED_CLASSES.add(clazz);
+            return false;
+        }
+
+        return true;
+    }
+
+    private List<Field> getEncryptFields(Class<?> clazz) {
+        return ENCRYPT_FIELDS_CACHE.computeIfAbsent(clazz, this::findEncryptFields);
+    }
+
+    private List<Field> findEncryptFields(Class<?> clazz) {
+        List<Field> encryptFields = new ArrayList<>();
+        Field[] fields = clazz.getDeclaredFields();
+
+        for (Field field : fields) {
+            if (field.isAnnotationPresent(EncryptField.class)) {
+                field.setAccessible(true);
+                encryptFields.add(field);
             }
         }
-        //获取原方法的返回值
-        Object proceed = invocation.proceed();
 
-        restorePlaintext(plaintextBackup);
-        return proceed;
+        return encryptFields;
     }
 
-    private boolean needToDecrypt(Object object) {
-        Class<?> objectClass = object.getClass();
-        return !NO_CLASS.contains(objectClass);
+    private void encryptFields(Object object, List<FieldBackup> backups) {
+        List<Field> encryptFields = getEncryptFields(object.getClass());
+
+        for (Field field : encryptFields) {
+            try {
+                Object value = field.get(object);
+                if (value instanceof String stringValue && !stringValue.isEmpty()) {
+                    // 检查是否已经加密
+                    if (!stringValue.startsWith(ENCRYPT_PREFIX)) {
+                        EncryptField annotation = field.getAnnotation(EncryptField.class);
+                        String encrypted = EncryptionAlgoContainer.getAlgo(annotation.value()).encrypt(stringValue);
+                        String finalValue = ENCRYPT_PREFIX + encrypted;
+
+                        // 备份原值
+                        backups.add(new FieldBackup(field, stringValue, object));
+
+                        // 设置加密值
+                        field.set(object, finalValue);
+
+                        log.debug("字段 {} 已加密", field.getName());
+                    }
+                }
+            } catch (Exception e) {
+                log.error("加密字段 {} 失败", field.getName(), e);
+            }
+        }
     }
 
-    /**
-     * 一定要配置，加入此拦截器到拦截器链
-     *
-     * @param target
-     * @return
-     */
+    private void restoreFields(List<FieldBackup> backups) {
+        for (FieldBackup backup : backups) {
+            try {
+                backup.field.set(backup.object, backup.originalValue);
+                log.debug("字段 {} 已还原", backup.field.getName());
+            } catch (Exception e) {
+                log.error("还原字段 {} 失败", backup.field.getName(), e);
+            }
+        }
+    }
+
     @Override
     public Object plugin(Object target) {
         return Plugin.wrap(target, this);
     }
 
-    private <T> boolean encryptObj(Field[] aesFields, T paramsObject, List<Backup> plaintextBackup) {
-        boolean e = false;
-        try {
-            for (Field aesField : aesFields) {
-                EncryptField annotation = aesField.getAnnotation(EncryptField.class);
-                if (!Objects.isNull(annotation)) {
-                    aesField.setAccessible(true);
-                    e = true;
-                    Object object = aesField.get(paramsObject);
-                    if (object instanceof String value) {
-                        // 备份明文
-                        plaintextBackup.add(new Backup(aesField, value, paramsObject));
-                        // 加密
-                        String encrypt = value;
-                        if (!value.startsWith(ENCRYPT_PREFIX)) {
-                            encrypt = EncryptionAlgoContainer.getAlgo(annotation.value()).encrypt(value);
-                            encrypt = ENCRYPT_PREFIX + encrypt;
-                        }
-                        aesField.set(paramsObject, encrypt);
-                    }
-                } else {
-                    Class<?> type = aesField.getType();
-                    if (ClazzUtil.isWrapper(type)) {
-                        aesField.setAccessible(true);
-                        Object object = aesField.get(paramsObject);
-                        if (object != null && needToDecrypt(object)) {
-                            e = encryptObj(object.getClass().getDeclaredFields(), object, plaintextBackup);
-                        }
-                    }
-                }
-            }
-            if (!e) {
-                NO_CLASS.add(paramsObject.getClass());
-            }
-            return e;
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
-
-    // 还原明文
-    private void restorePlaintext(List<Backup> plaintextBackup) {
-        for (Backup entry : plaintextBackup) {
-            Field field = entry.field;
-            String plaintext = entry.value;
-            try {
-                field.setAccessible(true);
-                field.set(entry.object, plaintext);
-                log.debug("字段 {} 已还原为明文", field.getName());
-            } catch (Exception e) {
-                log.error("还原字段 {} 失败", field.getName(), e);
-            }
-        }
-    }
-
-    private record Backup(Field field, String value, Object object) {
-    }
+    /**
+     * 字段备份内部类
+     */
+    private record FieldBackup(Field field, String originalValue, Object object) { }
 }

@@ -39,11 +39,11 @@ public class UserController {
     }
 
     @PostMapping("save")
-    public R<String> save(@RequestBody UserDto user) {
+    public R<User> save(@RequestBody UserDto user) {
         User dto = new User();
         BeanUtils.copyProperties(user, dto);
         mapper.insert(dto);
-        return R.success("");
+        return R.success(dto);
     }
 
 

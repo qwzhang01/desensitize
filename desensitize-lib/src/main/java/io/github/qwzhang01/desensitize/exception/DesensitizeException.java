@@ -11,6 +11,10 @@ public class DesensitizeException extends RuntimeException {
         super(message);
     }
 
+    public DesensitizeException(Throwable cause) {
+        super(cause);
+    }
+
     public DesensitizeException(String message, Throwable cause) {
         super(message, cause);
     }
