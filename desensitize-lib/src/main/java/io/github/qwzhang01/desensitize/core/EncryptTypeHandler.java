@@ -38,7 +38,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * 加密解密类型转换器
+ * Encryption and decryption type converter.
+ * This MyBatis type handler automatically encrypts data when storing to database
+ * and decrypts data when retrieving from database.
  *
  * @author avinzhang
  */
@@ -47,7 +49,7 @@ import java.sql.SQLException;
 public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
 
     /**
-     * 设置参数
+     * Set parameter
      */
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, Encrypt parameter, JdbcType jdbcType) throws SQLException {
@@ -60,7 +62,7 @@ public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
     }
 
     /**
-     * 获取值
+     * Get value
      */
     @Override
     public Encrypt getNullableResult(ResultSet rs, String columnName) throws SQLException {
@@ -68,7 +70,7 @@ public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
     }
 
     /**
-     * 获取值
+     * Get value
      */
     @Override
     public Encrypt getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
@@ -76,7 +78,7 @@ public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
     }
 
     /**
-     * 获取值
+     * Get value
      */
     @Override
     public Encrypt getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
@@ -84,10 +86,10 @@ public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
     }
 
     /**
-     * 解密
+     * Decrypt the encrypted value
      *
-     * @param value
-     * @return
+     * @param value the encrypted value
+     * @return the decrypted Encrypt object
      */
     private Encrypt decrypt(String value) {
         if (null == value) {

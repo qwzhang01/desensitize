@@ -37,46 +37,54 @@ import java.util.Base64;
 /**
  * Default encryption algorithm implementation using DES (Data Encryption Standard).
  * Provides symmetric encryption and decryption capabilities for sensitive data protection.
- * 
+ *
  * <p>This implementation uses DES algorithm with CBC mode and PKCS5 padding
  * for secure data transformation. The encryption key and initialization vector
  * are predefined for consistency across the application.</p>
- * 
+ *
  * <p><strong>Security Note:</strong> DES is considered weak by modern standards.
  * For production use, consider upgrading to AES or other stronger algorithms.</p>
  *
  * @author avinzhang
- * @since 1.0.0
  * @see EncryptionAlgo
+ * @since 1.0.0
  */
 public class DefaultEncryptionAlgo implements EncryptionAlgo {
+    private static final String ENCRYPT_PREFIX = "_sensitive_start_";
 
     /**
      * Encrypts the given value using the default DES encryption algorithm.
-     * 
+     *
      * @param value the plain text value to encrypt
      * @return the encrypted value encoded in Base64, or null if input is null
      */
     @Override
     public String encrypt(String value) {
-        return DesKit.encrypt(DesKit.KEY, value);
+        if (!value.startsWith(ENCRYPT_PREFIX)) {
+            String encrypted = DesKit.encrypt(DesKit.KEY, value);
+            return ENCRYPT_PREFIX + encrypted;
+        }
+        return value;
     }
 
     /**
      * Decrypts the given encrypted value using the default DES decryption algorithm.
-     * 
+     *
      * @param value the encrypted value (Base64 encoded) to decrypt
      * @return the decrypted plain text value, or null if input is null
      */
     @Override
     public String decrypt(String value) {
+        if (value.startsWith(ENCRYPT_PREFIX)) {
+            value = value.substring(17);
+        }
         return DesKit.decrypt(DesKit.KEY, value);
     }
 
     /**
      * Internal utility class for DES encryption and decryption operations.
      * Encapsulates all cryptographic operations and configuration constants.
-     * 
+     *
      * @author avinzhang
      */
     private static class DesKit {
@@ -112,7 +120,7 @@ public class DefaultEncryptionAlgo implements EncryptionAlgo {
         /**
          * Generates a DES secret key from the provided password string.
          * The password is converted to bytes and used to create a DES key specification.
-         * 
+         *
          * @param password the password string to generate key from (must be at least 8 characters)
          * @return the generated DES secret key
          * @throws Exception if key generation fails due to invalid password or algorithm issues
@@ -126,9 +134,9 @@ public class DefaultEncryptionAlgo implements EncryptionAlgo {
         /**
          * Encrypts a string using DES algorithm with CBC mode and PKCS5 padding.
          * The encrypted result is encoded in Base64 for safe string representation.
-         * 
+         *
          * @param password the encryption password (must be at least 8 characters long)
-         * @param data the plain text data to encrypt
+         * @param data     the plain text data to encrypt
          * @return the encrypted data encoded in Base64, or null if input data is null
          * @throws RuntimeException if password is invalid (null or less than 8 characters)
          */
@@ -139,7 +147,7 @@ public class DefaultEncryptionAlgo implements EncryptionAlgo {
             if (data == null) {
                 return null;
             }
-            
+
             try {
                 Key secretKey = generateKey(password);
                 Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
@@ -163,9 +171,9 @@ public class DefaultEncryptionAlgo implements EncryptionAlgo {
         /**
          * Decrypts a Base64-encoded encrypted string using DES algorithm.
          * The input should be a Base64-encoded string produced by the encrypt method.
-         * 
+         *
          * @param password the decryption password (must be at least 8 characters long)
-         * @param data the encrypted data (Base64 encoded) to decrypt
+         * @param data     the encrypted data (Base64 encoded) to decrypt
          * @return the decrypted plain text, or null if input data is null
          * @throws RuntimeException if password is invalid (null or less than 8 characters)
          */
@@ -176,7 +184,7 @@ public class DefaultEncryptionAlgo implements EncryptionAlgo {
             if (data == null) {
                 return null;
             }
-            
+
             try {
                 Key secretKey = generateKey(password);
                 Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);

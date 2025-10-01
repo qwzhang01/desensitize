@@ -1,5 +1,6 @@
 package com.qw.desensitize.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qw.desensitize.common.R;
 import com.qw.desensitize.dto.UserDto;
 import com.qw.desensitize.entity.User;
@@ -20,6 +21,12 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserMapper mapper;
+
+    @GetMapping("page")
+    public R<Page<User>> page() {
+        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), null);
+        return R.ok(userPage);
+    }
 
     @GetMapping("info")
     public R<UserDto> info(@RequestParam String userId) {
@@ -48,11 +55,11 @@ public class UserController {
 
 
     @PostMapping("update")
-    public R<String> update(@RequestBody UserDto user) {
+    public R<User> update(@RequestBody UserDto user) {
         User dto = new User();
         BeanUtils.copyProperties(user, dto);
         mapper.updateById(dto);
-        return R.success("");
+        return R.success(dto);
     }
 
     /**

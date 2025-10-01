@@ -7,13 +7,13 @@
     <parent>
         <groupId>io.github.qwzhang01</groupId>
         <artifactId>desensitize-pom</artifactId>
-        <version>1.0</version>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>desensitize</artifactId>
     <url>https://github.com/qwzhang01/desensitize</url>
     <name>Spring Boot Mybatis Desensitize</name>
-    <description>Spring Boot Mybatis 加密脱敏数据权限</description>
+    <description>A Spring Boot library for MyBatis data encryption, desensitization, and data scope control. Provides automatic field encryption/decryption, sensitive data masking, and fine-grained data access control for enterprise applications.</description>
 
     <licenses>
         <license>

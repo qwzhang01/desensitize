@@ -1,7 +1,8 @@
 package io.github.qwzhang01.desensitize.exception;
 
 /**
- * Bean 拷贝异常
+ * Bean copying exception.
+ * This exception is thrown when errors occur during bean copying operations.
  *
  * @author avinzhang
  */

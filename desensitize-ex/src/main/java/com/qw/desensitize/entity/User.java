@@ -15,7 +15,7 @@ import lombok.Data;
 @TableName("user")
 public class User {
     @TableId(value = "id", type = IdType.ASSIGN_ID)
-    private String id;
+    private Long id;
     @TableField("name")
     private String name;
     /**

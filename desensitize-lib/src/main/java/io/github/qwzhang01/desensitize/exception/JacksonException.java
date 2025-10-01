@@ -1,7 +1,8 @@
 package io.github.qwzhang01.desensitize.exception;
 
 /**
- * JSON 序列号华反序列化异常
+ * JSON serialization and deserialization exception.
+ * This exception is thrown when errors occur during JSON processing operations.
  *
  * @author avinzhang
  */

@@ -26,12 +26,14 @@
 package io.github.qwzhang01.desensitize.core;
 
 import io.github.qwzhang01.desensitize.annotation.EncryptField;
+import io.github.qwzhang01.desensitize.kit.ClazzUtil;
 import io.github.qwzhang01.desensitize.kit.EncryptionAlgoContainer;
-import org.apache.ibatis.binding.MapperMethod;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
 import org.apache.ibatis.plugin.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
@@ -43,139 +45,97 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * ResultSetHandler 拦截
- * ResultSetHandler 负责将数据库查询结果集映射为 Java 对象。拦截 ResultSetHandler 可以自定义结果集的处理逻辑。
+ * MyBatis ParameterHandler interceptor for automatic field encryption.
  * <p>
- * Intercepts 拦截器
- * Signature拦截器类型设置
+ * This interceptor automatically encrypts fields marked with @EncryptField annotation
+ * before SQL execution and restores original values after processing.
  * <p>
- * type 属性指定拦截器拦截的类StatementHandler 、ResultSetHandler、ParameterHandler，Executor
- * Executor (update, query, flushStatements, commit, rollback, getTransaction, close, isClosed) 处理增删改查
- * ParameterHandler (getParameterObject, setParameters) 设置预编译参数
- * ResultSetHandler (handleResultSets, handleOutputParameters) 处理结果
- * StatementHandler (prepare, parameterize, batch, update, query) 处理sql预编译，设置参数
+ * MyBatis Interceptor Types:
+ * - Executor: handles CRUD operations (update, query, flushStatements, commit, rollback, getTransaction, close, isClosed)
+ * - ParameterHandler: handles parameter setting (getParameterObject, setParameters)
+ * - ResultSetHandler: handles result processing (handleResultSets, handleOutputParameters)
+ * - StatementHandler: handles SQL preparation and parameter setting (prepare, parameterize, batch, update, query)
  * <p>
- * method 拦截对应类的方法
- * <p>
- * args 被拦截方法的参数
- * <p>
+ * This interceptor targets ParameterHandler.setParameters method to encrypt parameters
+ * before they are set in the prepared statement.
  *
  * @author avinzhang
  */
-@Intercepts({@Signature(type = ParameterHandler.class, method = "setParameters", args = PreparedStatement.class)})
+@Intercepts({@Signature(type = ParameterHandler.class, method = "setParameters", args = {PreparedStatement.class})})
 public class EncryptInterceptor implements Interceptor {
     private static final Logger log = LoggerFactory.getLogger(EncryptInterceptor.class);
-    private static final String ENCRYPT_PREFIX = "_sensitive_start_";
 
-    // 使用 ConcurrentHashMap 替代 CopyOnWriteArraySet
+    // Use ConcurrentHashMap instead of CopyOnWriteArraySet for better performance
     private static final Set<Class<?>> PROCESSED_CLASSES = ConcurrentHashMap.newKeySet();
 
-    // 缓存字段信息
+    // Cache field information for performance optimization
     private static final Map<Class<?>, List<Field>> ENCRYPT_FIELDS_CACHE = new ConcurrentHashMap<>();
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         ParameterHandler parameterHandler = (ParameterHandler) invocation.getTarget();
 
-        // 获取参数对象
-        Object parameterObject = getParameterObject(parameterHandler);
+        // Get parameter object
+        Object parameterObject = parameterHandler.getParameterObject();
         if (parameterObject == null) {
             return invocation.proceed();
         }
 
-        // 检查是否需要处理
-        Object targetObject = extractTargetObject(parameterObject);
-        if (targetObject == null || !shouldProcess(targetObject)) {
-            return invocation.proceed();
-        }
-
-        // 执行加密
+        // Execute encryption
         List<FieldBackup> backups = new ArrayList<>();
         try {
-            encryptFields(targetObject, backups);
+            if (parameterObject instanceof java.util.List) {
+                for (Object item : (java.util.List<?>) parameterObject) {
+                    encryptFields(item, backups);
+                }
+            } else if (parameterObject instanceof Map<?, ?>) {
+                for (Object item : ((Map<?, ?>) parameterObject).values()) {
+                    encryptFields(item, backups);
+                }
+            } else if (parameterObject instanceof Set<?>) {
+                for (Object item : (Set<?>) parameterObject) {
+                    encryptFields(item, backups);
+                }
+            } else {
+                encryptFields(parameterObject, backups);
+            }
+
             return invocation.proceed();
         } finally {
-            // 确保明文能够还原
+            // Ensure plaintext can be restored
             restoreFields(backups);
         }
     }
 
-    private Object getParameterObject(ParameterHandler parameterHandler) {
-        try {
-            return parameterHandler.getParameterObject();
-        } catch (Exception e) {
-            log.warn("获取参数对象失败", e);
-            return null;
-        }
-    }
-
-    private Object extractTargetObject(Object parameterObject) {
-        if (parameterObject instanceof MapperMethod.ParamMap paramMap) {
-            return paramMap.get("et"); // MyBatis-Plus 的实体参数
-        }
-        return parameterObject;
-    }
-
-    private boolean shouldProcess(Object object) {
-        Class<?> clazz = object.getClass();
-
-        // 跳过已知不需要处理的类
-        if (PROCESSED_CLASSES.contains(clazz)) {
-            return false;
+    private void encryptFields(Object obj, List<FieldBackup> backups) {
+        if (obj == null) {
+            return;
         }
 
-        // 检查是否有加密字段
-        List<Field> encryptFields = getEncryptFields(clazz);
-        if (encryptFields.isEmpty()) {
-            PROCESSED_CLASSES.add(clazz);
-            return false;
+        List<ClazzUtil.AnnotatedFieldResult<EncryptField>> fields = ClazzUtil.getAnnotatedFields(obj, EncryptField.class);
+        if (CollectionUtils.isEmpty(fields)) {
+            return;
         }
 
-        return true;
-    }
-
-    private List<Field> getEncryptFields(Class<?> clazz) {
-        return ENCRYPT_FIELDS_CACHE.computeIfAbsent(clazz, this::findEncryptFields);
-    }
-
-    private List<Field> findEncryptFields(Class<?> clazz) {
-        List<Field> encryptFields = new ArrayList<>();
-        Field[] fields = clazz.getDeclaredFields();
-
-        for (Field field : fields) {
-            if (field.isAnnotationPresent(EncryptField.class)) {
-                field.setAccessible(true);
-                encryptFields.add(field);
-            }
-        }
-
-        return encryptFields;
-    }
-
-    private void encryptFields(Object object, List<FieldBackup> backups) {
-        List<Field> encryptFields = getEncryptFields(object.getClass());
-
-        for (Field field : encryptFields) {
+        for (ClazzUtil.AnnotatedFieldResult<EncryptField> fieldObj : fields) {
             try {
-                Object value = field.get(object);
-                if (value instanceof String stringValue && !stringValue.isEmpty()) {
-                    // 检查是否已经加密
-                    if (!stringValue.startsWith(ENCRYPT_PREFIX)) {
-                        EncryptField annotation = field.getAnnotation(EncryptField.class);
-                        String encrypted = EncryptionAlgoContainer.getAlgo(annotation.value()).encrypt(stringValue);
-                        String finalValue = ENCRYPT_PREFIX + encrypted;
+                EncryptField annotation = fieldObj.annotation();
+                Field field = fieldObj.field();
+                Object object = fieldObj.containingObject();
+                Object value = fieldObj.getFieldValue();
 
+                field.setAccessible(true);
+                if (value instanceof String strValue) {
+                    if (StringUtils.hasText(strValue)) {
                         // 备份原值
-                        backups.add(new FieldBackup(field, stringValue, object));
-
-                        // 设置加密值
-                        field.set(object, finalValue);
-
+                        backups.add(new FieldBackup(field, strValue, object));
+                        strValue = EncryptionAlgoContainer.getAlgo(annotation.value()).encrypt(strValue);
+                        field.set(object, strValue);
                         log.debug("字段 {} 已加密", field.getName());
                     }
                 }
             } catch (Exception e) {
-                log.error("加密字段 {} 失败", field.getName(), e);
+                log.error("加密字段 {} 失败", fieldObj.field().getName(), e);
             }
         }
     }
@@ -199,5 +159,6 @@ public class EncryptInterceptor implements Interceptor {
     /**
      * 字段备份内部类
      */
-    private record FieldBackup(Field field, String originalValue, Object object) { }
+    private record FieldBackup(Field field, String originalValue, Object object) {
+    }
 }

@@ -28,6 +28,7 @@ package io.github.qwzhang01.desensitize.core;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import io.github.qwzhang01.desensitize.annotation.EncryptField;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
+import io.github.qwzhang01.desensitize.kit.ClazzUtil;
 import io.github.qwzhang01.desensitize.kit.EncryptionAlgoContainer;
 import org.apache.ibatis.executor.resultset.ResultSetHandler;
 import org.apache.ibatis.plugin.*;
@@ -37,8 +38,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * ParameterHandler 拦截
@@ -51,8 +50,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 @Intercepts({@Signature(type = ResultSetHandler.class, method = "handleResultSets", args = {Statement.class})})
 public class DecryptInterceptor implements Interceptor {
-    private final static Set<Class<?>> NO_CLASS = new CopyOnWriteArraySet<>();
-    private static final String ENCRYPT_PREFIX = "_sensitive_start_";
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -64,31 +61,23 @@ public class DecryptInterceptor implements Interceptor {
         // 基于selectList
         if (resultObject instanceof ArrayList) {
             List<?> resultList = (ArrayList<?>) resultObject;
-            if (!CollectionUtils.isEmpty(resultList) && needToDecrypt(resultList.get(0))) {
+            if (!CollectionUtils.isEmpty(resultList)) {
                 for (Object result : resultList) {
+                    List<ClazzUtil.AnnotatedFieldResult<EncryptField>> fields =
+                            ClazzUtil.getAnnotatedFields(result, EncryptField.class);
                     // 逐一解密
-                    decryptObj(result);
+                    decryptObj(fields);
                 }
             }
             // 基于selectOne
         } else {
-            if (needToDecrypt(resultObject)) {
-                decryptObj(resultObject);
-            }
+            List<ClazzUtil.AnnotatedFieldResult<EncryptField>> fields =
+                    ClazzUtil.getAnnotatedFields(resultObject, EncryptField.class);
+            decryptObj(fields);
         }
         return resultObject;
     }
 
-    /**
-     * 对单个结果集判空的一个方法
-     *
-     * @param object
-     * @return
-     */
-    private boolean needToDecrypt(Object object) {
-        Class<?> objectClass = object.getClass();
-        return !NO_CLASS.contains(objectClass);
-    }
 
     /**
      * 将此过滤器加入到过滤器链当中
@@ -101,29 +90,20 @@ public class DecryptInterceptor implements Interceptor {
         return Plugin.wrap(target, this);
     }
 
-    private <T> void decryptObj(T result) {
+    private void decryptObj(List<ClazzUtil.AnnotatedFieldResult<EncryptField>> fields) {
+
         try {
-            Class<?> resultClass = result.getClass();
-            Field[] declaredFields = resultClass.getDeclaredFields();
-            for (Field declaredField : declaredFields) {
-                // 去除所有被 EncryptField 注解的字段
-                EncryptField sensitiveFiled = declaredField.getAnnotation(EncryptField.class);
-                if (!Objects.isNull(sensitiveFiled)) {
-                    NO_CLASS.add(resultClass);
-                    //将此对象的 accessible 标志设置为指示的布尔值。值为 true 则指示反射的对象在使用时应该取消 Java 语言访问检查。
-                    declaredField.setAccessible(true);
-                    //这里的result就相当于是字段的访问器
-                    Object object = declaredField.get(result);
-                    //只支持String解密
-                    if (object instanceof String value) {
-                        //修改：没有标识则不解密
-                        if (value.startsWith(ENCRYPT_PREFIX)) {
-                            value = value.substring(17);
-                            value = EncryptionAlgoContainer.getAlgo(sensitiveFiled.value()).decrypt(value);
-                        }
-                        //对注解在这段进行逐一解密
-                        declaredField.set(result, value);
-                    }
+            for (ClazzUtil.AnnotatedFieldResult<EncryptField> fieldObj : fields) {
+                EncryptField annotation = fieldObj.annotation();
+                Field field = fieldObj.field();
+                Object object = fieldObj.containingObject();
+                Object value = fieldObj.getFieldValue();
+
+                field.setAccessible(true);
+                if (value instanceof String strValue) {
+                    strValue = EncryptionAlgoContainer.getAlgo(annotation.value()).decrypt(strValue);
+                    //对注解在这段进行逐一解密
+                    field.set(object, strValue);
                 }
             }
         } catch (Exception e) {

@@ -1,7 +1,8 @@
 package io.github.qwzhang01.desensitize.exception;
 
 /**
- * 总异常
+ * Base exception for desensitization operations.
+ * This is the root exception class for all desensitization-related errors.
  *
  * @author avinzhang
  */

@@ -26,7 +26,9 @@
 package io.github.qwzhang01.desensitize.domain;
 
 /**
- * 加密字段字符串
+ * Encrypted field string wrapper.
+ * This class represents an encrypted string value that can be used
+ * for database storage and automatic encryption/decryption operations.
  *
  * @author avinzhang
  */

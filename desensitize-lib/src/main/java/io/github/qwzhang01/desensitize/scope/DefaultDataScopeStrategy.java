@@ -4,8 +4,9 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 默认策略
- * 什么也不做
+ * Default data scope strategy implementation.
+ * This is a no-operation strategy that performs no data scope filtering.
+ * It can be used as a fallback or when no specific data scope rules are required.
  *
  * @author avinzhang
  */
