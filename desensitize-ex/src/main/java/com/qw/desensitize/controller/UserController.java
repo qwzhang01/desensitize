@@ -1,5 +1,7 @@
 package com.qw.desensitize.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qw.desensitize.common.R;
 import com.qw.desensitize.dto.UserDto;
@@ -24,7 +26,9 @@ public class UserController {
 
     @GetMapping("page")
     public R<Page<User>> page() {
-        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), null);
+        LambdaQueryWrapper<User> query = Wrappers.lambdaQuery();
+        query.eq(User::getPhoneNo, "13800138000");
+        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query);
         return R.ok(userPage);
     }
 

@@ -308,10 +308,6 @@ public class ClazzUtil {
     }
 
     private static boolean isFinalAndStatic(Field field) {
-        Module module = field.getType().getModule();
-        if ("java.base".equals(module.getName())) {
-            return true;
-        }
         return Modifier.isStatic(field.getModifiers())
                 || Modifier.isFinal(field.getModifiers())
                 || Modifier.isTransient(field.getModifiers());

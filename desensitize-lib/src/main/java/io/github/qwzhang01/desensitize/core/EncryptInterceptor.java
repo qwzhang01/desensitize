@@ -37,10 +37,7 @@ import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -81,29 +78,44 @@ public class EncryptInterceptor implements Interceptor {
             return invocation.proceed();
         }
 
+        Set<Object> set = new HashSet<>();
         // Execute encryption
         List<FieldBackup> backups = new ArrayList<>();
         try {
             if (parameterObject instanceof java.util.List) {
                 for (Object item : (java.util.List<?>) parameterObject) {
-                    encryptFields(item, backups);
+                    if (!set.contains(item)) {
+                        encryptFields(item, backups);
+                        set.add(item);
+                    }
                 }
             } else if (parameterObject instanceof Map<?, ?>) {
                 for (Object item : ((Map<?, ?>) parameterObject).values()) {
-                    encryptFields(item, backups);
+                    if (!set.contains(item)) {
+                        encryptFields(item, backups);
+                        set.add(item);
+                    }
                 }
             } else if (parameterObject instanceof Set<?>) {
                 for (Object item : (Set<?>) parameterObject) {
-                    encryptFields(item, backups);
+                    if (!set.contains(item)) {
+                        encryptFields(item, backups);
+                        set.add(item);
+                    }
                 }
             } else {
-                encryptFields(parameterObject, backups);
+                if (!set.contains(parameterObject)) {
+                    encryptFields(parameterObject, backups);
+                    set.add(parameterObject);
+                }
             }
 
             return invocation.proceed();
         } finally {
             // Ensure plaintext can be restored
             restoreFields(backups);
+            set.clear();
+            set = null;
         }
     }
 
