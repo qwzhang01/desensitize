@@ -1,5 +1,6 @@
 package io.github.qwzhang01.desensitize.table;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
@@ -20,19 +21,44 @@ public class TableContainer {
     private boolean init = false;
 
     public void init() {
-        List<TableInfo> tableInfos = TableInfoHelper.getTableInfos();
-        tableInfos.forEach(t -> {
-            Class<?> entityType = t.getEntityType();
-            List<TableFieldInfo> fieldList = t.getFieldList();
-            for (TableFieldInfo fieldInfo : fieldList) {
-                EncryptField annotation = fieldInfo.getField().getAnnotation(EncryptField.class);
-                if (annotation != null) {
 
-                }
+        if (init) {
+            return;
+        }
+
+        synchronized (this) {
+            if (init) {
+                return;
             }
-        });
+            List<TableInfo> tableInfos = TableInfoHelper.getTableInfos();
+            tableInfos.forEach(t -> {
+                List<TableFieldInfo> fieldList = t.getFieldList();
+                for (TableFieldInfo fieldInfo : fieldList) {
+                    EncryptField encryptField = fieldInfo.getField().getAnnotation(EncryptField.class);
+                    if (encryptField != null) {
+                        EncryptColumn encryptColumn = getEncryptColumn(t, fieldInfo, encryptField);
+                        ENCRYPT_COLUMNS.put(
+                                encryptColumn.getTable() + ":" + encryptColumn.getName(),
+                                encryptColumn);
+                    }
+                }
+            });
 
-        init = true;
+            init = true;
+        }
+    }
+
+    private EncryptColumn getEncryptColumn(TableInfo tableInfo, TableFieldInfo fieldInfo, EncryptField encryptField) {
+        EncryptColumn encryptColumn = new EncryptColumn();
+        encryptColumn.setTable(tableInfo.getTableName());
+        encryptColumn.setAlgo(encryptField.value());
+        TableField tableField = fieldInfo.getField().getAnnotation(TableField.class);
+        if (tableField != null) {
+            encryptColumn.setName(tableField.value());
+        } else {
+            encryptColumn.setName(fieldInfo.getField().getName());
+        }
+        return encryptColumn;
     }
 
     public boolean isEncrypt(String tableName, String columnName) {

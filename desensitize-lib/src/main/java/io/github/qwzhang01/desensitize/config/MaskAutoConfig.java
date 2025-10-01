@@ -30,6 +30,7 @@ import io.github.qwzhang01.desensitize.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.table.TableContainer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,11 +54,11 @@ import org.springframework.context.annotation.Configuration;
  * to avoid circular dependency issues.</p>
  *
  * @author avinzhang
- * @since 1.0.0
  * @see CoverAlgo
  * @see EncryptionAlgo
  * @see SpringContextUtil
  * @see MyBatisInterceptorAutoConfig
+ * @since 1.0.0
  */
 @Configuration
 public class MaskAutoConfig {
@@ -84,6 +85,12 @@ public class MaskAutoConfig {
     @ConditionalOnMissingBean(EncryptionAlgo.class)
     public EncryptionAlgo encryptionAlgo() {
         return new DefaultEncryptionAlgo();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(TableContainer.class)
+    public TableContainer tableContainer() {
+        return new TableContainer();
     }
 
     /**
