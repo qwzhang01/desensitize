@@ -39,7 +39,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  *
  * @author avinzhang
  */
-public class ClazzUtil {
+public final class ClazzUtil {
     private final static Set<Class<?>> NO_CLASS = new CopyOnWriteArraySet<>();
     /**
      * Cache for processed classes to avoid repeated reflection operations
@@ -54,16 +54,6 @@ public class ClazzUtil {
             int.class, long.class, double.class, float.class,
             boolean.class, byte.class, short.class, char.class
     );
-
-    public static boolean isWrapper(Class<?> clazz) {
-        if (clazz == null) {
-            return false;
-        }
-        String packageName = clazz.getPackageName();
-        return !packageName.startsWith("java.lang")
-                && !packageName.startsWith("java.math")
-                && !packageName.startsWith("java.time");
-    }
 
     public static <T extends Annotation> List<AnnotatedFieldResult<T>> getAnnotatedAnnotationFields(
             Object obj, Class<T> annotationClass) {

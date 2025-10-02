@@ -35,9 +35,9 @@ Content-Type: application/json
 
 {
   "id": 1973311168493334530,
-  "name": "李四",
+  "name": "魏贺生",
   "phoneNo": "13900139002",
-  "gender": "女",
+  "gender": "男",
   "idNo": "110101199502022345"
 }
 

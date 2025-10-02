@@ -42,7 +42,6 @@ import org.springframework.util.StringUtils;
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -65,12 +64,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Intercepts({@Signature(type = ParameterHandler.class, method = "setParameters", args = {PreparedStatement.class})})
 public class EncryptInterceptor implements Interceptor {
     private static final Logger log = LoggerFactory.getLogger(EncryptInterceptor.class);
-
-    // Use ConcurrentHashMap instead of CopyOnWriteArraySet for better performance
-    private static final Set<Class<?>> PROCESSED_CLASSES = ConcurrentHashMap.newKeySet();
-
-    // Cache field information for performance optimization
-    private static final Map<Class<?>, List<Field>> ENCRYPT_FIELDS_CACHE = new ConcurrentHashMap<>();
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {

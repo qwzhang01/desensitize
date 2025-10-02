@@ -120,6 +120,11 @@ public class SqlRewriteInterceptor implements Interceptor {
     private void queryEncrypt(Invocation invocation) {
         try {
             StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
+
+            // 获取 ParameterHandler 中的参数对象
+            Object parameterObject = statementHandler.getParameterHandler().getParameterObject();
+            MetaObject metaObject = SystemMetaObject.forObject(parameterObject);
+
             BoundSql boundSql = statementHandler.getBoundSql();
 
             String originalSql = boundSql.getSql();
@@ -137,18 +142,13 @@ public class SqlRewriteInterceptor implements Interceptor {
                 return;
             }
 
-            // 获取 ParameterHandler 中的参数对象
-            Object parameterObject = statementHandler.getParameterHandler().getParameterObject();
-
             // 获取参数映射列表
             List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
             // 如果有参数映射，遍历并获取对应的值
             if (parameterMappings != null && !parameterMappings.isEmpty()) {
-                MetaObject metaObject = SystemMetaObject.forObject(parameterObject);
                 for (ParameterMapping mapping : parameterMappings) {
                     String propertyName = mapping.getProperty();
                     Object value = null;
-
                     try {
                         // 统一使用 MetaObject 来获取属性值，支持嵌套属性
                         if (metaObject.hasGetter(propertyName)) {
@@ -168,11 +168,11 @@ public class SqlRewriteInterceptor implements Interceptor {
                         }
                     }
 
-                    System.out.println("参数 [" + propertyName + "] 的值: " + value);
+                    log.info("参数 [" + propertyName + "] 的值: " + value);
                 }
             } else {
                 // 没有参数映射，直接打印参数对象
-                System.out.println("参数对象: " + parameterObject);
+                log.info("参数对象: " + parameterObject);
             }
 
 

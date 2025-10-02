@@ -26,6 +26,7 @@
 package io.github.qwzhang01.desensitize.kit;
 
 import io.github.qwzhang01.desensitize.annotation.Mask;
+import io.github.qwzhang01.desensitize.domain.Encrypt;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
@@ -148,6 +149,10 @@ public class MaskAlgoContainer {
                 Class<?> type = field.getType();
                 if (String.class.equals(type)) {
                     field.set(object, coverAlgo.mask(String.valueOf(fieldValue)));
+                } else if (Encrypt.class.equals(type)) {
+                    Encrypt encrypt = (Encrypt) fieldValue;
+                    encrypt.setValue(coverAlgo.mask(encrypt.getValue()));
+                    field.set(object, encrypt);
                 } else {
                     // todo 处理集合等其他情况
                 }
