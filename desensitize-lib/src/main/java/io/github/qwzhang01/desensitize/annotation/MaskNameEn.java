@@ -25,14 +25,16 @@
 
 package io.github.qwzhang01.desensitize.annotation;
 
-import io.github.qwzhang01.desensitize.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.shield.NameEnCoverAlgo;
 
 import java.lang.annotation.*;
 
+/**
+ * @author avinzhang
+ */
 @Inherited
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
+@Mask(value = NameEnCoverAlgo.class)
 public @interface MaskNameEn {
-    Class<? extends CoverAlgo> value() default NameEnCoverAlgo.class;
 }

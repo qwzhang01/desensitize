@@ -78,7 +78,10 @@ public class MaskAdvice implements ResponseBodyAdvice<Object> {
                 || SseEmitter.class.isAssignableFrom(returnType.getParameterType())
                 || Mono.class.isAssignableFrom(returnType.getParameterType());
 
-        return !isFlux;
+        if (isFlux) {
+            return false;
+        }
+        return MaskContext.isMask();
     }
 
     @Nullable
@@ -92,13 +95,8 @@ public class MaskAdvice implements ResponseBodyAdvice<Object> {
             return body;
         }
 
-        if (MaskContext.isMask()) {
-            Object mask = maskAlgoContainer.mask(body);
-            MaskContext.stop();
-            return mask;
-        }
-
-        return body;
+        Object mask = maskAlgoContainer.mask(body);
+        MaskContext.stop();
+        return mask;
     }
-
 }

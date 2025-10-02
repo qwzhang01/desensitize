@@ -54,13 +54,6 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+@Mask(value = PhoneCoverAlgo.class)
 public @interface MaskPhone {
-
-    /**
-     * Specifies the masking algorithm class to use for phone number masking.
-     * Defaults to PhoneCoverAlgo which implements standard phone number masking.
-     *
-     * @return the masking algorithm class for phone numbers
-     */
-    Class<? extends CoverAlgo> value() default PhoneCoverAlgo.class;
 }

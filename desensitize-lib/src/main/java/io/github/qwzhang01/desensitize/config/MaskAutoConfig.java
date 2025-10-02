@@ -25,6 +25,7 @@
 
 package io.github.qwzhang01.desensitize.config;
 
+import io.github.qwzhang01.desensitize.advice.MaskAdvice;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
@@ -62,6 +63,12 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class MaskAutoConfig {
+
+    @Bean
+    @ConditionalOnMissingBean(MaskAdvice.class)
+    public MaskAdvice maskAdvice() {
+        return new MaskAdvice();
+    }
 
     /**
      * Provides a default data masking algorithm bean.

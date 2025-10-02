@@ -29,10 +29,10 @@ import io.github.qwzhang01.desensitize.annotation.Mask;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
+import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -100,8 +100,7 @@ public class MaskAlgoContainer {
      */
     public Object mask(Object data) {
         try {
-            if (data instanceof List<?>) {
-                List<?> list = (List<?>) data;
+            if (data instanceof List<?> list) {
                 // Process list
                 for (Object o : list) {
                     mask(o);
@@ -132,46 +131,27 @@ public class MaskAlgoContainer {
             return;
         }
 
-        List<Field> fields = getFields(data.getClass());
-        for (Field field : fields) {
-            field.setAccessible(true);
+        List<ClazzUtil.AnnotatedFieldResult<Mask>> maskFields = ClazzUtil.getAnnotatedAnnotationFields(data, Mask.class);
+        if (CollectionUtils.isEmpty(maskFields)) {
+            return;
+        }
 
-            if (List.class.isAssignableFrom(field.getType())) {
-                // Handle list fields
-                Object objList = field.get(data);
-                if (objList != null) {
-                    List<Object> dataList = (List<Object>) objList;
-                    for (Object dataParam : dataList) {
-                        maskParam(dataParam);
-                    }
-                }
-            } else if (!ClazzUtil.isWrapper(field.getType())) {
-                // Handle custom object fields recursively
-                maskParam(field.get(data));
-            } else {
-                // Handle primitive/wrapper fields with @Mask annotation
-                Mask annotation = field.getAnnotation(Mask.class);
-                if (annotation != null) {
-                    Class<? extends CoverAlgo> clazz = annotation.value();
-                    CoverAlgo coverAlgo = getAlgo(clazz); // Use the cached algorithm getter
-                    Object fieldValue = field.get(data);
-                    if (fieldValue != null) {
-                        field.set(data, coverAlgo.mask(String.valueOf(fieldValue)));
-                    }
+        for (ClazzUtil.AnnotatedFieldResult<Mask> maskField : maskFields) {
+            Mask annotation = maskField.annotation();
+            Object object = maskField.containingObject();
+            Object fieldValue = maskField.getFieldValue();
+            Field field = maskField.field();
+
+            Class<? extends CoverAlgo> clazz = annotation.value();
+            CoverAlgo coverAlgo = getAlgo(clazz);
+            if (fieldValue != null) {
+                Class<?> type = field.getType();
+                if (String.class.equals(type)) {
+                    field.set(object, coverAlgo.mask(String.valueOf(fieldValue)));
+                } else {
+                    // todo 处理集合等其他情况
                 }
             }
         }
-    }
-
-    /**
-     * Recursively gets all declared fields from a class.
-     * This method can be extended to include inherited fields if needed.
-     *
-     * @param clazz the class to get fields from
-     * @return list of declared fields
-     */
-    private List<Field> getFields(Class<?> clazz) {
-        Field[] declaredFields = clazz.getDeclaredFields();
-        return Arrays.asList(declaredFields);
     }
 }

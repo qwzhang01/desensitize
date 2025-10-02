@@ -66,7 +66,7 @@ import java.lang.annotation.*;
  * @since 1.0.0
  */
 @Inherited
-@Target({ElementType.FIELD, ElementType.TYPE})
+@Target({ElementType.FIELD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Mask {

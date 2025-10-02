@@ -115,6 +115,7 @@ public class SqlRewriteInterceptor implements Interceptor {
 
     /**
      * 查询参数加密处理（纯 MyBatis 版本）
+     * todo 加密用完后要解密
      */
     private void queryEncrypt(Invocation invocation) {
         try {

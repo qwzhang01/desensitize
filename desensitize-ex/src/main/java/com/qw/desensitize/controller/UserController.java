@@ -15,6 +15,9 @@ import lombok.AllArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * 用户管理
  *
@@ -32,6 +35,7 @@ public class UserController {
         UserParam userParam = new UserParam();
         userParam.setPhoneNo("13900139002");
         Page<UserDto> userPage = mapper.list(new Page<>(1, 10), userParam);
+        MaskContext.start();
         return R.ok(userPage);
     }
 
@@ -43,6 +47,7 @@ public class UserController {
         QueryWrapper<User> query1 = Wrappers.query();
         query1.eq("phoneNo", userParam.getPhoneNo());
         Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query1);
+        MaskContext.start();
         return R.ok(userPage);
     }
 
@@ -52,7 +57,25 @@ public class UserController {
         LambdaQueryWrapper<User> query = Wrappers.lambdaQuery();
         query.eq(User::getPhoneNo, new Encrypt("13900139002"));
         Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query);
+        MaskContext.start();
         return R.ok(userPage);
+    }
+
+    @GetMapping("infos")
+    public R<List<UserDto>> infos(@RequestParam String userId) {
+        // 获取数据库数据
+        User user = mapper.selectById(userId);
+        if (user == null) {
+            return R.error("用户不存在");
+        }
+        // 转化为dto
+        UserDto dto = new UserDto();
+        BeanUtils.copyProperties(user, dto);
+
+        // 标注需要脱敏
+        MaskContext.start();
+
+        return R.success(Collections.singletonList(dto));
     }
 
     @GetMapping("info")
