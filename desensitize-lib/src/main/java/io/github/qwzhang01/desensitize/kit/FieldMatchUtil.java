@@ -7,8 +7,6 @@ import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-
 /**
  * 字段匹配工具类
  *
@@ -23,34 +21,13 @@ public final class FieldMatchUtil {
     }
 
     /**
-     * 检查字段是否为加密字段（支持多种命名格式）
-     *
-     * @param tableName 表名
-     * @param fieldName 字段名
-     * @return 是否为加密字段
-     */
-    public static boolean isEncryptField(String tableName, String fieldName) {
-        EncryptFieldTableContainer container = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
-
-        // 尝试多种命名格式
-        String[] variants = {
-                fieldName,
-                StringUtil.camelToUnderscore(fieldName),
-                StringUtil.underscoreToCamel(fieldName)
-        };
-
-        return Arrays.stream(variants)
-                .anyMatch(variant -> container.isEncrypt(tableName, variant));
-    }
-
-    /**
      * 获取字段对应的加密算法类
      *
      * @param tableName 表名
      * @param fieldName 字段名
      * @return 加密算法类，如果不是加密字段则返回null
      */
-    public static Class<? extends EncryptionAlgo> getEncryptAlgo(String tableName, String fieldName) {
+    private static Class<? extends EncryptionAlgo> getEncryptAlgo(String tableName, String fieldName) {
         EncryptFieldTableContainer container = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
 
         // 尝试多种命名格式

@@ -106,14 +106,4 @@ public final class StringUtil {
     public static boolean isEmpty(String str) {
         return str == null || str.trim().isEmpty();
     }
-
-    /**
-     * 检查字符串是否不为空
-     *
-     * @param str 字符串
-     * @return 是否不为空
-     */
-    public static boolean isNotEmpty(String str) {
-        return !isEmpty(str);
-    }
 }

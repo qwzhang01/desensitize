@@ -68,19 +68,19 @@ public final class ClazzUtil {
         }
 
         String capitalizedName = StringUtils.capitalize(propertyName);
-        
+
         // 尝试 getter 方法
         Object result = tryGetterMethod(obj, "get" + capitalizedName);
         if (result != null) {
             return result;
         }
-        
+
         // 尝试 boolean 类型的 is 方法
         result = tryGetterMethod(obj, "is" + capitalizedName);
         if (result != null) {
             return result;
         }
-        
+
         // 直接通过字段访问
         return getFieldValue(obj, propertyName);
     }
@@ -94,12 +94,12 @@ public final class ClazzUtil {
         }
 
         String setterName = "set" + StringUtils.capitalize(propertyName);
-        
+
         // 尝试通过 setter 方法设置
         if (trySetterMethod(obj, setterName, value)) {
             return;
         }
-        
+
         // 直接通过字段设置
         setFieldValue(obj, propertyName, value);
     }
@@ -211,8 +211,8 @@ public final class ClazzUtil {
     /**
      * Internal method for retrieving annotated fields
      *
-     * @param obj                the object to inspect
-     * @param annotationClass    the annotation class to search for
+     * @param obj                  the object to inspect
+     * @param annotationClass      the annotation class to search for
      * @param searchMetaAnnotation whether to search for meta-annotations
      * @return list of results containing fields and their corresponding objects
      */
@@ -457,12 +457,12 @@ public final class ClazzUtil {
         if (isCollection(clazz) || clazz.isArray()) {
             return true;
         }
-        
+
         // For arrays, check component type
         if (clazz.isArray()) {
             return !isPrimitiveOrCommonType(clazz.getComponentType());
         }
-        
+
         // Other types are complex if they're not primitive/common types
         return !isPrimitiveOrCommonType(clazz);
     }
@@ -496,8 +496,8 @@ public final class ClazzUtil {
      * @param fieldPath        the field path for debugging and tracking
      */
     public record AnnotatedFieldResult<T extends Annotation>(
-            Field field, 
-            Object containingObject, 
+            Field field,
+            Object containingObject,
             T annotation,
             String fieldPath) {
 

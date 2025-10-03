@@ -312,7 +312,16 @@ public final class SqlUtil {
      * 解析 WHERE 条件
      */
     private static void parseWhereConditions(String sql, SqlAnalysisInfo result) {
-        Matcher matcher = WHERE_CONDITION_PATTERN.matcher(sql);
+        // 提取 WHERE 子句部分
+        String whereClause = extractWhereClause(sql);
+        if (whereClause == null || whereClause.trim().isEmpty()) {
+            log.debug("未发现 WHERE 子句");
+            return;
+        }
+
+        log.debug("解析 WHERE 子句: {}", whereClause);
+
+        Matcher matcher = WHERE_CONDITION_PATTERN.matcher(whereClause);
         while (matcher.find()) {
             String tableAlias = null;
             String fieldName = null;
@@ -332,6 +341,19 @@ public final class SqlUtil {
                 log.debug("发现 WHERE 条件字段: {}.{}", tableAlias, fieldName);
             }
         }
+    }
+
+    /**
+     * 提取 WHERE 子句内容
+     * 从 SQL 语句中提取 WHERE 关键字之后到语句结束或其他子句开始的部分
+     */
+    private static String extractWhereClause(String sql) {
+        Matcher matcher = WHERE_PATTERN.matcher(sql);
+        if (matcher.find()) {
+            return matcher.group(1).trim();
+        }
+
+        return null;
     }
 
     /**

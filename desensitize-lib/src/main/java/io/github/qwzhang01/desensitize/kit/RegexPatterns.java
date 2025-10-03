@@ -131,6 +131,11 @@ public final class RegexPatterns {
     public static final Pattern QW_IN_PATTERN = Pattern.compile(
             "(\\w+)\\s+IN\\s*\\([^)]*#\\{ew\\.paramNameValuePairs\\.(\\w+)\\}"
     );
+    // 使用正则表达式匹配 WHERE 子句
+    public static final Pattern WHERE_PATTERN = Pattern.compile(
+            "(?i)\\bWHERE\\s+(.*?)(?:\\s+(?:ORDER\\s+BY|GROUP\\s+BY|HAVING|LIMIT|UNION|;)\\s+|$)",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
 
     private RegexPatterns() {
         // 常量类不允许实例化
