@@ -24,12 +24,16 @@
 
 package io.github.qwzhang01.desensitize.core;
 
+import io.github.qwzhang01.desensitize.container.DataScopeStrategyContainer;
 import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
 import io.github.qwzhang01.desensitize.domain.SqlAnalysisInfo;
 import io.github.qwzhang01.desensitize.kit.ParamUtil;
+import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.kit.SqlUtil;
+import io.github.qwzhang01.desensitize.kit.StringUtil;
 import io.github.qwzhang01.desensitize.scope.DataScopeHelper;
+import io.github.qwzhang01.desensitize.scope.DataScopeStrategy;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.plugin.*;
@@ -149,22 +153,49 @@ public class SqlRewriteInterceptor implements Interceptor {
 
     /*** 数据权限逻辑 */
     private void dataScope(Invocation invocation) throws NoSuchFieldException, IllegalAccessException {
-        // todo 待实现
+        boolean started = DataScopeHelper.isStarted();
+        Class<? extends DataScopeStrategy> strategy = DataScopeHelper.getStrategy();
+        if (!started && strategy != null) {
+            return;
+        }
+
         StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
         BoundSql boundSql = statementHandler.getBoundSql();
 
         // 获取原始 SQL
         String originalSql = boundSql.getSql();
-        Object parameterObject = boundSql.getParameterObject();
-
-        // 修改 SQL，添加软删除条件
-        String modifiedSql = originalSql + " WHERE deleted = 0";
-
-        // TODO 数据权限逻辑待实现
+        String modifiedSql = dataScope(originalSql, strategy);
         // 使用反射修改 BoundSql 的 sql 字段
         Field field = BoundSql.class.getDeclaredField("sql");
         field.setAccessible(true);
         field.set(boundSql, modifiedSql);
+    }
+
+    /*** 数据权限真正处理位置 */
+    private String dataScope(String originalSql, Class<? extends DataScopeStrategy> strategy) {
+        DataScopeStrategyContainer container = SpringContextUtil.getBean(DataScopeStrategyContainer.class);
+        DataScopeStrategy obj = container.getStrategy(strategy);
+        String join = obj.join();
+        String where = obj.where();
+
+        if (StringUtil.isEmpty(join) && StringUtil.isEmpty(where)) {
+            return originalSql;
+        }
+
+        // 1. 解析 SQL 获取所有涉及的表信息
+        SqlAnalysisInfo sqlAnalysis = SqlUtil.analyzeSql(originalSql);
+        if (sqlAnalysis.getTables().isEmpty()) {
+            return originalSql;
+        }
+
+        if (!StringUtil.isEmpty(join)) {
+
+        }
+        if (!StringUtil.isEmpty(where)) {
+
+        }
+
+        return originalSql;
     }
 
     @Override

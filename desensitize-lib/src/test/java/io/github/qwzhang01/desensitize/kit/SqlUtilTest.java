@@ -14,6 +14,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class SqlUtilTest {
 
+
+    @Test
+    @DisplayName("测试简单 join 语句解析")
+    public void testJoin() {
+        String sql = "LEFT JOIN user u ON u.id = d.userId AND d.status = 1";
+
+        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+
+        System.out.println("");
+    }
+
     @Test
     @DisplayName("测试简单 SELECT 语句解析")
     public void testSimpleSelect() {
@@ -278,5 +289,15 @@ public class SqlUtilTest {
         assertEquals("profile", mapping2.tableName());
         assertEquals("status", mapping2.fieldName());
         assertEquals("p", mapping2.tableAlias());
+    }
+
+    @Test
+    @DisplayName("测试参数映射的表名解析")
+    public void testExistsSql() {
+        String sql = "SELECT * FROM user WHERE EXISTS(SELECT * FROM  profile p WHERE p.id = user.profileId p.status = ?";
+
+        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+
+        assertEquals(1, result.getParameterMappings().size());
     }
 }

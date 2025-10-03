@@ -160,23 +160,6 @@ public class SqlAnalysisInfo {
     }
 
     /**
-     * 表信息
-     */
-    public static record TableInfo(String tableName, String alias, TableType tableType) {
-
-        public TableInfo(String tableName, String alias) {
-            this(tableName, alias, TableType.MAIN);
-        }
-
-        public String getEffectiveAlias() {
-            if (alias == null || alias.trim().isEmpty()) {
-                return tableName;
-            }
-            return alias;
-        }
-    }
-
-    /**
      * 操作符类型
      */
     public enum OperatorType {
@@ -193,6 +176,23 @@ public class SqlAnalysisInfo {
 
         public int getParamCount() {
             return paramCount;
+        }
+    }
+
+    /**
+     * 表信息
+     */
+    public static record TableInfo(String tableName, String alias, TableType tableType) {
+
+        public TableInfo(String tableName, String alias) {
+            this(tableName, alias, TableType.MAIN);
+        }
+
+        public String getEffectiveAlias() {
+            if (alias == null || alias.trim().isEmpty()) {
+                return tableName;
+            }
+            return alias;
         }
     }
 

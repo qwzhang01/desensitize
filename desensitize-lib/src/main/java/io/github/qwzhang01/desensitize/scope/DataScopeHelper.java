@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
  * @author avinzhang
  */
 public class DataScopeHelper {
-    private static final ThreadLocal<Context> CONTEXT = new ThreadLocal<>();
+    private static final ThreadLocal<Context<?>> CONTEXT = new ThreadLocal<>();
 
     /**
      * 判断数据权限是否开启
@@ -20,7 +20,7 @@ public class DataScopeHelper {
      * @return
      */
     public static boolean isStarted() {
-        Context context = CONTEXT.get();
+        Context<?> context = CONTEXT.get();
         if (context == null) {
             return false;
         }
@@ -32,33 +32,52 @@ public class DataScopeHelper {
      *
      * @return
      */
-    @SafeVarargs
-    public static Context setStrategy(Class<? extends DataScopeStrategy>... strategy) {
-        Context context = CONTEXT.get();
+    public static Context<?> strategy(Class<? extends DataScopeStrategy> strategy) {
+        Context<?> context = CONTEXT.get();
         if (context == null) {
-            context = new Context();
+            context = new Context<>();
             context.setDataScopeFlag(true);
             CONTEXT.set(context);
         }
 
         context.setStrategy(strategy);
-
-        if (context.getStrategy() == null || context.getStrategy().length == 0) {
-            context.setDataScopeFlag(false);
-        }
-
         return context;
     }
 
-    public static Context get() {
-        return CONTEXT.get();
+    public static Context right(List right) {
+        Context<?> context = CONTEXT.get();
+        if (context == null) {
+            context = new Context<>();
+            context.setAllRight(right);
+            CONTEXT.set(context);
+        }
+
+        context.setAllRight(right);
+        return context;
     }
 
-    public static void set(Context context) {
+    public static Context topTight(List right) {
+        Context<?> context = CONTEXT.get();
         if (context == null) {
-            return;
+            context = new Context<>();
+            context.setTopRight(right);
+            CONTEXT.set(context);
         }
-        CONTEXT.set(context);
+
+        context.setTopRight(right);
+        return context;
+    }
+
+    public static Context inTight(List right) {
+        Context context = CONTEXT.get();
+        if (context == null) {
+            context = new Context<>();
+            context.setInTight(right);
+            CONTEXT.set(context);
+        }
+
+        context.setInTight(right);
+        return context;
     }
 
     /**
@@ -66,8 +85,8 @@ public class DataScopeHelper {
      *
      * @return
      */
-    public static Class<? extends DataScopeStrategy>[] getStrategy() {
-        Context context = CONTEXT.get();
+    public static Class<? extends DataScopeStrategy> getStrategy() {
+        Context<?> context = CONTEXT.get();
         if (context == null) {
             return null;
         }
@@ -89,9 +108,9 @@ public class DataScopeHelper {
      * @return
      */
     public static <R> R query(Callable<R> function) {
-        Context context = CONTEXT.get();
+        Context<?> context = CONTEXT.get();
         if (context == null) {
-            context = new Context();
+            context = new Context<>();
             context.setDataScopeFlag(false);
             CONTEXT.set(context);
         }
@@ -101,10 +120,27 @@ public class DataScopeHelper {
     /**
      * 数据权限信息
      */
-    public static final class Context {
+    public static final class Context<T> {
+        /**
+         * 数据权限开关
+         */
         private Boolean dataScopeFlag;
-        private Class<? extends DataScopeStrategy>[] strategy;
-        private List<DataScopeStrategy.Where> wheres;
+        /**
+         * 全部权限数据
+         */
+        private List<T> allRight;
+        /**
+         * 顶部查询条件，即以 topRight 为最大的查询条件
+         */
+        private List<T> topRight;
+        /**
+         * 内部查询条件，即在权限的基础上，查询存在 inTight 的数据
+         */
+        private List<T> inTight;
+        /**
+         * 数据权限查询策略
+         */
+        private Class<? extends DataScopeStrategy> strategy;
 
         public Boolean getDataScopeFlag() {
             return dataScopeFlag;
@@ -114,21 +150,37 @@ public class DataScopeHelper {
             this.dataScopeFlag = dataScopeFlag;
         }
 
-        public Class<? extends DataScopeStrategy>[] getStrategy() {
+        public List<T> getAllRight() {
+            return allRight;
+        }
+
+        public void setAllRight(List<T> allRight) {
+            this.allRight = allRight;
+        }
+
+        public List<T> getTopRight() {
+            return topRight;
+        }
+
+        public void setTopRight(List<T> topRight) {
+            this.topRight = topRight;
+        }
+
+        public List<T> getInTight() {
+            return inTight;
+        }
+
+        public void setInTight(List<T> inTight) {
+            this.inTight = inTight;
+        }
+
+        public Class<? extends DataScopeStrategy> getStrategy() {
             return strategy;
         }
 
-        public Context setStrategy(Class<? extends DataScopeStrategy>[] strategy) {
+        public Context<T> setStrategy(Class<? extends DataScopeStrategy> strategy) {
             this.strategy = strategy;
             return this;
-        }
-
-        public List<DataScopeStrategy.Where> getWheres() {
-            return wheres;
-        }
-
-        public void setWheres(List<DataScopeStrategy.Where> wheres) {
-            this.wheres = wheres;
         }
 
         public <R> R query(Callable<R> function) {

@@ -333,7 +333,7 @@ public final class SqlUtil {
 
             // 检查不同的匹配分组
             // 第一种情况：普通操作符 (=, !=, <, >, LIKE 等)
-            if (matcher.group(1) != null || matcher.group(2) != null) {
+            if (matcher.group(1) != null || matcher.group(2) != null || matcher.group(3) != null || matcher.group(4) != null) {
                 tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
                 fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
                 operatorType = OperatorType.SINGLE_PARAM;

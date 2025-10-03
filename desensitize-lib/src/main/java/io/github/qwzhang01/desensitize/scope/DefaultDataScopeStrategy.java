@@ -1,8 +1,5 @@
 package io.github.qwzhang01.desensitize.scope;
 
-import java.util.Collections;
-import java.util.List;
-
 /**
  * Default data scope strategy implementation.
  * This is a no-operation strategy that performs no data scope filtering.
@@ -10,15 +7,15 @@ import java.util.List;
  *
  * @author avinzhang
  */
-public class DefaultDataScopeStrategy extends DataScopeStrategy {
+public class DefaultDataScopeStrategy implements DataScopeStrategy {
+
     @Override
-    protected void configJoin() {
-        //do nothing
+    public String join() {
+        return "";
     }
 
     @Override
-    protected List<Where> configWhere() {
-        //do nothing
-        return Collections.emptyList();
+    public String where() {
+        return "";
     }
 }

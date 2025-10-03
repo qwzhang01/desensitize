@@ -26,10 +26,7 @@
 package io.github.qwzhang01.desensitize.config;
 
 import io.github.qwzhang01.desensitize.advice.MaskAdvice;
-import io.github.qwzhang01.desensitize.container.AbstractEncryptAlgoContainer;
-import io.github.qwzhang01.desensitize.container.EncryptFieldTableContainer;
-import io.github.qwzhang01.desensitize.container.EncryptionAlgoContainer;
-import io.github.qwzhang01.desensitize.container.MaskAlgoContainer;
+import io.github.qwzhang01.desensitize.container.*;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
@@ -107,6 +104,12 @@ public class MaskAutoConfig {
     @ConditionalOnMissingBean(EncryptFieldTableContainer.class)
     public EncryptFieldTableContainer encryptFieldTableContainer() {
         return new EncryptFieldTableContainer();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(DataScopeStrategyContainer.class)
+    public DataScopeStrategyContainer dataScopeStrategyContainer() {
+        return new DataScopeStrategyContainer();
     }
 
     /**
