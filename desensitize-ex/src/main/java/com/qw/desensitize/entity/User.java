@@ -6,6 +6,9 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import io.github.qwzhang01.desensitize.annotation.EncryptField;
+import io.github.qwzhang01.desensitize.annotation.MaskId;
+import io.github.qwzhang01.desensitize.annotation.MaskName;
+import io.github.qwzhang01.desensitize.annotation.MaskPhone;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,12 +43,14 @@ public class User extends Model<User> {
     /**
      * 姓名
      */
+    @MaskName
     @TableField("`name`")
     private String name;
 
     /**
      * 手机号码
      */
+    @MaskPhone
     @EncryptField
     @TableField("phoneNo")
     private String phoneNo;
@@ -59,6 +64,7 @@ public class User extends Model<User> {
     /**
      * 身份证号码
      */
+    @MaskId
     @TableField("idNo")
     private Encrypt idNo;
 

@@ -8,6 +8,14 @@ import java.util.regex.Pattern;
  * @author avinzhang
  */
 public final class RegexPatterns {
+    /**
+     * 统一的 WHERE 条件字段模式 - 同时处理带表前缀和不带表前缀的情况
+     * 支持反引号和普通标识符
+     */
+    public static final Pattern WHERE_CONDITION_PATTERN = Pattern.compile(
+            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE|IN|NOT\\s+IN|IS|IS\\s+NOT)\\s*\\?",
+            Pattern.CASE_INSENSITIVE
+    );
 
     // ========== SQL 解析相关正则表达式 ==========
     /**
@@ -39,15 +47,7 @@ public final class RegexPatterns {
                     "(?:`([\\w_]+)`|([\\w_]+))(?:\\s+(?:AS\\s+)?(?:`([\\w_]+)`|([\\w_]+)))?",
             Pattern.CASE_INSENSITIVE
     );
-    /**
-     * WHERE 条件字段模式 - 匹配 WHERE 子句中的字段条件
-     * 支持更多的操作符和复杂条件
-     */
-    public static final Pattern WHERE_CONDITION_PATTERN = Pattern.compile(
-            "(?i)\\b(?:`([\\w_]+)`|([\\w_]+))\\.(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE|IN|NOT\\s+IN|IS|IS\\s+NOT)\\s*\\?|" +
-                    "\\b(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE|IN|NOT\\s+IN|IS|IS\\s+NOT)\\s*\\?",
-            Pattern.CASE_INSENSITIVE
-    );
+
     /**
      * UPDATE SET 子句模式 - 匹配 UPDATE 语句的 SET 子句
      */

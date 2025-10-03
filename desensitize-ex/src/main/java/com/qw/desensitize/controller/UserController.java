@@ -121,6 +121,7 @@ public class UserController {
         User dto = new User();
         BeanUtils.copyProperties(user, dto);
         mapper.insert(dto);
+        MaskContext.start();
         return R.success(dto);
     }
 

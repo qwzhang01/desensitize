@@ -321,19 +321,11 @@ public final class SqlUtil {
 
         log.debug("解析 WHERE 子句: {}", whereClause);
 
+        // 使用统一的正则表达式，同时处理带表前缀和不带表前缀的情况
         Matcher matcher = WHERE_CONDITION_PATTERN.matcher(whereClause);
         while (matcher.find()) {
-            String tableAlias = null;
-            String fieldName = null;
-
-            // 检查是否是 table.field 格式
-            if (matcher.group(1) != null || matcher.group(2) != null) {
-                tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
-                fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
-            } else {
-                // 单独的字段名
-                fieldName = getFirstNonNull(matcher.group(5), matcher.group(6));
-            }
+            String tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
+            String fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
 
             if (fieldName != null) {
                 FieldCondition condition = new FieldCondition(tableAlias, fieldName, FieldType.CONDITION);
@@ -342,6 +334,7 @@ public final class SqlUtil {
             }
         }
     }
+
 
     /**
      * 提取 WHERE 子句内容
