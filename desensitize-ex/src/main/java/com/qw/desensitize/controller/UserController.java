@@ -30,18 +30,26 @@ public class UserController {
 
     private final UserMapper mapper;
 
-    @GetMapping("page1")
-    public R<Page<?>> page1() {
+    @GetMapping("page-mapper-obj")
+    public R<Page<?>> pageMapperObj() {
         UserParam userParam = new UserParam();
         userParam.setPhoneNo("13900139002");
-        Page<UserDto> userPage = mapper.list(new Page<>(1, 10), userParam);
+        Page<UserDto> userPage = mapper.listObj(new Page<>(1, 10), userParam);
         MaskContext.start();
         return R.ok(userPage);
     }
 
+    @GetMapping("page-mapper-param")
+    public R<Page<?>> pageMapperParam() {
+        UserParam userParam = new UserParam();
+        userParam.setPhoneNo("13900139002");
+        Page<UserDto> userPage = mapper.listParam(new Page<>(1, 10), "13900139002");
+        MaskContext.start();
+        return R.ok(userPage);
+    }
 
-    @GetMapping("page2")
-    public R<Page<?>> page2() {
+    @GetMapping("page-wrapper")
+    public R<Page<?>> pageWrapper() {
         UserParam userParam = new UserParam();
         userParam.setPhoneNo("13900139002");
         QueryWrapper<User> query1 = Wrappers.query();
@@ -51,9 +59,17 @@ public class UserController {
         return R.ok(userPage);
     }
 
+    @GetMapping("page-lambda-wrapper")
+    public R<Page<?>> pageLambdaWrapper() {
+        LambdaQueryWrapper<User> query = Wrappers.lambdaQuery();
+        query.eq(User::getPhoneNo, "13900139002");
+        Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query);
+        MaskContext.start();
+        return R.ok(userPage);
+    }
 
-    @GetMapping("page3")
-    public R<Page<?>> page3() {
+    @GetMapping("page-type-handler")
+    public R<Page<?>> pageTypeHandler() {
         LambdaQueryWrapper<User> query = Wrappers.lambdaQuery();
         query.eq(User::getPhoneNo, new Encrypt("13900139002"));
         Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query);

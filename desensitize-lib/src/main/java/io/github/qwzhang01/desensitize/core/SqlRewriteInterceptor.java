@@ -32,11 +32,13 @@ import io.github.qwzhang01.desensitize.scope.DataScopeHelper;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.plugin.*;
+import org.apache.ibatis.session.ResultHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Properties;
 
@@ -49,7 +51,21 @@ import java.util.Properties;
                 type = StatementHandler.class,
                 method = "prepare",
                 args = {Connection.class, Integer.class}
-        )
+        ),
+        @Signature(
+                type = StatementHandler.class,
+                method = "update",
+                args = {Statement.class}
+        ),
+        @Signature(
+                type = StatementHandler.class,
+                method = "query",
+                args = {Statement.class, ResultHandler.class}
+        ),
+        @Signature(type = StatementHandler.class,
+                method = "queryCursor",
+                args = {Statement.class})
+
 })
 public class SqlRewriteInterceptor implements Interceptor {
 
@@ -57,18 +73,29 @@ public class SqlRewriteInterceptor implements Interceptor {
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        // 清理之前的还原信息
-        SqlRewriteContext.clear();
+        String methodName = invocation.getMethod().getName();
+        if ("prepare".equals(methodName)) {
+            // 清理之前的还原信息
+            SqlRewriteContext.clear();
 
-        // 处理加密解密逻辑
-        encrypt(invocation);
+            // 处理加密解密逻辑
+            encrypt(invocation);
 
-        boolean started = DataScopeHelper.isStarted();
-        if (!Boolean.TRUE.equals(started)) {
+            boolean started = DataScopeHelper.isStarted();
+            if (!Boolean.TRUE.equals(started)) {
+                return invocation.proceed();
+            }
+            // 处理加密解密逻辑
+            dataScope(invocation);
             return invocation.proceed();
+        } else if ("update".equalsIgnoreCase(methodName) || "query".equals(methodName) || "queryCursor".equals(methodName)) {
+            try {
+
+                return invocation.proceed();
+            } finally {
+                SqlRewriteContext.restore();
+            }
         }
-        // 处理加密解密逻辑
-        dataScope(invocation);
         return invocation.proceed();
     }
 

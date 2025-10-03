@@ -26,7 +26,10 @@
 package io.github.qwzhang01.desensitize.config;
 
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
-import io.github.qwzhang01.desensitize.core.*;
+import io.github.qwzhang01.desensitize.core.DecryptInterceptor;
+import io.github.qwzhang01.desensitize.core.EncryptTypeHandler;
+import io.github.qwzhang01.desensitize.core.ExecutorInterceptor;
+import io.github.qwzhang01.desensitize.core.SqlRewriteInterceptor;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
 import jakarta.annotation.PostConstruct;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -78,8 +81,6 @@ public class MyBatisInterceptorAutoConfig {
 
                 // SqlRewriteInterceptor for SQL modification if needed
                 configuration.addInterceptor(new SqlRewriteInterceptor());
-
-                configuration.addInterceptor(new CleanContextInterceptor());
 
                 // Register Encrypt type handler
                 configuration.getTypeHandlerRegistry().register(Encrypt.class, EncryptTypeHandler.class);

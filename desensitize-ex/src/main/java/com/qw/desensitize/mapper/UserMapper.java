@@ -10,5 +10,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserMapper extends BaseMapper<User> {
-    Page<UserDto> list(Page<User> page, @Param("userParam") UserParam userParam);
+    Page<UserDto> listObj(Page<User> page, @Param("userParam") UserParam userParam);
+
+    Page<UserDto> listParam(Page<User> page, @Param("phone") String userParam);
 }
