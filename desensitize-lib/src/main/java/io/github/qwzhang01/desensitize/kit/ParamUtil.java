@@ -33,7 +33,8 @@ public final class ParamUtil {
      * 检测是否为 QueryWrapper 参数
      */
     private static boolean isQueryWrapperParameter(Object parameterObject) {
-        if (parameterObject instanceof Map<?, ?> paramMap) {
+        if (parameterObject instanceof Map<?, ?>) {
+            Map<?, ?> paramMap = (Map<?, ?>) parameterObject;
             // 检查是否包含 QueryWrapper 的特征参数
             return paramMap.containsKey("ew") ||
                     paramMap.keySet().stream().anyMatch(key ->
@@ -263,7 +264,7 @@ public final class ParamUtil {
                                                                       SqlAnalysisInfo sqlAnalysis) {
         log.debug("分析对象参数: {}", parameterObject.getClass().getSimpleName());
 
-        var encryptInfos = new ArrayList<ParameterEncryptInfo>();
+        List<ParameterEncryptInfo> encryptInfos = new ArrayList<>();
         for (ParameterMapping mapping : parameterMappings) {
             // 通过 ParameterMapping 获取需要处理的属性
             String property = mapping.getProperty();
@@ -294,17 +295,19 @@ public final class ParamUtil {
                                                                  List<ParameterMapping> parameterMappings) {
         // 1. 首先尝试通过参数在SQL中的位置来确定对应的字段
         int paramIndex = findParameterIndex(paramProperty, parameterMappings);
-        if (paramIndex >= 0 && paramIndex < sqlAnalysis.getConditions().size()) {
+        List<SqlAnalysisInfo.FieldCondition> allFields = sqlAnalysis.getAllFields();
+        
+        if (paramIndex >= 0 && paramIndex < allFields.size()) {
             // 根据参数在SQL中的位置，找到对应的字段条件
-            SqlAnalysisInfo.FieldCondition condition = sqlAnalysis.getConditions().get(paramIndex);
+            SqlAnalysisInfo.FieldCondition condition = allFields.get(paramIndex);
             String sqlFieldName = condition.columnName();
             
             // 检查这个字段是否需要加密
             for (SqlAnalysisInfo.TableInfo tableInfo : sqlAnalysis.getTables()) {
                 String tableName = tableInfo.tableName();
                 if (isEncryptField(tableName, sqlFieldName)) {
-                    log.debug("通过位置映射找到加密字段: 参数[{}] -> SQL字段[{}] -> 表[{}]", 
-                            paramProperty, sqlFieldName, tableName);
+                    log.debug("通过位置映射找到加密字段: 参数[{}] -> SQL字段[{}] -> 表[{}] (索引:{})", 
+                            paramProperty, sqlFieldName, tableName, paramIndex);
                     return createEncryptInfo(tableName, sqlFieldName, paramValue);
                 }
             }

@@ -26,6 +26,17 @@ public final class SqlUtil {
             Pattern.CASE_INSENSITIVE
     );
 
+    // UPDATE 语句 SET 子句的正则表达式
+    private static final Pattern UPDATE_SET_PATTERN = Pattern.compile(
+            "(?i)\\bSET\\s+(.*?)\\s+WHERE",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
+
+    private static final Pattern SET_FIELD_PATTERN = Pattern.compile(
+            "(?i)(?:`([\\w_]+)`|([\\w_]+))\\s*=\\s*\\?",
+            Pattern.CASE_INSENSITIVE
+    );
+
     /**
      * 分析 SQL 语句，提取表信息和字段信息
      */
@@ -50,6 +61,11 @@ public final class SqlUtil {
             log.debug("发现表: {} (别名: {})", tableName, alias);
         }
 
+        // 检查是否为 UPDATE 语句，如果是则解析 SET 子句
+        if (sql.trim().toUpperCase().startsWith("UPDATE")) {
+            parseUpdateSetClause(sql, result);
+        }
+
         // 解析 WHERE 条件中的字段
         Matcher conditionMatcher = WHERE_CONDITION_PATTERN.matcher(sql);
         while (conditionMatcher.find()) {
@@ -67,5 +83,47 @@ public final class SqlUtil {
         }
 
         return result;
+    }
+
+    /**
+     * 解析 UPDATE 语句的 SET 子句
+     */
+    private static void parseUpdateSetClause(String sql, SqlAnalysisInfo result) {
+        // 提取 SET 子句内容
+        Matcher setMatcher = UPDATE_SET_PATTERN.matcher(sql);
+        if (setMatcher.find()) {
+            String setClause = setMatcher.group(1);
+            log.debug("解析 SET 子句: {}", setClause);
+
+            // 解析 SET 子句中的字段
+            Matcher fieldMatcher = SET_FIELD_PATTERN.matcher(setClause);
+            while (fieldMatcher.find()) {
+                // group(1) 是反引号包围的字段名，group(2) 是普通字段名
+                String columnName = fieldMatcher.group(1) != null ? fieldMatcher.group(1) : fieldMatcher.group(2);
+                
+                SqlAnalysisInfo.FieldCondition condition = new SqlAnalysisInfo.FieldCondition(null, columnName);
+                result.addSetField(condition);
+
+                log.debug("发现 SET 字段: {}", columnName);
+            }
+        } else {
+            // 如果没有 WHERE 子句，尝试匹配整个 SET 部分
+            Pattern setOnlyPattern = Pattern.compile("(?i)\\bSET\\s+(.*?)$", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+            Matcher setOnlyMatcher = setOnlyPattern.matcher(sql);
+            if (setOnlyMatcher.find()) {
+                String setClause = setOnlyMatcher.group(1);
+                log.debug("解析 SET 子句（无WHERE）: {}", setClause);
+
+                Matcher fieldMatcher = SET_FIELD_PATTERN.matcher(setClause);
+                while (fieldMatcher.find()) {
+                    String columnName = fieldMatcher.group(1) != null ? fieldMatcher.group(1) : fieldMatcher.group(2);
+                    
+                    SqlAnalysisInfo.FieldCondition condition = new SqlAnalysisInfo.FieldCondition(null, columnName);
+                    result.addSetField(condition);
+
+                    log.debug("发现 SET 字段（无WHERE）: {}", columnName);
+                }
+            }
+        }
     }
 }
