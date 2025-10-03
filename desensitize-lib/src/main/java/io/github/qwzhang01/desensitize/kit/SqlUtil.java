@@ -242,7 +242,7 @@ public final class SqlUtil {
             for (String field : fields) {
                 String cleanField = field.trim().replaceAll("`", "");
                 if (!cleanField.isEmpty()) {
-                    FieldCondition fieldCondition = new FieldCondition(null, cleanField, FieldType.INSERT);
+                    FieldCondition fieldCondition = new FieldCondition(null, cleanField, FieldType.INSERT, OperatorType.SINGLE_PARAM, 1);
                     result.addInsertField(fieldCondition);
                     log.debug("发现 INSERT 字段: {}", cleanField);
                 }
@@ -300,7 +300,7 @@ public final class SqlUtil {
             while (fieldMatcher.find()) {
                 String fieldName = getFirstNonNull(fieldMatcher.group(1), fieldMatcher.group(2));
                 if (fieldName != null) {
-                    FieldCondition fieldCondition = new FieldCondition(null, fieldName, FieldType.UPDATE_SET);
+                    FieldCondition fieldCondition = new FieldCondition(null, fieldName, FieldType.UPDATE_SET, OperatorType.SINGLE_PARAM, 1);
                     result.addSetField(fieldCondition);
                     log.debug("发现 SET 字段: {}", fieldName);
                 }
@@ -326,33 +326,46 @@ public final class SqlUtil {
         while (matcher.find()) {
             String tableAlias = null;
             String fieldName = null;
+            OperatorType operatorType = OperatorType.SINGLE_PARAM;
+            int actualParamCount = 1;
+
+            String matchedText = matcher.group(0);
 
             // 检查不同的匹配分组
             // 第一种情况：普通操作符 (=, !=, <, >, LIKE 等)
             if (matcher.group(1) != null || matcher.group(2) != null) {
                 tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
                 fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
+                operatorType = OperatorType.SINGLE_PARAM;
+                actualParamCount = 1;
             }
             // 第二种情况：IN 操作符
             else if (matcher.group(5) != null || matcher.group(6) != null) {
                 tableAlias = getFirstNonNull(matcher.group(5), matcher.group(6));
                 fieldName = getFirstNonNull(matcher.group(7), matcher.group(8));
+                operatorType = OperatorType.IN_OPERATOR;
+                // 计算 IN 子句中的参数个数
+                actualParamCount = countParametersInMatch(matchedText);
             }
             // 第三种情况：BETWEEN 操作符
             else if (matcher.group(9) != null || matcher.group(10) != null) {
                 tableAlias = getFirstNonNull(matcher.group(9), matcher.group(10));
                 fieldName = getFirstNonNull(matcher.group(11), matcher.group(12));
+                operatorType = OperatorType.BETWEEN_OPERATOR;
+                actualParamCount = 2;
             }
             // 第四种情况：IS NULL / IS NOT NULL
             /*else if (matcher.group(13) != null || matcher.group(14) != null) {
                 tableAlias = getFirstNonNull(matcher.group(13), matcher.group(14));
                 fieldName = getFirstNonNull(matcher.group(15), matcher.group(16));
+                operatorType = OperatorType.NO_PARAM;
+                actualParamCount = 0;
             }*/
 
             if (fieldName != null) {
-                FieldCondition condition = new FieldCondition(tableAlias, fieldName, FieldType.CONDITION);
+                FieldCondition condition = new FieldCondition(tableAlias, fieldName, FieldType.CONDITION, operatorType, actualParamCount);
                 result.addCondition(condition);
-                log.debug("发现 WHERE 条件字段: {}.{}", tableAlias, fieldName);
+                log.debug("发现 WHERE 条件字段: {}.{} 操作符:{} 参数数量:{}", tableAlias, fieldName, operatorType, actualParamCount);
             }
         }
     }
@@ -381,18 +394,36 @@ public final class SqlUtil {
         for (FieldCondition field : allFields) {
             String tableName = determineTableName(field, result);
 
-            ParameterFieldMapping mapping = new ParameterFieldMapping(
-                    parameterIndex++,
-                    tableName,
-                    field.columnName(),
-                    field.tableAlias(),
-                    field.fieldType()
-            );
+            // 根据操作符类型创建对应数量的参数映射
+            int paramCount = field.getEffectiveParamCount();
 
-            result.addParameterMapping(mapping);
-            log.debug("参数映射: 索引[{}] -> 表[{}] 字段[{}] 类型[{}]",
-                    mapping.parameterIndex(), mapping.tableName(),
-                    mapping.fieldName(), mapping.fieldType());
+            for (int i = 0; i < paramCount; i++) {
+                String fieldSuffix = "";
+                if (paramCount > 1) {
+                    // 对于多参数操作符，添加后缀区分
+                    switch (field.operatorType()) {
+                        case IN_OPERATOR:
+                            fieldSuffix = "_" + (i + 1);
+                            break;
+                        case BETWEEN_OPERATOR:
+                            fieldSuffix = i == 0 ? "_min" : "_max";
+                            break;
+                    }
+                }
+
+                ParameterFieldMapping mapping = new ParameterFieldMapping(
+                        parameterIndex++,
+                        tableName,
+                        field.columnName() + fieldSuffix,
+                        field.tableAlias(),
+                        field.fieldType()
+                );
+
+                result.addParameterMapping(mapping);
+                log.debug("参数映射: 索引[{}] -> 表[{}] 字段[{}] 类型[{}] 操作符[{}]",
+                        mapping.parameterIndex(), mapping.tableName(),
+                        mapping.fieldName(), mapping.fieldType(), field.operatorType());
+            }
         }
     }
 
@@ -446,5 +477,18 @@ public final class SqlUtil {
         }
 
         return alias.trim();
+    }
+
+    /**
+     * 计算匹配文本中的参数个数
+     */
+    private static int countParametersInMatch(String matchedText) {
+        int count = 0;
+        for (int i = 0; i < matchedText.length(); i++) {
+            if (matchedText.charAt(i) == '?') {
+                count++;
+            }
+        }
+        return count;
     }
 }

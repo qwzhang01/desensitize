@@ -224,14 +224,14 @@ public class SqlUtilTest {
     @Test
     @DisplayName("测试复杂的 WHERE 条件")
     public void testComplexWhereConditions() {
-        String sql = "SELECT * FROM user u WHERE u.isDel = 1 AND u.phone LIKE ? AND u.status IN (?, ?) AND u.age > ? AND u.name IS NOT NULL AND u.id between(?, ?)";
+        String sql = "SELECT * FROM user u WHERE u.isDel = 1 AND u.phone like ? AND u.status IN(?, ?) AND u.age > ? AND u.name IS NOT NULL AND u.id BETWEEN(?, ?)";
 
         SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
         // 注意：IS NOT NULL 不会产生参数占位符，所以只有3个条件字段
-        assertEquals(3, result.getConditions().size());
-        assertEquals(3, result.getParameterMappings().size());
+        assertEquals(4, result.getConditions().size());
+        assertEquals(6, result.getParameterMappings().size());
     }
 
     @Test

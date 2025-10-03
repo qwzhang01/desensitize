@@ -177,12 +177,79 @@ public class SqlAnalysisInfo {
     }
 
     /**
+     * 操作符类型
+     */
+    public enum OperatorType {
+        SINGLE_PARAM(1),    // 单参数操作符：=, !=, <, >, <=, >=, LIKE
+        IN_OPERATOR(0),     // IN 操作符：参数个数动态确定
+        BETWEEN_OPERATOR(2), // BETWEEN 操作符：固定2个参数
+        NO_PARAM(0);        // 无参数操作符：IS NULL, IS NOT NULL
+
+        private final int paramCount;
+
+        OperatorType(int paramCount) {
+            this.paramCount = paramCount;
+        }
+
+        public int getParamCount() {
+            return paramCount;
+        }
+    }
+
+    /**
      * 字段条件信息
      */
-    public static record FieldCondition(String tableAlias, String columnName, FieldType fieldType) {
+    public static class FieldCondition {
+        private final String tableAlias;
+        private final String columnName;
+        private final FieldType fieldType;
+        private final OperatorType operatorType;
+        private final int actualParamCount;
 
         public FieldCondition(String tableAlias, String columnName) {
-            this(tableAlias, columnName, FieldType.CONDITION);
+            this(tableAlias, columnName, FieldType.CONDITION, OperatorType.SINGLE_PARAM, 1);
+        }
+
+        public FieldCondition(String tableAlias, String columnName, FieldType fieldType) {
+            this(tableAlias, columnName, fieldType, OperatorType.SINGLE_PARAM, 1);
+        }
+
+        public FieldCondition(String tableAlias, String columnName, FieldType fieldType, OperatorType operatorType, int actualParamCount) {
+            this.tableAlias = tableAlias;
+            this.columnName = columnName;
+            this.fieldType = fieldType;
+            this.operatorType = operatorType;
+            this.actualParamCount = actualParamCount;
+        }
+
+        public String tableAlias() {
+            return tableAlias;
+        }
+
+        public String columnName() {
+            return columnName;
+        }
+
+        public FieldType fieldType() {
+            return fieldType;
+        }
+
+        public OperatorType operatorType() {
+            return operatorType;
+        }
+
+        public int actualParamCount() {
+            return actualParamCount;
+        }
+
+        /**
+         * 获取实际参数个数
+         */
+        public int getEffectiveParamCount() {
+            if (operatorType == OperatorType.IN_OPERATOR) {
+                return actualParamCount; // 对于 IN 操作符，使用实际计算的参数个数
+            }
+            return operatorType.getParamCount();
         }
     }
 
