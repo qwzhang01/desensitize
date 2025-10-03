@@ -33,7 +33,7 @@ public class UserController {
     @GetMapping("page-mapper-obj")
     public R<Page<?>> pageMapperObj() {
         UserParam userParam = new UserParam();
-        userParam.setPhoneNo("13900139002");
+        userParam.setPhone("13900139002");
         Page<UserDto> userPage = mapper.listObj(new Page<>(1, 10), userParam);
         MaskContext.start();
         return R.ok(userPage);
@@ -41,9 +41,14 @@ public class UserController {
 
     @GetMapping("page-mapper-param")
     public R<Page<?>> pageMapperParam() {
-        UserParam userParam = new UserParam();
-        userParam.setPhoneNo("13900139002");
         Page<UserDto> userPage = mapper.listParam(new Page<>(1, 10), "13900139002");
+        MaskContext.start();
+        return R.ok(userPage);
+    }
+
+    @GetMapping("page-mapper-param-index")
+    public R<Page<?>> pageMapperParamIndex() {
+        Page<UserDto> userPage = mapper.listParamIndex(new Page<>(1, 10), "13900139002");
         MaskContext.start();
         return R.ok(userPage);
     }
@@ -51,9 +56,9 @@ public class UserController {
     @GetMapping("page-wrapper")
     public R<Page<?>> pageWrapper() {
         UserParam userParam = new UserParam();
-        userParam.setPhoneNo("13900139002");
+        userParam.setPhone("13900139002");
         QueryWrapper<User> query1 = Wrappers.query();
-        query1.eq("phoneNo", userParam.getPhoneNo());
+        query1.eq("phoneNo", userParam.getPhone());
         Page<User> userPage = mapper.selectPage(new Page<>(1, 10), query1);
         MaskContext.start();
         return R.ok(userPage);

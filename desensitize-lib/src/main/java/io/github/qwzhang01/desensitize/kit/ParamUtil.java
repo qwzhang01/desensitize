@@ -212,11 +212,9 @@ public final class ParamUtil {
                 if (value instanceof String) {
                     log.debug("检查参数: {} = {}", property, value);
 
-                    // 提取实际的字段名（去掉对象前缀）
-                    String fieldName = extractFieldName(property);
-
-                    ParameterEncryptInfo encryptInfo = matchParameterToTableField(
-                            fieldName, (String) value, sqlAnalysis);
+                    // 尝试将参数映射到SQL字段
+                    ParameterEncryptInfo encryptInfo = matchParameterToSqlField(
+                            property, (String) value, sqlAnalysis, parameterMappings);
                     if (encryptInfo != null) {
                         encryptInfo.setParameterKey(property);
                         encryptInfo.setParameterMap(paramMap);
@@ -273,7 +271,7 @@ public final class ParamUtil {
                 Object value = ClazzUtil.getPropertyValue(parameterObject, property);
                 if (value instanceof String) {
                     log.debug("检查对象属性: {} = {}", property, value);
-                    ParameterEncryptInfo encryptInfo = matchParameterToTableField(property, (String) value, sqlAnalysis);
+                    ParameterEncryptInfo encryptInfo = matchParameterToSqlField(property, (String) value, sqlAnalysis, parameterMappings);
                     if (encryptInfo != null) {
                         encryptInfo.setTargetObject(parameterObject);
                         encryptInfo.setPropertyName(property);
@@ -289,7 +287,74 @@ public final class ParamUtil {
     }
 
     /**
-     * 匹配参数到表字段
+     * 将参数映射到SQL字段（新方法，考虑参数在SQL中的实际位置）
+     */
+    private static ParameterEncryptInfo matchParameterToSqlField(String paramProperty, String paramValue,
+                                                                 SqlAnalysisInfo sqlAnalysis,
+                                                                 List<ParameterMapping> parameterMappings) {
+        // 1. 首先尝试通过参数在SQL中的位置来确定对应的字段
+        int paramIndex = findParameterIndex(paramProperty, parameterMappings);
+        if (paramIndex >= 0 && paramIndex < sqlAnalysis.getConditions().size()) {
+            // 根据参数在SQL中的位置，找到对应的字段条件
+            SqlAnalysisInfo.FieldCondition condition = sqlAnalysis.getConditions().get(paramIndex);
+            String sqlFieldName = condition.columnName();
+            
+            // 检查这个字段是否需要加密
+            for (SqlAnalysisInfo.TableInfo tableInfo : sqlAnalysis.getTables()) {
+                String tableName = tableInfo.tableName();
+                if (isEncryptField(tableName, sqlFieldName)) {
+                    log.debug("通过位置映射找到加密字段: 参数[{}] -> SQL字段[{}] -> 表[{}]", 
+                            paramProperty, sqlFieldName, tableName);
+                    return createEncryptInfo(tableName, sqlFieldName, paramValue);
+                }
+            }
+        }
+        
+        // 2. 如果位置映射失败，回退到原有的名称匹配逻辑
+        String fieldName = extractFieldName(paramProperty);
+        return matchParameterToTableField(fieldName, paramValue, sqlAnalysis);
+    }
+    
+    /**
+     * 查找参数在参数映射列表中的索引位置
+     */
+    private static int findParameterIndex(String paramProperty, List<ParameterMapping> parameterMappings) {
+        for (int i = 0; i < parameterMappings.size(); i++) {
+            if (paramProperty.equals(parameterMappings.get(i).getProperty())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    /**
+     * 检查字段是否为加密字段（支持多种命名格式）
+     */
+    private static boolean isEncryptField(String tableName, String fieldName) {
+        EncryptFieldTableContainer encryptFieldTableContainer = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
+        
+        // 直接检查
+        if (encryptFieldTableContainer.isEncrypt(tableName, fieldName)) {
+            return true;
+        }
+        
+        // 尝试驼峰转下划线
+        String underscoreName = camelToUnderscore(fieldName);
+        if (encryptFieldTableContainer.isEncrypt(tableName, underscoreName)) {
+            return true;
+        }
+        
+        // 尝试下划线转驼峰
+        String camelName = underscoreToCamel(fieldName);
+        if (encryptFieldTableContainer.isEncrypt(tableName, camelName)) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * 匹配参数到表字段（原有方法，保持向后兼容）
      */
     private static ParameterEncryptInfo matchParameterToTableField(String paramName, String paramValue,
                                                                    SqlAnalysisInfo sqlAnalysis) {

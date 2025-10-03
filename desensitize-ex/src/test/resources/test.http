@@ -7,6 +7,10 @@ GET http://127.0.0.1:2222/api/user/page-mapper-param
 Accept: application/json
 
 ### 1. 分页：获取用户信息 - GET请求
+GET http://127.0.0.1:2222/api/user/page-mapper-param-index
+Accept: application/json
+
+### 1. 分页：获取用户信息 - GET请求
 GET http://127.0.0.1:2222/api/user/page-wrapper
 Accept: application/json
 
@@ -19,11 +23,11 @@ GET http://127.0.0.1:2222/api/user/page-type-handler
 Accept: application/json
 
 ### 1. 查询：获取用户信息 - GET请求
-GET http://127.0.0.1:2222/api/user/infos?userId=1973975470661382146
+GET http://127.0.0.1:2222/api/user/infos?userId=1974118840054530049
 Accept: application/json
 
 ### 1. 查询：获取用户信息 - GET请求
-GET http://127.0.0.1:2222/api/user/info?userId=1973975470661382146
+GET http://127.0.0.1:2222/api/user/info?userId=1974118840054530049
 Accept: application/json
 
 ### 2. 保存用户 - POST请求
@@ -31,7 +35,7 @@ POST http://127.0.0.1:2222/api/user/save
 Content-Type: application/json
 
 {
-  "name": "张三",
+  "name": "张三丰",
   "phoneNo": "13800138000",
   "gender": "男",
   "idNo": "110101199001011234"
@@ -42,7 +46,7 @@ POST http://127.0.0.1:2222/api/user/update
 Content-Type: application/json
 
 {
-  "id": 1973975470661382146,
+  "id": 1974118840054530049,
   "name": "魏贺生",
   "phoneNo": "13900139002",
   "gender": "男",
@@ -59,3 +63,6 @@ Content-Type: application/json
   "gender": "男",
   "idNo": "110101199803033456"
 }
+
+####
+GET http://127.0.0.1:2222/api/mytest/db-config

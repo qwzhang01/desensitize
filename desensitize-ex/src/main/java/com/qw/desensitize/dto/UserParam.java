@@ -11,7 +11,7 @@ import lombok.Data;
 public class UserParam {
     private Long id;
     private String name;
-    private String phoneNo;
+    private String phone;
     private String gender;
     private Encrypt idNo;
 }
