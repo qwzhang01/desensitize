@@ -63,48 +63,94 @@ public final class ClazzUtil {
      * 获取对象的属性值
      */
     public static Object getPropertyValue(Object obj, String propertyName) throws Exception {
-        // 尝试通过 getter 方法获取
-        String getterName = "get" + StringUtils.capitalize(propertyName);
-        try {
-            java.lang.reflect.Method getter = obj.getClass().getMethod(getterName);
-            return getter.invoke(obj);
-        } catch (NoSuchMethodException e) {
-            // 尝试 boolean 类型的 is 方法
-            String isGetterName = "is" + StringUtils.capitalize(propertyName);
-            try {
-                java.lang.reflect.Method isGetter = obj.getClass().getMethod(isGetterName);
-                return isGetter.invoke(obj);
-            } catch (NoSuchMethodException e2) {
-                // 直接通过字段访问
-                Field field = findField(obj.getClass(), propertyName);
-                if (field != null) {
-                    field.setAccessible(true);
-                    return field.get(obj);
-                }
-                throw new Exception("无法获取属性: " + propertyName);
-            }
+        if (obj == null || propertyName == null || propertyName.trim().isEmpty()) {
+            throw new IllegalArgumentException("对象和属性名不能为空");
         }
+
+        String capitalizedName = StringUtils.capitalize(propertyName);
+        
+        // 尝试 getter 方法
+        Object result = tryGetterMethod(obj, "get" + capitalizedName);
+        if (result != null) {
+            return result;
+        }
+        
+        // 尝试 boolean 类型的 is 方法
+        result = tryGetterMethod(obj, "is" + capitalizedName);
+        if (result != null) {
+            return result;
+        }
+        
+        // 直接通过字段访问
+        return getFieldValue(obj, propertyName);
     }
 
     /**
      * 设置对象的属性值
      */
     public static void setPropertyValue(Object obj, String propertyName, Object value) throws Exception {
-        // 尝试通过 setter 方法设置
-        String setterName = "set" + StringUtils.capitalize(propertyName);
-        try {
-            java.lang.reflect.Method setter = obj.getClass().getMethod(setterName, Object.class);
-            setter.invoke(obj, value);
-        } catch (NoSuchMethodException e) {
-            // 直接通过字段设置
-            Field field = findField(obj.getClass(), propertyName);
-            if (field != null) {
-                field.setAccessible(true);
-                field.set(obj, value);
-            } else {
-                throw new DesensitizeException("无法设置属性: " + propertyName);
-            }
+        if (obj == null || propertyName == null || propertyName.trim().isEmpty()) {
+            throw new IllegalArgumentException("对象和属性名不能为空");
         }
+
+        String setterName = "set" + StringUtils.capitalize(propertyName);
+        
+        // 尝试通过 setter 方法设置
+        if (trySetterMethod(obj, setterName, value)) {
+            return;
+        }
+        
+        // 直接通过字段设置
+        setFieldValue(obj, propertyName, value);
+    }
+
+    /**
+     * 尝试调用 getter 方法
+     */
+    private static Object tryGetterMethod(Object obj, String methodName) {
+        try {
+            Method getter = obj.getClass().getMethod(methodName);
+            return getter.invoke(obj);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 尝试调用 setter 方法
+     */
+    private static boolean trySetterMethod(Object obj, String methodName, Object value) {
+        try {
+            Method setter = obj.getClass().getMethod(methodName, value != null ? value.getClass() : Object.class);
+            setter.invoke(obj, value);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * 通过字段获取值
+     */
+    private static Object getFieldValue(Object obj, String fieldName) throws Exception {
+        Field field = findField(obj.getClass(), fieldName);
+        if (field == null) {
+            throw new DesensitizeException("无法获取属性: " + fieldName);
+        }
+        field.setAccessible(true);
+        return field.get(obj);
+    }
+
+    /**
+     * 通过字段设置值
+     */
+    private static void setFieldValue(Object obj, String fieldName, Object value) throws Exception {
+        Field field = findField(obj.getClass(), fieldName);
+        if (field == null) {
+            throw new DesensitizeException("无法设置属性: " + fieldName);
+        }
+        field.setAccessible(true);
+        field.set(obj, value);
     }
 
     /**
@@ -136,32 +182,22 @@ public final class ClazzUtil {
         return null;
     }
 
-    public static <T extends Annotation> List<AnnotatedFieldResult<T>> getAnnotatedAnnotationFields(
+    /**
+     * Recursively retrieves all fields with specified annotation from object and its complex properties
+     * This method searches for meta-annotations (annotations on annotations)
+     *
+     * @param obj             the object to inspect
+     * @param annotationClass the annotation class to search for
+     * @return list of results containing fields and their corresponding objects
+     */
+    public static <T extends Annotation> List<AnnotatedFieldResult<T>> getAnnotatedFieldsWithMetaAnnotation(
             Object obj, Class<T> annotationClass) {
-
-        if (obj == null || annotationClass == null) {
-            return Collections.emptyList();
-        }
-
-        if (NO_CLASS.contains(obj.getClass())) {
-            return Collections.emptyList();
-        }
-
-        List<AnnotatedFieldResult<T>> results = new ArrayList<>();
-        Set<Object> visited = new HashSet<>();
-
-        collectAnnotatedAnnotationFields(obj, annotationClass, results, visited, "");
-
-        if (results.isEmpty() && !isCollection(obj.getClass()) && !isGenerics(obj.getClass())) {
-            NO_CLASS.add(obj.getClass());
-            return Collections.emptyList();
-        }
-
-        return results;
+        return getAnnotatedFieldsInternal(obj, annotationClass, true);
     }
 
     /**
      * Recursively retrieves all fields with specified annotation from object and its complex properties
+     * This method searches for direct annotations only
      *
      * @param obj             the object to inspect
      * @param annotationClass the annotation class to search for
@@ -169,6 +205,19 @@ public final class ClazzUtil {
      */
     public static <T extends Annotation> List<AnnotatedFieldResult<T>> getAnnotatedFields(
             Object obj, Class<T> annotationClass) {
+        return getAnnotatedFieldsInternal(obj, annotationClass, false);
+    }
+
+    /**
+     * Internal method for retrieving annotated fields
+     *
+     * @param obj                the object to inspect
+     * @param annotationClass    the annotation class to search for
+     * @param searchMetaAnnotation whether to search for meta-annotations
+     * @return list of results containing fields and their corresponding objects
+     */
+    private static <T extends Annotation> List<AnnotatedFieldResult<T>> getAnnotatedFieldsInternal(
+            Object obj, Class<T> annotationClass, boolean searchMetaAnnotation) {
         if (obj == null || annotationClass == null) {
             return Collections.emptyList();
         }
@@ -180,11 +229,10 @@ public final class ClazzUtil {
         List<AnnotatedFieldResult<T>> results = new ArrayList<>();
         Set<Object> visited = new HashSet<>();
 
-        collectAnnotatedFields(obj, annotationClass, results, visited, "");
+        collectAnnotatedFields(obj, annotationClass, results, visited, "", searchMetaAnnotation);
 
-        if (results.isEmpty()) {
+        if (results.isEmpty() && !isCollection(obj.getClass()) && !isGenerics(obj.getClass())) {
             NO_CLASS.add(obj.getClass());
-            return Collections.emptyList();
         }
 
         return results;
@@ -193,18 +241,20 @@ public final class ClazzUtil {
     /**
      * Recursively collects fields with specified annotation
      *
-     * @param obj             the current object being inspected
-     * @param annotationClass the annotation class to search for
-     * @param results         result collector
-     * @param visited         set of visited objects to prevent circular references
-     * @param fieldPath       field path for debugging and tracking
+     * @param obj                  the current object being inspected
+     * @param annotationClass      the annotation class to search for
+     * @param results              result collector
+     * @param visited              set of visited objects to prevent circular references
+     * @param fieldPath            field path for debugging and tracking
+     * @param searchMetaAnnotation whether to search for meta-annotations
      */
-    private static <T extends Annotation> void collectAnnotatedAnnotationFields(
+    private static <T extends Annotation> void collectAnnotatedFields(
             Object obj,
             Class<T> annotationClass,
             List<AnnotatedFieldResult<T>> results,
             Set<Object> visited,
-            String fieldPath) {
+            String fieldPath,
+            boolean searchMetaAnnotation) {
 
         if (obj == null || visited.contains(obj)) {
             return;
@@ -225,7 +275,6 @@ public final class ClazzUtil {
 
             for (Field field : fields) {
                 if (isFinalAndStatic(field)) {
-                    // static final 字段不处理
                     continue;
                 }
 
@@ -233,68 +282,17 @@ public final class ClazzUtil {
 
                 try {
                     // Check if field has target annotation
-                    T annotation = field.getAnnotation(annotationClass);
-                    if (annotation == null) {
-                        Annotation[] annotations = field.getAnnotations();
-                        if (annotations != null && annotations.length > 0) {
-                            annotation = Arrays.stream(annotations).map(a -> {
-                                Class<? extends Annotation> annoClazz = a.annotationType();
-                                return annoClazz.getAnnotation(annotationClass);
-                            }).filter(Objects::nonNull).findAny().orElse(null);
-                        }
-                    }
-
+                    T annotation = findAnnotation(field, annotationClass, searchMetaAnnotation);
                     if (annotation != null) {
-                        String currentPath = fieldPath.isEmpty() ? field.getName() : fieldPath + "." + field.getName();
+                        String currentPath = buildFieldPath(fieldPath, field.getName());
                         results.add(new AnnotatedFieldResult<>(field, obj, annotation, currentPath));
                     }
 
-                    // Get field value
+                    // Process field value recursively
                     Object fieldValue = field.get(obj);
-                    if (fieldValue != null) {
-                        Class<?> fieldType = fieldValue.getClass();
-
-                        // If it's a complex object, process recursively
-                        if (isComplexObject(fieldType)) {
-                            String currentPath = fieldPath.isEmpty() ? field.getName() : fieldPath + "." + field.getName();
-
-                            // Handle collection types
-                            if (fieldValue instanceof Collection<?> collection) {
-                                int index = 0;
-                                for (Object item : collection) {
-                                    if (item != null && isComplexObject(item.getClass())) {
-                                        collectAnnotatedAnnotationFields(item, annotationClass, results, visited,
-                                                currentPath + "[" + index + "]");
-                                    }
-                                    index++;
-                                }
-                            }
-                            // Handle array types
-                            else if (fieldType.isArray()) {
-                                Object[] array = (Object[]) fieldValue;
-                                for (int i = 0; i < array.length; i++) {
-                                    Object item = array[i];
-                                    if (item != null && isComplexObject(item.getClass())) {
-                                        collectAnnotatedAnnotationFields(item, annotationClass, results, visited,
-                                                currentPath + "[" + i + "]");
-                                    }
-                                }
-                            }
-                            // Handle Map types
-                            else if (fieldValue instanceof Map<?, ?> map) {
-                                for (Map.Entry<?, ?> entry : map.entrySet()) {
-                                    Object value = entry.getValue();
-                                    if (value != null && isComplexObject(value.getClass())) {
-                                        collectAnnotatedAnnotationFields(value, annotationClass, results, visited,
-                                                currentPath + "[" + entry.getKey() + "]");
-                                    }
-                                }
-                            }
-                            // Handle regular complex objects
-                            else {
-                                collectAnnotatedAnnotationFields(fieldValue, annotationClass, results, visited, currentPath);
-                            }
-                        }
+                    if (fieldValue != null && isComplexObject(fieldValue.getClass())) {
+                        String currentPath = buildFieldPath(fieldPath, field.getName());
+                        processComplexFieldValue(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
                     }
                 } catch (IllegalAccessException e) {
                     // Ignore inaccessible fields
@@ -305,109 +303,118 @@ public final class ClazzUtil {
         }
     }
 
+    /**
+     * Find annotation on field, with optional meta-annotation search
+     */
+    private static <T extends Annotation> T findAnnotation(Field field, Class<T> annotationClass, boolean searchMetaAnnotation) {
+        // First try direct annotation
+        T annotation = field.getAnnotation(annotationClass);
+        if (annotation != null || !searchMetaAnnotation) {
+            return annotation;
+        }
+
+        // Search for meta-annotations
+        return Arrays.stream(field.getAnnotations())
+                .map(a -> a.annotationType().getAnnotation(annotationClass))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
 
     /**
-     * Recursively collects fields with specified annotation
-     *
-     * @param obj             the current object being inspected
-     * @param annotationClass the annotation class to search for
-     * @param results         result collector
-     * @param visited         set of visited objects to prevent circular references
-     * @param fieldPath       field path for debugging and tracking
+     * Build field path string
      */
-    private static <T extends Annotation> void collectAnnotatedFields(
-            Object obj,
+    private static String buildFieldPath(String parentPath, String fieldName) {
+        return parentPath.isEmpty() ? fieldName : parentPath + "." + fieldName;
+    }
+
+    /**
+     * Process complex field values (collections, arrays, maps, objects)
+     */
+    private static <T extends Annotation> void processComplexFieldValue(
+            Object fieldValue,
             Class<T> annotationClass,
             List<AnnotatedFieldResult<T>> results,
             Set<Object> visited,
-            String fieldPath) {
+            String currentPath,
+            boolean searchMetaAnnotation) {
 
-        if (obj == null || visited.contains(obj)) {
-            return;
+        // Handle collection types
+        if (fieldValue instanceof Collection<?> collection) {
+            processCollection(collection, annotationClass, results, visited, currentPath, searchMetaAnnotation);
         }
-
-        Class<?> objClass = obj.getClass();
-
-        // Skip primitive types and common Java types
-        if (isPrimitiveOrCommonType(objClass)) {
-            return;
+        // Handle array types
+        else if (fieldValue.getClass().isArray()) {
+            processArray((Object[]) fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
         }
+        // Handle Map types
+        else if (fieldValue instanceof Map<?, ?> map) {
+            processMap(map, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+        }
+        // Handle regular complex objects
+        else {
+            collectAnnotatedFields(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+        }
+    }
 
-        visited.add(obj);
+    /**
+     * Process collection elements
+     */
+    private static <T extends Annotation> void processCollection(
+            Collection<?> collection,
+            Class<T> annotationClass,
+            List<AnnotatedFieldResult<T>> results,
+            Set<Object> visited,
+            String currentPath,
+            boolean searchMetaAnnotation) {
 
-        try {
-            // Get all fields from current class and its parent classes
-            List<Field> fields = getAllFields(objClass);
-
-            for (Field field : fields) {
-                if (isFinalAndStatic(field)) {
-                    // static final 字段不处理
-                    continue;
-                }
-
-                field.setAccessible(true);
-
-                try {
-                    // Check if field has target annotation
-                    T annotation = field.getAnnotation(annotationClass);
-                    if (annotation != null) {
-                        String currentPath = fieldPath.isEmpty() ? field.getName() : fieldPath + "." + field.getName();
-                        results.add(new AnnotatedFieldResult<>(field, obj, annotation, currentPath));
-                    }
-
-                    // Get field value
-                    Object fieldValue = field.get(obj);
-                    if (fieldValue != null) {
-                        Class<?> fieldType = fieldValue.getClass();
-
-                        // If it's a complex object, process recursively
-                        if (isComplexObject(fieldType)) {
-                            String currentPath = fieldPath.isEmpty() ? field.getName() : fieldPath + "." + field.getName();
-
-                            // Handle collection types
-                            if (fieldValue instanceof Collection<?> collection) {
-                                int index = 0;
-                                for (Object item : collection) {
-                                    if (item != null && isComplexObject(item.getClass())) {
-                                        collectAnnotatedFields(item, annotationClass, results, visited,
-                                                currentPath + "[" + index + "]");
-                                    }
-                                    index++;
-                                }
-                            }
-                            // Handle array types
-                            else if (fieldType.isArray()) {
-                                Object[] array = (Object[]) fieldValue;
-                                for (int i = 0; i < array.length; i++) {
-                                    Object item = array[i];
-                                    if (item != null && isComplexObject(item.getClass())) {
-                                        collectAnnotatedFields(item, annotationClass, results, visited,
-                                                currentPath + "[" + i + "]");
-                                    }
-                                }
-                            }
-                            // Handle Map types
-                            else if (fieldValue instanceof Map<?, ?> map) {
-                                for (Map.Entry<?, ?> entry : map.entrySet()) {
-                                    Object value = entry.getValue();
-                                    if (value != null && isComplexObject(value.getClass())) {
-                                        collectAnnotatedFields(value, annotationClass, results, visited,
-                                                currentPath + "[" + entry.getKey() + "]");
-                                    }
-                                }
-                            }
-                            // Handle regular complex objects
-                            else {
-                                collectAnnotatedFields(fieldValue, annotationClass, results, visited, currentPath);
-                            }
-                        }
-                    }
-                } catch (IllegalAccessException e) {
-                    // Ignore inaccessible fields
-                }
+        int index = 0;
+        for (Object item : collection) {
+            if (item != null && isComplexObject(item.getClass())) {
+                collectAnnotatedFields(item, annotationClass, results, visited,
+                        currentPath + "[" + index + "]", searchMetaAnnotation);
             }
-        } finally {
-            visited.remove(obj);
+            index++;
+        }
+    }
+
+    /**
+     * Process array elements
+     */
+    private static <T extends Annotation> void processArray(
+            Object[] array,
+            Class<T> annotationClass,
+            List<AnnotatedFieldResult<T>> results,
+            Set<Object> visited,
+            String currentPath,
+            boolean searchMetaAnnotation) {
+
+        for (int i = 0; i < array.length; i++) {
+            Object item = array[i];
+            if (item != null && isComplexObject(item.getClass())) {
+                collectAnnotatedFields(item, annotationClass, results, visited,
+                        currentPath + "[" + i + "]", searchMetaAnnotation);
+            }
+        }
+    }
+
+    /**
+     * Process map entries
+     */
+    private static <T extends Annotation> void processMap(
+            Map<?, ?> map,
+            Class<T> annotationClass,
+            List<AnnotatedFieldResult<T>> results,
+            Set<Object> visited,
+            String currentPath,
+            boolean searchMetaAnnotation) {
+
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            Object value = entry.getValue();
+            if (value != null && isComplexObject(value.getClass())) {
+                collectAnnotatedFields(value, annotationClass, results, visited,
+                        currentPath + "[" + entry.getKey() + "]", searchMetaAnnotation);
+            }
         }
     }
 
@@ -446,25 +453,33 @@ public final class ClazzUtil {
      * Determine if it's a complex object (object that needs recursive processing)
      */
     private static boolean isComplexObject(Class<?> clazz) {
-        if (clazz.isArray() || isCollection(clazz)) {
+        // Collections, arrays, and maps are always complex
+        if (isCollection(clazz) || clazz.isArray()) {
             return true;
         }
-        boolean b1 = !isPrimitiveOrCommonType(clazz);
-        boolean b2 = !clazz.isArray();
-        boolean b3 = clazz.isArray() && !isPrimitiveOrCommonType(clazz.getComponentType());
-        return b1 && b2 || b3;
+        
+        // For arrays, check component type
+        if (clazz.isArray()) {
+            return !isPrimitiveOrCommonType(clazz.getComponentType());
+        }
+        
+        // Other types are complex if they're not primitive/common types
+        return !isPrimitiveOrCommonType(clazz);
     }
 
+    /**
+     * Check if class is a collection type
+     */
     private static boolean isCollection(Class<?> clazz) {
-        return List.class.isAssignableFrom(clazz) ||
-                Map.class.isAssignableFrom(clazz) ||
-                Collection.class.isAssignableFrom(clazz);
+        return Collection.class.isAssignableFrom(clazz) || Map.class.isAssignableFrom(clazz);
     }
 
+    /**
+     * Check if field should be skipped (static, final, or transient)
+     */
     private static boolean isFinalAndStatic(Field field) {
-        return Modifier.isStatic(field.getModifiers())
-                || Modifier.isFinal(field.getModifiers())
-                || Modifier.isTransient(field.getModifiers());
+        int modifiers = field.getModifiers();
+        return Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers) || Modifier.isTransient(modifiers);
     }
 
     private static boolean isGenerics(Class<?> clazz) {
@@ -473,64 +488,40 @@ public final class ClazzUtil {
     }
 
     /**
-     * Annotated field result class
+     * Annotated field result record containing field, containing object, annotation, and field path
+     *
+     * @param field            the annotated field
+     * @param containingObject the object containing this field
+     * @param annotation       the annotation instance
+     * @param fieldPath        the field path for debugging and tracking
      */
-    public record AnnotatedFieldResult<T extends Annotation>(Field field, Object containingObject, T annotation,
-                                                             String fieldPath) {
+    public record AnnotatedFieldResult<T extends Annotation>(
+            Field field, 
+            Object containingObject, 
+            T annotation,
+            String fieldPath) {
 
         /**
-         * Get the field
-         */
-        @Override
-        public Field field() {
-            return field;
-        }
-
-        /**
-         * Get the object containing this field
-         */
-        @Override
-        public Object containingObject() {
-            return containingObject;
-        }
-
-        /**
-         * Get the annotation instance
-         */
-        @Override
-        public T annotation() {
-            return annotation;
-        }
-
-        /**
-         * Get the field path (for debugging)
-         */
-        @Override
-        public String fieldPath() {
-            return fieldPath;
-        }
-
-        /**
-         * Get the field value
+         * Get the field value safely
          */
         public Object getFieldValue() {
             try {
                 field.setAccessible(true);
                 return field.get(containingObject);
             } catch (IllegalAccessException e) {
-                throw new RuntimeException("Cannot access field value: " + field.getName(), e);
+                throw new DesensitizeException("Cannot access field value: " + field.getName(), e);
             }
         }
 
         /**
-         * Set the field value
+         * Set the field value safely
          */
         public void setFieldValue(Object value) {
             try {
                 field.setAccessible(true);
                 field.set(containingObject, value);
             } catch (IllegalAccessException e) {
-                throw new RuntimeException("Cannot set field value: " + field.getName(), e);
+                throw new DesensitizeException("Cannot set field value: " + field.getName(), e);
             }
         }
 

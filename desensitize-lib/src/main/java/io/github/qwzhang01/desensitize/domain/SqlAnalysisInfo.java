@@ -189,7 +189,7 @@ public class SqlAnalysisInfo {
     /**
      * 参数占位符与字段的映射关系
      */
-    public static record ParameterFieldMapping(
+    public record ParameterFieldMapping(
             int parameterIndex,     // 参数索引（从0开始）
             String tableName,       // 表名
             String fieldName,       // 字段名

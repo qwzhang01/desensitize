@@ -134,7 +134,7 @@ public final class MaskAlgoContainer {
             return;
         }
 
-        List<ClazzUtil.AnnotatedFieldResult<Mask>> maskFields = ClazzUtil.getAnnotatedAnnotationFields(data, Mask.class);
+        List<ClazzUtil.AnnotatedFieldResult<Mask>> maskFields = ClazzUtil.getAnnotatedFieldsWithMetaAnnotation(data, Mask.class);
         if (CollectionUtils.isEmpty(maskFields)) {
             return;
         }

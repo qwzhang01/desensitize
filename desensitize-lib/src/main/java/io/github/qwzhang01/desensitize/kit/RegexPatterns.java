@@ -9,16 +9,6 @@ import java.util.regex.Pattern;
  */
 public final class RegexPatterns {
 
-    /**
-     * 表名解析模式 - 匹配 FROM、JOIN、UPDATE、INTO 后的表名和别名
-     * 支持带引号的表名和复杂的别名
-     */
-    public static final Pattern TABLE_PATTERN = Pattern.compile(
-            "(?i)\\b(?:FROM|(?:LEFT|RIGHT|INNER|FULL|CROSS)?\\s*(?:OUTER\\s+)?JOIN|UPDATE|INTO)\\s+" +
-                    "(?:`([\\w_]+)`|([\\w_]+))(?:\\s+(?:AS\\s+)?(?:`([\\w_]+)`|([\\w_]+)))?",
-            Pattern.CASE_INSENSITIVE
-    );
-
     // ========== SQL 解析相关正则表达式 ==========
     /**
      * SELECT 语句中的表名模式 - 专门处理 SELECT 语句的 FROM 子句

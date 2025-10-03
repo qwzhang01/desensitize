@@ -1,6 +1,6 @@
 package io.github.qwzhang01.desensitize.kit;
 
-import io.github.qwzhang01.desensitize.container.EncryptionAlgoContainer;
+import io.github.qwzhang01.desensitize.container.AbstractEncryptAlgoContainer;
 import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
 import io.github.qwzhang01.desensitize.domain.ParameterRestoreInfo;
@@ -366,7 +366,7 @@ public final class ParamUtil {
 
         for (ParameterEncryptInfo encryptInfo : encryptInfos) {
             try {
-                EncryptionAlgo algo = EncryptionAlgoContainer.getAlgo(encryptInfo.getAlgoClass());
+                EncryptionAlgo algo = SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class).getAlgo(encryptInfo.getAlgoClass());
                 String encryptedValue = algo.encrypt(encryptInfo.getOriginalValue());
 
                 // 创建还原信息
