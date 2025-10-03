@@ -1,554 +1,383 @@
-# Spring boot及Mybatis下敏感字段页面脱敏、数据库加密解非侵入性实现方式
+# Data Desensitization Library
 
-<br/>
-&#8195;&#8195;&#8195;&#8195;系统开发中经常遇到保护用户敏感信息的需求，比如身份证、手机号码等，在页面显示需要脱敏，在数据库保存需要加密以防止脱库等。脱敏、加密解密属于与业务无关的公共逻辑，如果夹杂在业务代码里面，不仅会增加业务代码的复杂度，而且容易出错。
-<br/>
-<br/>
-&#8195;&#8195;&#8195;&#8195;将其抽象提取到业务代码以外，使脱敏、加密解密对业务代码无侵入将能简化业务代码，降低出BUG的概率。
-<br/>
-<br/>
+A comprehensive Java library for data masking and encryption, designed to protect sensitive information in applications.
+This library provides flexible and configurable data masking strategies for various types of sensitive data including
+phone numbers, ID cards, emails, and personal names.
 
-## 一、前端接口敏感字段脱敏
+## Features
 
-&#8195;&#8195;&#8195;&#8195;对于前端页面需要脱敏的字段特征分析：
+- **Multiple Masking Algorithms**: Support for phone numbers, ID cards, emails, Chinese names, and English names
+- **Encryption Support**: Built-in DES encryption for reversible data protection
+- **Spring Boot Integration**: Auto-configuration for seamless Spring Boot integration
+- **Flexible Configuration**: Easy to customize and extend with your own algorithms
+- **Thread-Safe**: All operations are thread-safe for concurrent environments
+- **Annotation-Based**: Support for annotation-driven masking (coming soon)
 
-1. 内存状态：在内存中是明文 
-2. 脱敏时刻：给到前端页面那一刻脱敏 
-3. 脱敏后是否还会用到该对象：脱敏后方法结束，无需再使用，即内存中的对象会被回收，即脱敏后内存状态无需关注
-<br/>
+## Quick Start
 
-&#8195;&#8195;&#8195;&#8195;基于以上特点分析，可以借助spring mvc的 ResponseBodyAdvice实现。ResponseBodyAdvice接口会对加了@RestController(也就是@Controller+@ResponseBody)注解的处理器的返回值进行增强处理，底层也是基于AOP实现的。
-<br/>
+### Maven Dependency
 
-&#8195;&#8195;&#8195;&#8195;ResponseBodyAdvice 有2个方法，一个是判断当前返回值是否需要增强处理，一个是实现增强处理的具体逻辑。
-<br/>
-
-&#8195;&#8195;&#8195;&#8195;基于脱敏的特点以及ResponseBodyAdvice 的实现方式，具体实现思路如下：
-<br/>
-
-1. 设计一个基类，基类只包含一个字段以说明当前业务状态是否需要脱敏。需要脱敏的实体都继承自该基类； 
-2. 设计一个注解，注解只有一个参数说明脱敏算法类型（比如手机号码脱敏算法、邮箱脱敏算法等），需要脱敏的字段使用注解标注； 
-3. 实现ResponseBodyAdvice 接口中的2个方法，通过返回值类型判断是否需要做增强处理；增强处理逻辑中根据反射获取父类判断是否需要脱敏，再通过反射获取脱敏注解的字段，将明文转换为密文。
-<br/>
-
-&#8195;&#8195;&#8195;&#8195;核心代码如下：
-```
-/**
- * 脱敏基类
- */
-@Data
-public class UnSensitiveDto implements Serializable {
-    /**
-     * 是否脱敏
-     */
-    private boolean sensitiveFlag = false;
-}
-
+```xml
+<dependency>
+    <groupId>io.github.qwzhang01</groupId>
+    <artifactId>desensitize-lib</artifactId>
+    <version>1.0.0</version>
+</dependency>
 ```
 
-```
-/**
- * 脱敏注解
- *
- * @author avinzhang
- */
-@Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface UnSensitive {
-    /**
-     * 标注不同的脱敏算法，比如邮箱脱敏算法、身份证号码脱敏算法、手机号码脱敏算法
-     * @return
-     */
-    String type();
-}
+### Basic Usage
+
+#### Using Default Masking Algorithms
+
+```java
+import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
+import io.github.qwzhang01.desensitize.shield.CoverAlgo;
+
+// Create an instance of the default masking algorithm
+CoverAlgo coverAlgo = new DefaultCoverAlgo();
+
+// Mask phone number
+String maskedPhone = coverAlgo.maskPhone("13812345678");
+// Result: "138****5678"
+
+// Mask ID card
+String maskedId = coverAlgo.maskIdCard("110101199001011234");
+// Result: "110101********1234"
+
+// Mask email
+String maskedEmail = coverAlgo.maskEmail("example@gmail.com");
+// Result: "e****e@gmail.com"
+
+// Mask Chinese name
+String maskedChineseName = coverAlgo.maskChineseName("张三丰");
+// Result: "张*丰"
+
+// Mask English name
+String maskedEnglishName = coverAlgo.maskEnglishName("John");
+// Result: "J**n"
 ```
 
-```
-/**
- * 接口返回字段脱敏拦截器
- * 使用说明
- * <p>
- * 使用方法，返回结果的类继承 com.qw.desensitize.dto.UnSensitiveDto
- * com.qw.desensitize.dto.UnSensitiveDto#sensitiveFlag，脱敏的标识，比如本人登录状态，则赋值为false，不脱敏，其他人登录查看则赋值为true脱敏
- * <p>
- * 需要脱敏的字段添加注解 com.qw.desensitize.common.sensitive.UnSensitive
- * com.qw.desensitize.common.sensitive.UnSensitive#type() 为脱敏算法，目前实现了手机，身份证，邮箱三种脱敏算法，对应枚举定位位置 com.qw.desensitize.dto.UnSensitiveDto
- *
- * @author avinzhang
- */
-@ControllerAdvice
-@AllArgsConstructor
-@Slf4j
-public class UnSensitiveAdvice implements ResponseBodyAdvice<R> {
+#### Using Encryption
 
+```java
+import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
+import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+
+// Create an instance of the default encryption algorithm
+EncryptionAlgo encryptionAlgo = new DefaultEncryptionAlgo();
+
+// Encrypt sensitive data
+String encrypted = encryptionAlgo.encrypt("sensitive data");
+
+// Decrypt data
+String decrypted = encryptionAlgo.decrypt(encrypted);
+```
+
+### Spring Boot Integration
+
+The library provides auto-configuration for Spring Boot applications. Simply add the dependency and the beans will be
+automatically configured.
+
+#### Using Spring Context Utility
+
+```java
+import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
+import io.github.qwzhang01.desensitize.shield.CoverAlgo;
+
+// Get masking algorithm from Spring context
+CoverAlgo coverAlgo = SpringContextUtil.getBean(CoverAlgo.class);
+
+// Use the algorithm
+String masked = coverAlgo.maskPhone("13812345678");
+```
+
+#### Using Utility Class
+
+```java
+import io.github.qwzhang01.desensitize.kit.DesensitizeUtil;
+
+// Direct static method calls (automatically uses Spring beans if available)
+String maskedPhone = DesensitizeUtil.maskPhone("13812345678");
+String maskedEmail = DesensitizeUtil.maskEmail("user@example.com");
+String encrypted = DesensitizeUtil.encrypt("sensitive data");
+```
+
+## Masking Strategies
+
+### Phone Number Masking
+
+- **Pattern**: Keeps first 3 and last 4 digits, masks middle 4 digits
+- **Example**: `13812345678` → `138****5678`
+- **Validation**: Only processes valid Chinese mobile phone numbers
+
+### ID Card Masking
+
+- **18-digit ID**: Keeps first 6 and last 4 digits, masks middle 8 digits (birth date)
+- **15-digit ID**: Keeps first 6 and last 3 digits, masks middle 6 digits
+- **Example**: `110101199001011234` → `110101********1234`
+
+### Email Masking
+
+- **Pattern**: Keeps first and last character of username, masks middle part
+- **Example**: `example@gmail.com` → `e****e@gmail.com`
+- **Domain**: Domain part remains unchanged
+
+### Chinese Name Masking
+
+- **2 characters**: Keeps family name, masks given name
+- **3+ characters**: Keeps first and last character, masks middle
+- **Examples**:
+    - `张三` → `张*`
+    - `张三丰` → `张*丰`
+
+### English Name Masking
+
+- **Pattern**: Keeps first and last character, masks middle
+- **Example**: `John` → `J**n`
+
+## Configuration
+
+### Custom Masking Algorithm
+
+```java
+import io.github.qwzhang01.desensitize.shield.CoverAlgo;
+
+@Component
+public class CustomCoverAlgo implements CoverAlgo {
     @Override
-    public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        Type type = returnType.getGenericParameterType();
-        String typeName = type.getTypeName();
-        return typeName.startsWith("com.qw.desensitize.common.R");
+    public String mask(String content) {
+        // Your custom masking logic
+        return "***";
     }
+    
+    // You can also override specific methods from RoutineCoverAlgo
+}
+```
 
-    @Nullable
+### Custom Encryption Algorithm
+
+```java
+import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+
+@Component
+public class CustomEncryptionAlgo implements EncryptionAlgo {
     @Override
-    public R beforeBodyWrite(@Nullable R body, MethodParameter returnType, MediaType selectedContentType, Class<? extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
-        if (body != null) {
-            if (body.getData() != null) {
-                if (body.getData() instanceof UnSensitiveDto) {
-                    UnSensitiveDto sensitive = (UnSensitiveDto) body.getData();
-                    if (sensitive.isSensitiveFlag()) {
-                        Long start = System.currentTimeMillis();
-                        body.setData(unSensitive(sensitive));
-                        log.warn("脱敏耗时{}毫秒", System.currentTimeMillis() - start);
-                        return body;
-                    }
-                } else if (body.getData() instanceof List) {
-                    List<Object> list = (List<Object>) body.getData();
-                    if (list != null && list.size() > 0) {
-                        Object element = list.get(0);
-                        if (element instanceof UnSensitiveDto) {
-                            UnSensitiveDto sensitive = (UnSensitiveDto) element;
-                            if (sensitive.isSensitiveFlag()) {
-                                Long start = System.currentTimeMillis();
-                                body.setData(unSensitive(list));
-                                log.warn("脱敏耗时{}毫秒", System.currentTimeMillis() - start);
-                                return body;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return body;
+    public String encrypt(String value) {
+        // Your custom encryption logic
+        return encryptedValue;
     }
-
-    private Object unSensitive(Object data) {
-        try {
-            if (data instanceof List) {
-                // 处理list
-                List<Object> list = (List) data;
-                for (Object o : list) {
-                    unSensitive(o);
-                }
-            } else {
-                // 处理类
-                unSensitiveParam(data);
-            }
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-        return data;
-    }
-
-    /**
-     * 脱敏
-     *
-     * @param data
-     * @throws IllegalAccessException
-     */
-    private void unSensitiveParam(Object data) throws IllegalAccessException {
-        if (data == null) {
-            return;
-        }
-        List<Field> fields = getFields(data.getClass());
-        for (Field field : fields) {
-            field.setAccessible(true);
-            Class<?> classType = field.getType();
-            if (classType.getName().startsWith("com.qw.desensitize.dto")) {
-                // 如果属性是自定义类，递归处理
-                unSensitiveParam(field.get(data));
-            } else if (List.class.isAssignableFrom(classType)) {
-                Object objList = field.get(data);
-                if (objList != null) {
-                    List<Object> dataList = (List<Object>) objList;
-                    for (Object dataParam : dataList) {
-                        unSensitiveParam(dataParam);
-                    }
-                }
-            } else {
-                UnSensitive annotation = field.getAnnotation(UnSensitive.class);
-                if (annotation != null) {
-                    String type = annotation.type();
-                    if (UN_SENSITIVE_EMAIL.equals(type)) {
-                        if (field.get(data) != null) {
-                            field.set(data, email(String.valueOf(field.get(data))));
-                        }
-                    }
-                    if (UN_SENSITIVE_PHONE.equals(type)) {
-                        if (field.get(data) != null) {
-                            field.set(data, phone(String.valueOf(field.get(data))));
-                        }
-                    }
-                    if (UnSensitiveDto.UN_SENSITIVE_ID_NUM.equals(type)) {
-                        if (field.get(data) != null) {
-                            field.set(data, idNum(String.valueOf(field.get(data))));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * 递归获取所有属性
-     *
-     * @param clazz
-     * @return
-     */
-    private List<Field> getFields(Class<?> clazz) {
-        List<Field> list = new ArrayList<>();
-        Field[] declaredFields = clazz.getDeclaredFields();
-        list.addAll(Arrays.asList(declaredFields));
-
-
-        Class<?> superclass = clazz.getSuperclass();
-        if (superclass.getName().startsWith("com.qw.desensitize.dto")) {
-            list.addAll(getFields(superclass));
-        }
-        return list;
-    }
-
-    /**
-     * 脱敏邮箱
-     *
-     * @param src
-     * @return
-     */
-    private String email(String src) {
-        if (src == null) {
-            return null;
-        }
-        String email = src.toString();
-        int index = StringUtils.indexOf(email, "@");
-        if (index <= 1) {
-            return email;
-        } else {
-            return StringUtils.rightPad(StringUtils.left(email, 0), index, "*").concat(StringUtils.mid(email, index, StringUtils.length(email)));
-        }
-    }
-
-    /**
-     * 脱敏手机号码
-     *
-     * @param phone
-     * @return
-     */
-    private String phone(String phone) {
-        if (StringUtils.isBlank(phone)) {
-            return "";
-        }
-        return phone.replaceAll("(^\\d{0})\\d.*(\\d{4})", "$1****$2");
-    }
-
-    /**
-     * 身份证脱敏
-     *
-     * @param idNumber
-     * @return
-     */
-    private String idNum(String idNumber) {
-        if (StringUtils.isBlank(idNumber)) {
-            return "";
-        }
-        if (idNumber.length() == 15 || idNumber.length() == 18) {
-            return idNumber.replaceAll("(\\w{4})\\w*(\\w{4})", "$1*********$2");
-        }
-        if (idNumber.length() > 4) {
-            // 组织机构代码的方式脱敏****1111
-            return idNumber.replaceAll("(\\w{0})\\w*(\\w{4})", "$1*********$2");
-        }
-        // 不足四位或者只有一位的都替代为*
-        return "*********";
+    
+    @Override
+    public String decrypt(String value) {
+        // Your custom decryption logic
+        return decryptedValue;
     }
 }
 ```
 
-```
-/**
- * 继承父类，需要做脱敏处理
- */
-@Data
-public class UserDto extends UnSensitiveDto {
-    private String name;
-    /**
-     * 对手机号码做脱敏的主机，脱敏算法是手机号码
-     */
-    @UnSensitive(type = UN_SENSITIVE_PHONE)
-    private String phoneNo;
-    private String gender;
-    private Encrypt idNo;
+## Auto-Configuration
+
+The library automatically configures the following beans when no custom implementations are provided:
+
+- `CoverAlgo`: Default data masking algorithm
+- `EncryptionAlgo`: Default DES encryption algorithm
+- `SpringContextUtil`: Utility for accessing Spring beans
+
+### Disabling Auto-Configuration
+
+```java
+@SpringBootApplication(exclude = {MaskAutoConfig.class})
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
 }
+```
 
+## Security Considerations
 
-/**
- * 控制器
- */
-@GetMapping("info")
-public R<UserDto> info(@RequestParam String userId) {
-        // 获取数据库数据
-        User user = mapper.selectById(userId);
-        if (user == null) {
-            return R.error();
-        }
-        // 转化为dto
+### Encryption Algorithm
+
+- The default implementation uses DES encryption, which is considered weak by modern standards
+- For production environments, consider implementing a custom `EncryptionAlgo` with stronger algorithms like AES
+- Always use secure key management practices
+
+### Key Management
+
+- The default encryption key is hardcoded for demonstration purposes
+- In production, externalize keys using environment variables or secure key management systems
+- Rotate encryption keys regularly
+
+### Data Handling
+
+- Masked data is not encrypted and should not be considered secure for storage
+- Use encryption for data that needs to be reversible
+- Use masking for display and logging purposes
+
+## Examples
+
+### Complete Spring Boot Example
+
+```java
+@RestController
+public class UserController {
+    
+    @Autowired
+    private CoverAlgo coverAlgo;
+    
+    @Autowired
+    private EncryptionAlgo encryptionAlgo;
+    
+    @GetMapping("/user/{id}")
+    public UserDto getUser(@PathVariable String id) {
+        User user = userService.findById(id);
+        
+        // Mask sensitive data for response
         UserDto dto = new UserDto();
-        BeanUtils.copyProperties(user, dto);
-
-        // 标注需要脱敏
-        dto.setSensitiveFlag(true);
-
-        return R.success(dto);
+        dto.setPhone(coverAlgo.maskPhone(user.getPhone()));
+        dto.setEmail(coverAlgo.maskEmail(user.getEmail()));
+        dto.setIdCard(coverAlgo.maskIdCard(user.getIdCard()));
+        
+        return dto;
     }
-```
-
-&#8195;&#8195;&#8195;&#8195;脱敏效果
-
-![1.png](doc%2F1.png)
-
-
-## 二、数据库敏感字段加密解密
-&#8195;&#8195;&#8195;&#8195;对数据库字段加密解密特征分析：
-
-<br/>
-
-1. 加密时刻：入库的时候 
-2. 解密时刻：出库的时候 
-3. 内存状态要求：在内存中需是明文 
-4. 解密后是否会用到对象：解密即读库，读库一定是为了使用，因此解密后内存需为明文 
-5. 加密后是否会用到对象：某些业务入库即结束，有些用户入库后可能还有进一步的业务，因此加密后内存中仍需保持明文
-
-&#8195;&#8195;&#8195;&#8195;基于以上特征分析，可以采用mybatis的Interceptor拦截器或新定义类型使用TypeHandler处理。
-<br/>
-
-#### 新定义类型通过TypeHandler处理思路
-1. TypeHandler在mybatis中用于实现java类型和JDBC类型的相互转换。mybatis使用prepareStatement进行参数设置的时候，通过typeHandler将传入的java类型参数转换成对应的JDBC类型参数，这个过程是通过调用PrepareStatement不同的set方法实现的；在获取结果返回之后，需将返回的结果的JDBC类型转换成java类型，通过调用ResultSet对象不同类型的get方法实现；所以不同类型的typeHandler其实就是调用PrepareStatement和ResultSet的不同方法来进行类型的转换，因此可以在调用PrepareStatement和ResultSet的相关方法之前可以对传入的参数进行处理； 
-2. 新定义一个类，代替需要加密的字符串； 
-3. 继承BaseTypeHandler，实现setNonNullParameter方法实现加密逻辑，实现getNullableResult方法实现解密逻辑； 
-4. 将与数据库交互的类中需要加密解密的字段类型用自定义的类代替； 
-5. 如果需要对前端无感，可以统一对json工具做特殊处理，对加密对象的json序列化和反序列化按照字符串逻辑处理。
-
-&#8195;&#8195;&#8195;&#8195;核心代码如下：
-<br/>
-```
-/**
- * 加密字段字符串
- *
- * @author avinzhang
- */
-public class Encrypt {
-    private String value;
-
-    public Encrypt(String value) {
-        this.value = value;
-    }
-
-    public String getValue() {
-        return value;
-    }
-
-    public void setValue(String value) {
-        this.value = value;
-    }
-
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (obj instanceof Encrypt) {
-            Encrypt objE = (Encrypt) obj;
-            return value.equals(objE.getValue());
-        }
-        return false;
-    }
-
-    @Override
-    public String toString() {
-        return value;
-    }
-}
-```
-
-&#8195;&#8195;&#8195;&#8195;如果使用jackson进行json序列化和反序列化，可以通过新的序列化反序列化逻辑，代码如下：
-<br/>
-<br/>
-
-```
-// jackson
-        ObjectMapper objectMapper = new ObjectMapper();
-
-
-        // 加密解密字段json序列化与反序列化，按照字符串逻辑处理
-        SimpleModule simpleModule = new SimpleModule();
-        simpleModule.addSerializer(Encrypt.class, new JsonSerializer<Encrypt>() {
-            @Override
-            public void serialize(Encrypt value, JsonGenerator g, SerializerProvider serializers) throws IOException {
-                g.writeString(value.getValue());
-            }
-        });
-        simpleModule.addDeserializer(Encrypt.class, new JsonDeserializer<Encrypt>() {
-            @Override
-            public Encrypt deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-                int currentTokenId = p.getCurrentTokenId();
-                if (JsonTokenId.ID_STRING == currentTokenId) {
-                    String text = p.getText().trim();
-                    return new Encrypt(text);
-                }
-                throw new JacksonException("json 反序列化异常", "", Encrypt.class);
-            }
-        });
-        objectMapper.registerModule(simpleModule);
-
-
-```
-
-```
-import com.qw.desensitize.dto.Encrypt;
-import com.qw.desensitize.kit.DesKit;
-import org.apache.ibatis.type.BaseTypeHandler;
-import org.apache.ibatis.type.JdbcType;
-import org.apache.ibatis.type.MappedJdbcTypes;
-import org.apache.ibatis.type.MappedTypes;
-
-import java.sql.CallableStatement;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
-/**
- * 加密解密类型转换器
- *
- * @author avinzhang
- */
-@MappedJdbcTypes(JdbcType.VARCHAR)
-@MappedTypes(Encrypt.class)
-public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
-
-    /**
-     * 设置参数
-     */
-    @Override
-    public void setNonNullParameter(PreparedStatement ps, int i, Encrypt parameter, JdbcType jdbcType) throws SQLException {
-        if (parameter == null || parameter.getValue() == null) {
-            ps.setString(i, null);
-            return;
-        }
-        String encrypt = DesKit.encrypt(DesKit.KEY, parameter.getValue());
-        ps.setString(i, encrypt);
-    }
-
-    /**
-     * 获取值
-     */
-    @Override
-    public Encrypt getNullableResult(ResultSet rs, String columnName) throws SQLException {
-        return decrypt(rs.getString(columnName));
-    }
-
-    /**
-     * 获取值
-     */
-    @Override
-    public Encrypt getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
-        return decrypt(rs.getString(columnIndex));
-    }
-
-    /**
-     * 获取值
-     */
-    @Override
-    public Encrypt getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
-        return decrypt(cs.getString(columnIndex));
-    }
-
-    /**
-     * 解密
-     *
-     * @param value
-     * @return
-     */
-    private Encrypt decrypt(String value) {
-        if (null == value) {
-            return null;
-        }
-        return new Encrypt(DesKit.decrypt(DesKit.KEY, value));
-    }
-}
-```
-&#8195;&#8195;&#8195;&#8195;使用举例：
-<br/>
-<br/>
-```
-/**
- * 用户 entity
- */
-@Data
-@TableName("user")
-@EncryptObj
-public class User {
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
-    private String id;
-    @TableField("name")
-    private String name;
-    /**
-     * 使用拦截器方式加密
-     */
-    @EncryptField
-    @TableField("phoneNo")
-    private String phoneNo;
-    @TableField("gender")
-    private String gender;
-    /**
-     * 使用类型转换器加密解密
-     */
-    @TableField("idNo")
-    private Encrypt idNo;
-}
-
-/**
- * 用户dto
- * 继承父类，需要做脱敏处理
- */
-@Data
-public class UserDto extends UnSensitiveDto {
-    private String name;
-    /**
-     * 对手机号码做脱敏的主机，脱敏算法是手机号码
-     */
-    @UnSensitive(type = UN_SENSITIVE_PHONE)
-    private String phoneNo;
-    private String gender;
-    private Encrypt idNo;
-}
-
-    /**
-     * 保存，保存后还需要使用
-     * @param userDto
-     * @return
-     */
-    @PostMapping("save-error")
-    public R<UserDto> saveError(@RequestBody UserDto userDto) {
-        // 保存
+    
+    @PostMapping("/user")
+    public void createUser(@RequestBody CreateUserRequest request) {
         User user = new User();
-        BeanUtils.copyProperties(userDto, user);
-        mapper.insert(user);
-
-        // 使用
-        BeanUtils.copyProperties(user, userDto);
-        return R.success(userDto);
+        
+        // Encrypt sensitive data before storage
+        user.setPhone(encryptionAlgo.encrypt(request.getPhone()));
+        user.setIdCard(encryptionAlgo.encrypt(request.getIdCard()));
+        
+        userService.save(user);
     }
+}
 ```
-&#8195;&#8195;&#8195;&#8195;加密效果：
-<br/>
-<br/>
-![2.png](doc%2F2.png)
-![3.png](doc%2F3.png)
 
-## 总结：
-1. 页面字段脱敏利用spring mvc 的ResponseBodyAdvice，在返回结果前改变对象为密文 
-2. 数据库加密解密，既可以采用mybatis的拦截器，也可以采用mybatis的类型转换器，拦截器在加密的同时会改变内存数据为密文，mybatis类型转换器不会改变原对象
+### Utility Class Example
+
+```java
+public class DataProcessor {
+    
+    public void processUserData(String phone, String email, String name) {
+        // Using static utility methods
+        String maskedPhone = DesensitizeUtil.maskPhone(phone);
+        String maskedEmail = DesensitizeUtil.maskEmail(email);
+        String maskedName = DesensitizeUtil.maskChineseName(name);
+        
+        // Log masked data safely
+        log.info("Processing user: phone={}, email={}, name={}", 
+                maskedPhone, maskedEmail, maskedName);
+        
+        // Encrypt for storage
+        String encryptedPhone = DesensitizeUtil.encrypt(phone);
+        // Store encrypted data...
+    }
+}
+```
+
+## API Reference
+
+### CoverAlgo Interface
+
+| Method                    | Description            | Example Input          | Example Output         |
+|---------------------------|------------------------|------------------------|------------------------|
+| `mask(String)`            | Generic masking method | `"sensitive"`          | `"*****"`              |
+| `maskPhone(String)`       | Mask phone number      | `"13812345678"`        | `"138****5678"`        |
+| `maskIdCard(String)`      | Mask ID card number    | `"110101199001011234"` | `"110101********1234"` |
+| `maskEmail(String)`       | Mask email address     | `"user@example.com"`   | `"u**r@example.com"`   |
+| `maskChineseName(String)` | Mask Chinese name      | `"张三丰"`                | `"张*丰"`                |
+| `maskEnglishName(String)` | Mask English name      | `"John"`               | `"J**n"`               |
+
+### EncryptionAlgo Interface
+
+| Method            | Description            | Parameters                | Returns                   |
+|-------------------|------------------------|---------------------------|---------------------------|
+| `encrypt(String)` | Encrypt plain text     | Plain text string         | Encrypted string (Base64) |
+| `decrypt(String)` | Decrypt encrypted text | Encrypted string (Base64) | Plain text string         |
+
+### SpringContextUtil Class
+
+| Method                    | Description               | Parameters | Returns               |
+|---------------------------|---------------------------|------------|-----------------------|
+| `getBean(Class<T>)`       | Get bean by type          | Bean class | Bean instance         |
+| `getBean(String)`         | Get bean by name          | Bean name  | Bean instance         |
+| `getBeanSafely(Class<T>)` | Safely get bean by type   | Bean class | Bean instance or null |
+| `containsBean(String)`    | Check if bean exists      | Bean name  | boolean               |
+| `isInitialized()`         | Check if context is ready | None       | boolean               |
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to
+discuss what you would like to change.
+
+### Development Setup
+
+1. Clone the repository
+2. Import into your IDE as a Maven project
+3. Run tests: `mvn test`
+4. Build: `mvn clean package`
+
+### Code Style
+
+- Follow standard Java coding conventions
+- Add comprehensive JavaDoc comments
+- Include unit tests for new features
+- Ensure thread safety for all public methods
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### MIT License
+
+```
+MIT License
+
+Copyright (c) 2024 avinzhang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## Changelog
+
+### Version 1.0.0
+
+- Initial release
+- Basic masking algorithms for phone, ID card, email, and names
+- DES encryption support
+- Spring Boot auto-configuration
+- Spring context utility
+
+## Support
+
+If you encounter any issues or have questions, please:
+
+1. Check the [documentation](#api-reference)
+2. Search existing [issues](https://github.com/qwzhang01/desensitize-lib/issues)
+3. Create a new issue with detailed information
+
+## Roadmap
+
+- [ ] Annotation-based masking support
+- [ ] AES encryption algorithm
+- [ ] Custom masking patterns
+- [ ] Performance optimizations
+- [ ] Additional data type support
+- [ ] Internationalization support

@@ -10,7 +10,7 @@ import com.qw.desensitize.dto.UserParam;
 import com.qw.desensitize.entity.User;
 import com.qw.desensitize.mapper.UserMapper;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
-import io.github.qwzhang01.desensitize.domain.MaskContext;
+import io.github.qwzhang01.desensitize.context.MaskContext;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;

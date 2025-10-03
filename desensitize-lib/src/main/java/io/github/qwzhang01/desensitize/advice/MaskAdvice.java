@@ -25,8 +25,8 @@
 
 package io.github.qwzhang01.desensitize.advice;
 
-import io.github.qwzhang01.desensitize.domain.MaskContext;
-import io.github.qwzhang01.desensitize.kit.MaskAlgoContainer;
+import io.github.qwzhang01.desensitize.container.MaskAlgoContainer;
+import io.github.qwzhang01.desensitize.context.MaskContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -59,8 +59,8 @@ import java.io.File;
 public class MaskAdvice implements ResponseBodyAdvice<Object> {
     private final MaskAlgoContainer maskAlgoContainer;
 
-    public MaskAdvice() {
-        this.maskAlgoContainer = new MaskAlgoContainer();
+    public MaskAdvice(MaskAlgoContainer maskAlgoContainer) {
+        this.maskAlgoContainer = maskAlgoContainer;
     }
 
     @Override

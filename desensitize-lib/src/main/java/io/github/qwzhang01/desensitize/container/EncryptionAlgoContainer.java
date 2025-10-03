@@ -23,9 +23,10 @@
  */
 
 
-package io.github.qwzhang01.desensitize.kit;
+package io.github.qwzhang01.desensitize.container;
 
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
+import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
 

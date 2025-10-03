@@ -26,12 +26,13 @@
 package io.github.qwzhang01.desensitize.config;
 
 import io.github.qwzhang01.desensitize.advice.MaskAdvice;
+import io.github.qwzhang01.desensitize.container.EncryptFieldTableContainer;
+import io.github.qwzhang01.desensitize.container.MaskAlgoContainer;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
-import io.github.qwzhang01.desensitize.table.EncryptFieldTableContainer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -67,7 +68,7 @@ public class MaskAutoConfig {
     @Bean
     @ConditionalOnMissingBean(MaskAdvice.class)
     public MaskAdvice maskAdvice() {
-        return new MaskAdvice();
+        return new MaskAdvice(new MaskAlgoContainer());
     }
 
     /**

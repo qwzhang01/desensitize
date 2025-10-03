@@ -1,4 +1,4 @@
-package io.github.qwzhang01.desensitize.table;
+package io.github.qwzhang01.desensitize.container;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;

@@ -1,12 +1,12 @@
 package io.github.qwzhang01.desensitize.kit;
 
-import io.github.qwzhang01.desensitize.core.SqlRewriteContext;
+import io.github.qwzhang01.desensitize.container.EncryptionAlgoContainer;
+import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
 import io.github.qwzhang01.desensitize.domain.ParameterRestoreInfo;
 import io.github.qwzhang01.desensitize.domain.SqlAnalysisInfo;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
-import io.github.qwzhang01.desensitize.table.EncryptFieldTableContainer;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.ParameterMapping;
 import org.apache.ibatis.reflection.MetaObject;
@@ -18,16 +18,22 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static io.github.qwzhang01.desensitize.kit.ClazzUtil.setPropertyValue;
+import static io.github.qwzhang01.desensitize.kit.RegexPatterns.*;
 
 /**
  * 参数解析工具
+ *
+ * @author avinzhang
  */
 public final class ParamUtil {
 
     private static final Logger log = LoggerFactory.getLogger(ParamUtil.class);
+
+    private ParamUtil() {
+        // 工具类不允许实例化
+    }
 
     /**
      * 检测是否为 QueryWrapper 参数
@@ -43,65 +49,22 @@ public final class ParamUtil {
         return false;
     }
 
-    /**
-     * 驼峰转下划线
-     */
-    private static String camelToUnderscore(String camelCase) {
-        if (camelCase == null || camelCase.isEmpty()) {
-            return camelCase;
-        }
-        return camelCase.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
-    }
-
-    /**
-     * 下划线转驼峰
-     */
-    private static String underscoreToCamel(String underscore) {
-        if (underscore == null || underscore.isEmpty()) {
-            return underscore;
-        }
-
-        StringBuilder result = new StringBuilder();
-        boolean nextUpperCase = false;
-
-        for (char c : underscore.toCharArray()) {
-            if (c == '_') {
-                nextUpperCase = true;
-            } else {
-                if (nextUpperCase) {
-                    result.append(Character.toUpperCase(c));
-                    nextUpperCase = false;
-                } else {
-                    result.append(Character.toLowerCase(c));
-                }
-            }
-        }
-
-        return result.toString();
-    }
-
-    /**
-     * 创建加密信息对象
-     */
-    private static ParameterEncryptInfo createEncryptInfo(String tableName, String fieldName, String value) {
-        EncryptFieldTableContainer encryptFieldTableContainer = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
-        Class<? extends EncryptionAlgo> algoClass = encryptFieldTableContainer.getAlgo(tableName, fieldName);
-
-        ParameterEncryptInfo encryptInfo = new ParameterEncryptInfo();
-        encryptInfo.setTableName(tableName);
-        encryptInfo.setFieldName(fieldName);
-        encryptInfo.setOriginalValue(value);
-        encryptInfo.setAlgoClass(algoClass);
-
-        return encryptInfo;
-    }
 
     /**
      * 分析参数对象，确定需要加密的参数
+     *
+     * @param boundSql        SQL绑定对象
+     * @param sqlAnalysis     SQL分析信息
+     * @param parameterObject 参数对象
+     * @return 需要加密的参数列表
      */
     public static List<ParameterEncryptInfo> analyzeParameters(BoundSql boundSql,
                                                                SqlAnalysisInfo sqlAnalysis,
                                                                Object parameterObject) {
+        if (parameterObject == null) {
+            return Collections.emptyList();
+        }
+
         log.debug("参数对象类型: {}, 参数映射数量: {}",
                 parameterObject.getClass().getSimpleName(), boundSql.getParameterMappings().size());
 
@@ -164,7 +127,7 @@ public final class ParamUtil {
                 if (paramValue instanceof String) {
                     log.debug("检查 QueryWrapper 字段: {} -> 参数: {} = {}", fieldName, paramName, paramValue);
 
-                    ParameterEncryptInfo encryptInfo = matchParameterToTableField(fieldName, (String) paramValue, sqlAnalysis);
+                    ParameterEncryptInfo encryptInfo = FieldMatchUtil.matchParameterToTableField(fieldName, (String) paramValue, sqlAnalysis);
                     if (encryptInfo != null) {
                         // 设置 QueryWrapper 特有的参数路径
                         String parameterKey = "ew.paramNameValuePairs." + paramName;
@@ -240,7 +203,7 @@ public final class ParamUtil {
                         .anyMatch(mapping -> paramName.equals(mapping.getProperty()));
 
                 if (!alreadyProcessed) {
-                    ParameterEncryptInfo encryptInfo = matchParameterToTableField(
+                    ParameterEncryptInfo encryptInfo = FieldMatchUtil.matchParameterToTableField(
                             paramName, (String) paramValue, sqlAnalysis);
                     if (encryptInfo != null) {
                         encryptInfo.setParameterKey(paramName);
@@ -288,7 +251,7 @@ public final class ParamUtil {
     }
 
     /**
-     * 将参数映射到SQL字段（新方法，考虑参数在SQL中的实际位置）
+     * 将参数映射到SQL字段（考虑参数在SQL中的实际位置）
      */
     private static ParameterEncryptInfo matchParameterToSqlField(String paramProperty, String paramValue,
                                                                  SqlAnalysisInfo sqlAnalysis,
@@ -296,28 +259,29 @@ public final class ParamUtil {
         // 1. 首先尝试通过参数在SQL中的位置来确定对应的字段
         int paramIndex = findParameterIndex(paramProperty, parameterMappings);
         List<SqlAnalysisInfo.FieldCondition> allFields = sqlAnalysis.getAllFields();
-        
+
         if (paramIndex >= 0 && paramIndex < allFields.size()) {
             // 根据参数在SQL中的位置，找到对应的字段条件
             SqlAnalysisInfo.FieldCondition condition = allFields.get(paramIndex);
             String sqlFieldName = condition.columnName();
-            
+
             // 检查这个字段是否需要加密
             for (SqlAnalysisInfo.TableInfo tableInfo : sqlAnalysis.getTables()) {
                 String tableName = tableInfo.tableName();
-                if (isEncryptField(tableName, sqlFieldName)) {
-                    log.debug("通过位置映射找到加密字段: 参数[{}] -> SQL字段[{}] -> 表[{}] (索引:{})", 
+                ParameterEncryptInfo encryptInfo = FieldMatchUtil.createEncryptInfo(tableName, sqlFieldName, paramValue);
+                if (encryptInfo != null) {
+                    log.debug("通过位置映射找到加密字段: 参数[{}] -> SQL字段[{}] -> 表[{}] (索引:{})",
                             paramProperty, sqlFieldName, tableName, paramIndex);
-                    return createEncryptInfo(tableName, sqlFieldName, paramValue);
+                    return encryptInfo;
                 }
             }
         }
-        
+
         // 2. 如果位置映射失败，回退到原有的名称匹配逻辑
-        String fieldName = extractFieldName(paramProperty);
-        return matchParameterToTableField(fieldName, paramValue, sqlAnalysis);
+        String fieldName = StringUtil.extractFieldName(paramProperty);
+        return FieldMatchUtil.matchParameterToTableField(fieldName, paramValue, sqlAnalysis);
     }
-    
+
     /**
      * 查找参数在参数映射列表中的索引位置
      */
@@ -328,122 +292,6 @@ public final class ParamUtil {
             }
         }
         return -1;
-    }
-    
-    /**
-     * 检查字段是否为加密字段（支持多种命名格式）
-     */
-    private static boolean isEncryptField(String tableName, String fieldName) {
-        EncryptFieldTableContainer encryptFieldTableContainer = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
-        
-        // 直接检查
-        if (encryptFieldTableContainer.isEncrypt(tableName, fieldName)) {
-            return true;
-        }
-        
-        // 尝试驼峰转下划线
-        String underscoreName = camelToUnderscore(fieldName);
-        if (encryptFieldTableContainer.isEncrypt(tableName, underscoreName)) {
-            return true;
-        }
-        
-        // 尝试下划线转驼峰
-        String camelName = underscoreToCamel(fieldName);
-        if (encryptFieldTableContainer.isEncrypt(tableName, camelName)) {
-            return true;
-        }
-        
-        return false;
-    }
-
-    /**
-     * 匹配参数到表字段（原有方法，保持向后兼容）
-     */
-    private static ParameterEncryptInfo matchParameterToTableField(String paramName, String paramValue,
-                                                                   SqlAnalysisInfo sqlAnalysis) {
-        EncryptFieldTableContainer encryptFieldTableContainer = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
-        // 清理参数名
-        String cleanParamName = cleanParameterName(paramName);
-
-        // 遍历所有表，检查是否有匹配的加密字段
-        for (SqlAnalysisInfo.TableInfo tableInfo : sqlAnalysis.getTables()) {
-            String tableName = tableInfo.tableName();
-
-            // 直接用参数名作为字段名检查
-            if (encryptFieldTableContainer.isEncrypt(tableName, cleanParamName)) {
-                return createEncryptInfo(tableName, cleanParamName, paramValue);
-            }
-
-            // 尝试驼峰转下划线
-            String underscoreName = camelToUnderscore(cleanParamName);
-            if (encryptFieldTableContainer.isEncrypt(tableName, underscoreName)) {
-                return createEncryptInfo(tableName, underscoreName, paramValue);
-            }
-
-            // 尝试下划线转驼峰
-            String camelName = underscoreToCamel(cleanParamName);
-            if (encryptFieldTableContainer.isEncrypt(tableName, camelName)) {
-                return createEncryptInfo(tableName, camelName, paramValue);
-            }
-        }
-
-        // 从 SQL 条件中匹配
-        for (SqlAnalysisInfo.FieldCondition condition : sqlAnalysis.getConditions()) {
-            String columnName = condition.columnName();
-
-            if (cleanParamName.equalsIgnoreCase(columnName) ||
-                    camelToUnderscore(cleanParamName).equalsIgnoreCase(columnName) ||
-                    underscoreToCamel(cleanParamName).equalsIgnoreCase(columnName)) {
-
-                // 找到匹配的字段，检查哪个表包含这个加密字段
-                for (SqlAnalysisInfo.TableInfo tableInfo : sqlAnalysis.getTables()) {
-                    String tableName = tableInfo.tableName();
-                    if (encryptFieldTableContainer.isEncrypt(tableName, columnName)) {
-                        return createEncryptInfo(tableName, columnName, paramValue);
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-
-    /**
-     * 清理参数名
-     */
-    private static String cleanParameterName(String paramName) {
-        if (paramName == null) {
-            return null;
-        }
-
-        // 移除常见的前缀
-        String cleaned = paramName;
-        if (cleaned.startsWith("param.")) {
-            cleaned = cleaned.substring(6);
-        }
-        if (cleaned.startsWith("arg.")) {
-            cleaned = cleaned.substring(4);
-        }
-
-        return cleaned;
-    }
-
-    /**
-     * 从嵌套属性路径中提取字段名
-     * 例如：userParam.phoneNo -> phoneNo
-     */
-    private static String extractFieldName(String propertyPath) {
-        if (propertyPath == null || propertyPath.isEmpty()) {
-            return propertyPath;
-        }
-
-        // 如果包含点号，取最后一部分作为字段名
-        int lastDotIndex = propertyPath.lastIndexOf('.');
-        if (lastDotIndex >= 0 && lastDotIndex < propertyPath.length() - 1) {
-            return propertyPath.substring(lastDotIndex + 1);
-        }
-
-        return propertyPath;
     }
 
     /**
@@ -480,42 +328,34 @@ public final class ParamUtil {
     private static Map<String, String> parseFieldParamMapping(String sqlSegment) {
         Map<String, String> mapping = new HashMap<>();
 
+        if (StringUtil.isEmpty(sqlSegment)) {
+            return mapping;
+        }
+
         try {
-            // 匹配各种 SQL 条件模式
-            // 模式1: field_name = #{ew.paramNameValuePairs.MPGENVAL1}
-            Pattern pattern1 = Pattern.compile("(\\w+)\\s*=\\s*#\\{ew\\.paramNameValuePairs\\.(\\w+)\\}");
-            Matcher matcher1 = pattern1.matcher(sqlSegment);
-            while (matcher1.find()) {
-                String fieldName = matcher1.group(1);
-                String paramName = matcher1.group(2);
-                mapping.put(fieldName, paramName);
-                log.debug("解析到字段映射: {} -> {}", fieldName, paramName);
-            }
-
-            // 模式2: field_name LIKE #{ew.paramNameValuePairs.MPGENVAL1}
-            Pattern pattern2 = Pattern.compile("(\\w+)\\s+LIKE\\s+#\\{ew\\.paramNameValuePairs\\.(\\w+)\\}");
-            Matcher matcher2 = pattern2.matcher(sqlSegment);
-            while (matcher2.find()) {
-                String fieldName = matcher2.group(1);
-                String paramName = matcher2.group(2);
-                mapping.put(fieldName, paramName);
-                log.debug("解析到 LIKE 字段映射: {} -> {}", fieldName, paramName);
-            }
-
-            // 模式3: field_name IN (#{ew.paramNameValuePairs.MPGENVAL1}, ...)
-            Pattern pattern3 = Pattern.compile("(\\w+)\\s+IN\\s*\\([^)]*#\\{ew\\.paramNameValuePairs\\.(\\w+)\\}");
-            Matcher matcher3 = pattern3.matcher(sqlSegment);
-            while (matcher3.find()) {
-                String fieldName = matcher3.group(1);
-                String paramName = matcher3.group(2);
-                mapping.put(fieldName, paramName);
-                log.debug("解析到 IN 字段映射: {} -> {}", fieldName, paramName);
-            }
+            // 使用统一的正则表达式模式
+            parseFieldMapping(sqlSegment, QW_EQUAL_PATTERN, mapping, "等值");
+            parseFieldMapping(sqlSegment, QW_LIKE_PATTERN, mapping, "LIKE");
+            parseFieldMapping(sqlSegment, QW_IN_PATTERN, mapping, "IN");
 
         } catch (Exception e) {
             throw new DesensitizeException("解析字段参数映射失败", e);
         }
         return mapping;
+    }
+
+    /**
+     * 解析特定模式的字段映射
+     */
+    private static void parseFieldMapping(String sqlSegment, java.util.regex.Pattern pattern,
+                                          Map<String, String> mapping, String patternType) {
+        Matcher matcher = pattern.matcher(sqlSegment);
+        while (matcher.find()) {
+            String fieldName = matcher.group(1);
+            String paramName = matcher.group(2);
+            mapping.put(fieldName, paramName);
+            log.debug("解析到 {} 字段映射: {} -> {}", patternType, fieldName, paramName);
+        }
     }
 
     /**

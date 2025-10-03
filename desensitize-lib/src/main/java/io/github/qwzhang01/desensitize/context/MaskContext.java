@@ -23,7 +23,7 @@
  */
 
 
-package io.github.qwzhang01.desensitize.domain;
+package io.github.qwzhang01.desensitize.context;
 
 /**
  * 脱敏上下文

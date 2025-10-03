@@ -58,9 +58,8 @@ public class Encrypt {
         if (obj == null) {
             return false;
         }
-        if (obj instanceof Encrypt) {
-            Encrypt objE = (Encrypt) obj;
-            return value.equals(objE.getValue());
+        if (obj instanceof Encrypt encrypt) {
+            return value.equals(encrypt.getValue());
         }
         return false;
     }

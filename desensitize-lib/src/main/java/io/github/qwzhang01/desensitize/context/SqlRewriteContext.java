@@ -1,4 +1,4 @@
-package io.github.qwzhang01.desensitize.core;
+package io.github.qwzhang01.desensitize.context;
 
 import io.github.qwzhang01.desensitize.domain.ParameterRestoreInfo;
 import io.github.qwzhang01.desensitize.kit.ParamUtil;

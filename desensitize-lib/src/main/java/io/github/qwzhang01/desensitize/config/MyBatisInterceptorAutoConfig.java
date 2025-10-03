@@ -28,7 +28,6 @@ package io.github.qwzhang01.desensitize.config;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import io.github.qwzhang01.desensitize.core.DecryptInterceptor;
 import io.github.qwzhang01.desensitize.core.EncryptTypeHandler;
-import io.github.qwzhang01.desensitize.core.ExecutorInterceptor;
 import io.github.qwzhang01.desensitize.core.SqlRewriteInterceptor;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
 import jakarta.annotation.PostConstruct;
@@ -75,9 +74,6 @@ public class MyBatisInterceptorAutoConfig {
                 // Add interceptors in the correct order
                 // DecryptInterceptor should be first to decrypt data when reading
                 configuration.addInterceptor(new DecryptInterceptor());
-
-                // ExecutorInterceptor for general SQL execution interception
-                configuration.addInterceptor(new ExecutorInterceptor());
 
                 // SqlRewriteInterceptor for SQL modification if needed
                 configuration.addInterceptor(new SqlRewriteInterceptor());

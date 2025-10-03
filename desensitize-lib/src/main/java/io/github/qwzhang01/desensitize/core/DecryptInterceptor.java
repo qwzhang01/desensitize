@@ -27,9 +27,9 @@ package io.github.qwzhang01.desensitize.core;
 
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import io.github.qwzhang01.desensitize.annotation.EncryptField;
+import io.github.qwzhang01.desensitize.container.EncryptionAlgoContainer;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.kit.ClazzUtil;
-import io.github.qwzhang01.desensitize.kit.EncryptionAlgoContainer;
 import org.apache.ibatis.executor.resultset.ResultSetHandler;
 import org.apache.ibatis.plugin.*;
 

@@ -1,7 +1,9 @@
 package io.github.qwzhang01.desensitize.domain;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * SQL 解析结果
@@ -9,12 +11,40 @@ import java.util.List;
  * @author avinzhang
  */
 public class SqlAnalysisInfo {
+
+    // 表信息
     private final List<TableInfo> tables = new ArrayList<>();
+    // WHERE 条件字段
     private final List<FieldCondition> conditions = new ArrayList<>();
-    private final List<FieldCondition> setFields = new ArrayList<>(); // UPDATE语句的SET字段
+    // UPDATE 语句的 SET 字段
+    private final List<FieldCondition> setFields = new ArrayList<>();
+    // INSERT 语句的字段
+    private final List<FieldCondition> insertFields = new ArrayList<>();
+    // SELECT 语句的字段
+    private final List<FieldCondition> selectFields = new ArrayList<>();
+    // 参数占位符与字段的映射关系（按顺序）
+    private final List<ParameterFieldMapping> parameterMappings = new ArrayList<>();
+    // 表别名映射
+    private final Map<String, String> aliasToTableMap = new HashMap<>();
+    // SQL 语句类型
+    private SqlType sqlType;
+
+    // ========== 基本操作方法 ==========
+
+    public SqlType getSqlType() {
+        return sqlType;
+    }
+
+    public void setSqlType(SqlType sqlType) {
+        this.sqlType = sqlType;
+    }
 
     public void addTable(TableInfo tableInfo) {
         tables.add(tableInfo);
+        // 维护别名映射
+        if (tableInfo.alias() != null && !tableInfo.alias().trim().isEmpty()) {
+            aliasToTableMap.put(tableInfo.alias(), tableInfo.tableName());
+        }
     }
 
     public void addCondition(FieldCondition condition) {
@@ -24,6 +54,20 @@ public class SqlAnalysisInfo {
     public void addSetField(FieldCondition setField) {
         setFields.add(setField);
     }
+
+    public void addInsertField(FieldCondition insertField) {
+        insertFields.add(insertField);
+    }
+
+    public void addSelectField(FieldCondition selectField) {
+        selectFields.add(selectField);
+    }
+
+    public void addParameterMapping(ParameterFieldMapping mapping) {
+        parameterMappings.add(mapping);
+    }
+
+    // ========== 获取方法 ==========
 
     public List<TableInfo> getTables() {
         return tables;
@@ -37,24 +81,95 @@ public class SqlAnalysisInfo {
         return setFields;
     }
 
+    public List<FieldCondition> getInsertFields() {
+        return insertFields;
+    }
+
+    public List<FieldCondition> getSelectFields() {
+        return selectFields;
+    }
+
+    public List<ParameterFieldMapping> getParameterMappings() {
+        return parameterMappings;
+    }
+
+    public Map<String, String> getAliasToTableMap() {
+        return aliasToTableMap;
+    }
+
     /**
-     * 获取所有字段（SET字段 + WHERE条件字段）
-     * SET字段在前，WHERE字段在后，这样顺序与参数顺序一致
+     * 获取所有字段（按SQL中出现的顺序）
+     * 对于不同类型的SQL，字段顺序不同：
+     * - INSERT: insertFields
+     * - UPDATE: setFields + conditions
+     * - SELECT/DELETE: conditions
      */
     public List<FieldCondition> getAllFields() {
         List<FieldCondition> allFields = new ArrayList<>();
-        allFields.addAll(setFields);
-        allFields.addAll(conditions);
+
+        switch (sqlType) {
+            case INSERT:
+                allFields.addAll(insertFields);
+                break;
+            case UPDATE:
+                allFields.addAll(setFields);
+                allFields.addAll(conditions);
+                break;
+            case SELECT:
+            case DELETE:
+                allFields.addAll(conditions);
+                break;
+        }
+
         return allFields;
+    }
+
+    /**
+     * 根据别名获取真实表名
+     */
+    public String getRealTableName(String aliasOrTableName) {
+        return aliasToTableMap.getOrDefault(aliasOrTableName, aliasOrTableName);
+    }
+
+    // ========== 内部类和枚举 ==========
+
+    /**
+     * SQL 语句类型
+     */
+    public enum SqlType {
+        SELECT, INSERT, UPDATE, DELETE
+    }
+
+    /**
+     * 表类型
+     */
+    public enum TableType {
+        MAIN,      // 主表
+        JOIN,      // JOIN 表
+        SUBQUERY   // 子查询表
+    }
+
+    /**
+     * 字段类型
+     */
+    public enum FieldType {
+        SELECT,     // SELECT 字段
+        INSERT,     // INSERT 字段
+        UPDATE_SET, // UPDATE SET 字段
+        CONDITION   // WHERE/HAVING 条件字段
     }
 
     /**
      * 表信息
      */
-    public record TableInfo(String tableName, String alias) {
-        
+    public static record TableInfo(String tableName, String alias, TableType tableType) {
+
+        public TableInfo(String tableName, String alias) {
+            this(tableName, alias, TableType.MAIN);
+        }
+
         public String getEffectiveAlias() {
-            if (alias == null) {
+            if (alias == null || alias.trim().isEmpty()) {
                 return tableName;
             }
             return alias;
@@ -64,6 +179,29 @@ public class SqlAnalysisInfo {
     /**
      * 字段条件信息
      */
-    public record FieldCondition(String tableAlias, String columnName) {
+    public static record FieldCondition(String tableAlias, String columnName, FieldType fieldType) {
+
+        public FieldCondition(String tableAlias, String columnName) {
+            this(tableAlias, columnName, FieldType.CONDITION);
+        }
+    }
+
+    /**
+     * 参数占位符与字段的映射关系
+     */
+    public static record ParameterFieldMapping(
+            int parameterIndex,     // 参数索引（从0开始）
+            String tableName,       // 表名
+            String fieldName,       // 字段名
+            String tableAlias,      // 表别名
+            FieldType fieldType     // 字段类型
+    ) {
+
+        /**
+         * 获取有效的表标识（优先使用别名）
+         */
+        public String getEffectiveTableIdentifier() {
+            return (tableAlias != null && !tableAlias.trim().isEmpty()) ? tableAlias : tableName;
+        }
     }
 }

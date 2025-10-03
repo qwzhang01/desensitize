@@ -24,6 +24,7 @@
 
 package io.github.qwzhang01.desensitize.core;
 
+import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
 import io.github.qwzhang01.desensitize.domain.SqlAnalysisInfo;
 import io.github.qwzhang01.desensitize.kit.ParamUtil;
@@ -43,6 +44,13 @@ import java.util.List;
 import java.util.Properties;
 
 /**
+ * 拦截器执行顺序
+ * Executor：首先执行，负责整体执行逻辑（如update、query）。
+ * StatementHandler（prepare阶段）：其次执行，准备SQL语句。
+ * ParameterHandler：然后执行，处理参数绑定。
+ * StatementHandler（execute阶段）：再次执行，实际执行SQL。
+ * ResultSetHandler：最后执行，处理结果集
+ * <p>
  * StatementHandler 拦截器 - 纯 MyBatis 版本
  * 负责处理 SQL 语句的预编译和执行，实现查询参数的自动加密
  */

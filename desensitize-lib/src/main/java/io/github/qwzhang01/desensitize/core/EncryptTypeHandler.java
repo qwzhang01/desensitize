@@ -25,8 +25,8 @@
 
 package io.github.qwzhang01.desensitize.core;
 
+import io.github.qwzhang01.desensitize.container.EncryptionAlgoContainer;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
-import io.github.qwzhang01.desensitize.kit.EncryptionAlgoContainer;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedJdbcTypes;

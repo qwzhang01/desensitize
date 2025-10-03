@@ -23,11 +23,13 @@
  */
 
 
-package io.github.qwzhang01.desensitize.kit;
+package io.github.qwzhang01.desensitize.container;
 
 import io.github.qwzhang01.desensitize.annotation.Mask;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
+import io.github.qwzhang01.desensitize.kit.ClazzUtil;
+import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
 import org.springframework.util.CollectionUtils;
@@ -52,13 +54,20 @@ public final class MaskAlgoContainer {
     private static final ConcurrentHashMap<Class<? extends CoverAlgo>, CoverAlgo> ALGO_CACHE = new ConcurrentHashMap<>();
 
     /**
+     * Clears the algorithm cache. Useful for testing or when algorithms need to be reloaded.
+     */
+    public static void clearCache() {
+        ALGO_CACHE.clear();
+    }
+
+    /**
      * Gets a masking algorithm instance by class type.
      * First tries to get from Spring context, then falls back to direct instantiation.
      *
      * @param clazz the masking algorithm class
      * @return the masking algorithm instance
      */
-    public static CoverAlgo getAlgo(Class<? extends CoverAlgo> clazz) {
+    private CoverAlgo getAlgo(Class<? extends CoverAlgo> clazz) {
         return ALGO_CACHE.computeIfAbsent(clazz, key -> {
             // First try to get from Spring context if available
             if (SpringContextUtil.isInitialized()) {
@@ -83,13 +92,6 @@ public final class MaskAlgoContainer {
                 throw new DesensitizeException("Failed to create masking algorithm instance", e);
             }
         });
-    }
-
-    /**
-     * Clears the algorithm cache. Useful for testing or when algorithms need to be reloaded.
-     */
-    public static void clearCache() {
-        ALGO_CACHE.clear();
     }
 
     /**
