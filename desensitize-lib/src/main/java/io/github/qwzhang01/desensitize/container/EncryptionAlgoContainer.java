@@ -25,12 +25,7 @@
 
 package io.github.qwzhang01.desensitize.container;
 
-import io.github.qwzhang01.desensitize.exception.DesensitizeException;
-import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
-import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
-
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Container for managing encryption algorithm instances.
@@ -39,60 +34,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author avinzhang
  * @since 1.0.0
  */
-public final class EncryptionAlgoContainer {
+public final class EncryptionAlgoContainer extends AbstractEncryptAlgoContainer {
+    private final EncryptionAlgo defaultEncryptionAlgo;
 
-    /**
-     * Cache for algorithm instances to avoid repeated creation
-     */
-    private static final ConcurrentHashMap<Class<? extends EncryptionAlgo>, EncryptionAlgo> ALGO_CACHE = new ConcurrentHashMap<>();
-
-    /**
-     * Gets the default encryption algorithm instance.
-     *
-     * @return the default encryption algorithm instance
-     */
-    public static EncryptionAlgo getAlgo() {
-        return getAlgo(DefaultEncryptionAlgo.class);
+    public EncryptionAlgoContainer(EncryptionAlgo defaultEncryptionAlgo) {
+        this.defaultEncryptionAlgo = defaultEncryptionAlgo;
     }
 
-    /**
-     * Gets an encryption algorithm instance by class type.
-     * First tries to get from Spring context, then falls back to direct instantiation.
-     *
-     * @param clazz the encryption algorithm class
-     * @return the encryption algorithm instance
-     */
-    public static EncryptionAlgo getAlgo(Class<? extends EncryptionAlgo> clazz) {
-        return ALGO_CACHE.computeIfAbsent(clazz, key -> {
-            // First try to get from Spring context if available
-            if (SpringContextUtil.isInitialized()) {
-                EncryptionAlgo algo = SpringContextUtil.getBeanSafely(key);
-                if (algo != null) {
-                    return algo;
-                }
-            }
-
-            // Fallback to direct instantiation
-            try {
-                return key.getDeclaredConstructor().newInstance();
-            } catch (Exception e) {
-                // If the requested class fails, try default algorithm
-                if (!key.equals(DefaultEncryptionAlgo.class)) {
-                    try {
-                        return new DefaultEncryptionAlgo();
-                    } catch (Exception ex) {
-                        throw new DesensitizeException("Failed to create encryption algorithm instance", ex);
-                    }
-                }
-                throw new DesensitizeException("Failed to create encryption algorithm instance", e);
-            }
-        });
-    }
-
-    /**
-     * Clears the algorithm cache. Useful for testing or when algorithms need to be reloaded.
-     */
-    public static void clearCache() {
-        ALGO_CACHE.clear();
+    @Override
+    public EncryptionAlgo defaultEncryptAlgo() {
+        return defaultEncryptionAlgo;
     }
 }

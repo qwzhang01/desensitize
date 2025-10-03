@@ -27,9 +27,10 @@ package io.github.qwzhang01.desensitize.core;
 
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import io.github.qwzhang01.desensitize.annotation.EncryptField;
-import io.github.qwzhang01.desensitize.container.EncryptionAlgoContainer;
+import io.github.qwzhang01.desensitize.container.AbstractEncryptAlgoContainer;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.kit.ClazzUtil;
+import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import org.apache.ibatis.executor.resultset.ResultSetHandler;
 import org.apache.ibatis.plugin.*;
 
@@ -91,6 +92,7 @@ public class DecryptInterceptor implements Interceptor {
     }
 
     private void decryptObj(List<ClazzUtil.AnnotatedFieldResult<EncryptField>> fields) {
+        AbstractEncryptAlgoContainer container = SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
 
         try {
             for (ClazzUtil.AnnotatedFieldResult<EncryptField> fieldObj : fields) {
@@ -101,7 +103,7 @@ public class DecryptInterceptor implements Interceptor {
 
                 field.setAccessible(true);
                 if (value instanceof String strValue) {
-                    strValue = EncryptionAlgoContainer.getAlgo(annotation.value()).decrypt(strValue);
+                    strValue = container.getAlgo(annotation.value()).decrypt(strValue);
                     //对注解在这段进行逐一解密
                     field.set(object, strValue);
                 }

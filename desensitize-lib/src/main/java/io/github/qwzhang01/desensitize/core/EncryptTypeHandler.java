@@ -25,8 +25,9 @@
 
 package io.github.qwzhang01.desensitize.core;
 
-import io.github.qwzhang01.desensitize.container.EncryptionAlgoContainer;
+import io.github.qwzhang01.desensitize.container.AbstractEncryptAlgoContainer;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
+import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedJdbcTypes;
@@ -57,7 +58,8 @@ public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
             ps.setString(i, null);
             return;
         }
-        String encrypt = EncryptionAlgoContainer.getAlgo().encrypt(parameter.getValue());
+        AbstractEncryptAlgoContainer container = SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
+        String encrypt = container.getAlgo().encrypt(parameter.getValue());
         ps.setString(i, encrypt);
     }
 
@@ -95,6 +97,7 @@ public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
         if (null == value) {
             return null;
         }
-        return new Encrypt(EncryptionAlgoContainer.getAlgo().decrypt(value));
+        AbstractEncryptAlgoContainer container = SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
+        return new Encrypt(container.getAlgo().decrypt(value));
     }
 }

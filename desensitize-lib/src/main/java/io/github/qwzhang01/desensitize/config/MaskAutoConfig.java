@@ -26,7 +26,9 @@
 package io.github.qwzhang01.desensitize.config;
 
 import io.github.qwzhang01.desensitize.advice.MaskAdvice;
+import io.github.qwzhang01.desensitize.container.AbstractEncryptAlgoContainer;
 import io.github.qwzhang01.desensitize.container.EncryptFieldTableContainer;
+import io.github.qwzhang01.desensitize.container.EncryptionAlgoContainer;
 import io.github.qwzhang01.desensitize.container.MaskAlgoContainer;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.shield.CoverAlgo;
@@ -90,9 +92,15 @@ public class MaskAutoConfig {
      * @return a new instance of DefaultEncryptionAlgo using DES encryption
      */
     @Bean
-    @ConditionalOnMissingBean(EncryptionAlgo.class)
-    public EncryptionAlgo encryptionAlgo() {
+    @ConditionalOnMissingBean(DefaultEncryptionAlgo.class)
+    public DefaultEncryptionAlgo defaultEncryptionAlgo() {
         return new DefaultEncryptionAlgo();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(AbstractEncryptAlgoContainer.class)
+    public AbstractEncryptAlgoContainer encryptAlgoContainer(EncryptionAlgo encryptionAlgo) {
+        return new EncryptionAlgoContainer(encryptionAlgo);
     }
 
     @Bean
