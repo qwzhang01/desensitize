@@ -10,10 +10,13 @@ import java.util.regex.Pattern;
 public final class RegexPatterns {
     /**
      * 统一的 WHERE 条件字段模式 - 同时处理带表前缀和不带表前缀的情况
-     * 支持反引号和普通标识符
+     * 支持反引号和普通标识符，支持单个参数、IN 子句、BETWEEN 子句等
      */
     public static final Pattern WHERE_CONDITION_PATTERN = Pattern.compile(
-            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE|IN|NOT\\s+IN|IS|IS\\s+NOT)\\s*\\?",
+            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE)\\s*\\?|" +
+            "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IN|NOT\\s+IN)\\s*\\([^)]*\\?[^)]*\\)|" +
+            "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:BETWEEN|NOT\\s+BETWEEN)\\s*\\?\\s*AND\\s*\\?|" +
+            "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IS|IS\\s+NOT)\\s+(?:NULL|NOT\\s+NULL)",
             Pattern.CASE_INSENSITIVE
     );
 
