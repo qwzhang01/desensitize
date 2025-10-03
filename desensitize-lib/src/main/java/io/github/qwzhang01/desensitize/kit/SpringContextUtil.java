@@ -28,7 +28,6 @@ package io.github.qwzhang01.desensitize.kit;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.stereotype.Component;
 
 /**
  * Spring context utility class for accessing Spring-managed beans from non-Spring managed classes.
@@ -49,8 +48,7 @@ import org.springframework.stereotype.Component;
  * @see ApplicationContextAware
  * @since 1.0.0
  */
-@Component
-public class SpringContextUtil implements ApplicationContextAware {
+public final class SpringContextUtil implements ApplicationContextAware {
 
     /**
      * The Spring application context instance.

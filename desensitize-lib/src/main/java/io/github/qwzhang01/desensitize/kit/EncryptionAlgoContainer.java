@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author avinzhang
  * @since 1.0.0
  */
-public class EncryptionAlgoContainer {
+public final class EncryptionAlgoContainer {
 
     /**
      * Cache for algorithm instances to avoid repeated creation

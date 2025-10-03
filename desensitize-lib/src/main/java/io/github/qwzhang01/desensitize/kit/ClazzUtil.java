@@ -25,8 +25,12 @@
 
 package io.github.qwzhang01.desensitize.kit;
 
+import io.github.qwzhang01.desensitize.exception.DesensitizeException;
+import org.springframework.util.StringUtils;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.TypeVariable;
 import java.util.*;
@@ -54,6 +58,83 @@ public final class ClazzUtil {
             int.class, long.class, double.class, float.class,
             boolean.class, byte.class, short.class, char.class
     );
+
+    /**
+     * 获取对象的属性值
+     */
+    public static Object getPropertyValue(Object obj, String propertyName) throws Exception {
+        // 尝试通过 getter 方法获取
+        String getterName = "get" + StringUtils.capitalize(propertyName);
+        try {
+            java.lang.reflect.Method getter = obj.getClass().getMethod(getterName);
+            return getter.invoke(obj);
+        } catch (NoSuchMethodException e) {
+            // 尝试 boolean 类型的 is 方法
+            String isGetterName = "is" + StringUtils.capitalize(propertyName);
+            try {
+                java.lang.reflect.Method isGetter = obj.getClass().getMethod(isGetterName);
+                return isGetter.invoke(obj);
+            } catch (NoSuchMethodException e2) {
+                // 直接通过字段访问
+                Field field = findField(obj.getClass(), propertyName);
+                if (field != null) {
+                    field.setAccessible(true);
+                    return field.get(obj);
+                }
+                throw new Exception("无法获取属性: " + propertyName);
+            }
+        }
+    }
+
+    /**
+     * 设置对象的属性值
+     */
+    public static void setPropertyValue(Object obj, String propertyName, Object value) throws Exception {
+        // 尝试通过 setter 方法设置
+        String setterName = "set" + StringUtils.capitalize(propertyName);
+        try {
+            java.lang.reflect.Method setter = obj.getClass().getMethod(setterName, Object.class);
+            setter.invoke(obj, value);
+        } catch (NoSuchMethodException e) {
+            // 直接通过字段设置
+            Field field = findField(obj.getClass(), propertyName);
+            if (field != null) {
+                field.setAccessible(true);
+                field.set(obj, value);
+            } else {
+                throw new DesensitizeException("无法设置属性: " + propertyName);
+            }
+        }
+    }
+
+    /**
+     * 在类层次结构中查找方法
+     */
+    public static Method findMethod(Class<?> clazz, String methodName) {
+        while (clazz != null && clazz != Object.class) {
+            try {
+                return clazz.getDeclaredMethod(methodName);
+            } catch (NoSuchMethodException e) {
+                clazz = clazz.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 递归查找字段（包括父类）
+     * 在类层次结构中查找字段
+     */
+    public static Field findField(Class<?> clazz, String fieldName) {
+        while (clazz != null && clazz != Object.class) {
+            try {
+                return clazz.getDeclaredField(fieldName);
+            } catch (NoSuchFieldException e) {
+                clazz = clazz.getSuperclass();
+            }
+        }
+        return null;
+    }
 
     public static <T extends Annotation> List<AnnotatedFieldResult<T>> getAnnotatedAnnotationFields(
             Object obj, Class<T> annotationClass) {

@@ -44,7 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author avinzhang
  * @since 1.0.0
  */
-public class MaskAlgoContainer {
+public final class MaskAlgoContainer {
 
     /**
      * Cache for algorithm instances to avoid repeated creation

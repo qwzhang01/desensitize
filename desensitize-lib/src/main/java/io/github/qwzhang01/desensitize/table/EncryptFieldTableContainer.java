@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author avinzhang
  */
-public class TableContainer {
+public class EncryptFieldTableContainer {
 
     private static final Map<String, EncryptColumn> ENCRYPT_COLUMNS = new ConcurrentHashMap<>();
     private boolean init = false;

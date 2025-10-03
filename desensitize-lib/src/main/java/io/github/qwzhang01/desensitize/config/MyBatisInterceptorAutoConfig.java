@@ -73,14 +73,13 @@ public class MyBatisInterceptorAutoConfig {
                 // DecryptInterceptor should be first to decrypt data when reading
                 configuration.addInterceptor(new DecryptInterceptor());
 
-                // EncryptInterceptor should be second to encrypt data when writing
-                configuration.addInterceptor(new EncryptInterceptor());
-
                 // ExecutorInterceptor for general SQL execution interception
                 configuration.addInterceptor(new ExecutorInterceptor());
 
                 // SqlRewriteInterceptor for SQL modification if needed
                 configuration.addInterceptor(new SqlRewriteInterceptor());
+
+                configuration.addInterceptor(new CleanContextInterceptor());
 
                 // Register Encrypt type handler
                 configuration.getTypeHandlerRegistry().register(Encrypt.class, EncryptTypeHandler.class);

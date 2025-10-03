@@ -34,7 +34,7 @@ POST http://127.0.0.1:2222/api/user/update
 Content-Type: application/json
 
 {
-  "id": 1973311168493334530,
+  "id": 1973319285000040449,
   "name": "魏贺生",
   "phoneNo": "13900139002",
   "gender": "男",

@@ -13,7 +13,10 @@
     <artifactId>desensitize</artifactId>
     <url>https://github.com/qwzhang01/desensitize</url>
     <name>desensitize</name>
-    <description>A Spring Boot library for MyBatis data encryption, desensitization, and data scope control. Provides automatic field encryption/decryption, sensitive data masking, and fine-grained data access control for enterprise applications.</description>
+    <description>A Spring Boot library for MyBatis data encryption, desensitization, and data scope control. Provides
+        automatic field encryption/decryption, sensitive data masking, and fine-grained data access control for
+        enterprise applications.
+    </description>
 
     <licenses>
         <license>

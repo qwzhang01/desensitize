@@ -25,6 +25,11 @@
 
 package io.github.qwzhang01.desensitize.domain;
 
+/**
+ * 脱敏上下文
+ *
+ * @author avinzhang
+ */
 public class MaskContext {
     private static final ThreadLocal<Boolean> MASK_CONTEXT = new ThreadLocal<>();
 

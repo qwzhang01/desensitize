@@ -1,6 +1,8 @@
 # Data Desensitization Library
 
-A comprehensive Java library for data masking and encryption, designed to protect sensitive information in applications. This library provides flexible and configurable data masking strategies for various types of sensitive data including phone numbers, ID cards, emails, and personal names.
+A comprehensive Java library for data masking and encryption, designed to protect sensitive information in applications.
+This library provides flexible and configurable data masking strategies for various types of sensitive data including
+phone numbers, ID cards, emails, and personal names.
 
 ## Features
 
@@ -73,7 +75,8 @@ String decrypted = encryptionAlgo.decrypt(encrypted);
 
 ### Spring Boot Integration
 
-The library provides auto-configuration for Spring Boot applications. Simply add the dependency and the beans will be automatically configured.
+The library provides auto-configuration for Spring Boot applications. Simply add the dependency and the beans will be
+automatically configured.
 
 #### Using Spring Context Utility
 
@@ -102,28 +105,33 @@ String encrypted = DesensitizeUtil.encrypt("sensitive data");
 ## Masking Strategies
 
 ### Phone Number Masking
+
 - **Pattern**: Keeps first 3 and last 4 digits, masks middle 4 digits
 - **Example**: `13812345678` → `138****5678`
 - **Validation**: Only processes valid Chinese mobile phone numbers
 
 ### ID Card Masking
+
 - **18-digit ID**: Keeps first 6 and last 4 digits, masks middle 8 digits (birth date)
 - **15-digit ID**: Keeps first 6 and last 3 digits, masks middle 6 digits
 - **Example**: `110101199001011234` → `110101********1234`
 
 ### Email Masking
+
 - **Pattern**: Keeps first and last character of username, masks middle part
 - **Example**: `example@gmail.com` → `e****e@gmail.com`
 - **Domain**: Domain part remains unchanged
 
 ### Chinese Name Masking
+
 - **2 characters**: Keeps family name, masks given name
 - **3+ characters**: Keeps first and last character, masks middle
-- **Examples**: 
-  - `张三` → `张*`
-  - `张三丰` → `张*丰`
+- **Examples**:
+    - `张三` → `张*`
+    - `张三丰` → `张*丰`
 
 ### English Name Masking
+
 - **Pattern**: Keeps first and last character, masks middle
 - **Example**: `John` → `J**n`
 
@@ -172,7 +180,7 @@ public class CustomEncryptionAlgo implements EncryptionAlgo {
 The library automatically configures the following beans when no custom implementations are provided:
 
 - `CoverAlgo`: Default data masking algorithm
-- `EncryptionAlgo`: Default DES encryption algorithm  
+- `EncryptionAlgo`: Default DES encryption algorithm
 - `SpringContextUtil`: Utility for accessing Spring beans
 
 ### Disabling Auto-Configuration
@@ -189,16 +197,19 @@ public class Application {
 ## Security Considerations
 
 ### Encryption Algorithm
+
 - The default implementation uses DES encryption, which is considered weak by modern standards
 - For production environments, consider implementing a custom `EncryptionAlgo` with stronger algorithms like AES
 - Always use secure key management practices
 
 ### Key Management
+
 - The default encryption key is hardcoded for demonstration purposes
 - In production, externalize keys using environment variables or secure key management systems
 - Rotate encryption keys regularly
 
 ### Data Handling
+
 - Masked data is not encrypted and should not be considered secure for storage
 - Use encryption for data that needs to be reversible
 - Use masking for display and logging purposes
@@ -269,35 +280,36 @@ public class DataProcessor {
 
 ### CoverAlgo Interface
 
-| Method | Description | Example Input | Example Output |
-|--------|-------------|---------------|----------------|
-| `mask(String)` | Generic masking method | `"sensitive"` | `"*****"` |
-| `maskPhone(String)` | Mask phone number | `"13812345678"` | `"138****5678"` |
-| `maskIdCard(String)` | Mask ID card number | `"110101199001011234"` | `"110101********1234"` |
-| `maskEmail(String)` | Mask email address | `"user@example.com"` | `"u**r@example.com"` |
-| `maskChineseName(String)` | Mask Chinese name | `"张三丰"` | `"张*丰"` |
-| `maskEnglishName(String)` | Mask English name | `"John"` | `"J**n"` |
+| Method                    | Description            | Example Input          | Example Output         |
+|---------------------------|------------------------|------------------------|------------------------|
+| `mask(String)`            | Generic masking method | `"sensitive"`          | `"*****"`              |
+| `maskPhone(String)`       | Mask phone number      | `"13812345678"`        | `"138****5678"`        |
+| `maskIdCard(String)`      | Mask ID card number    | `"110101199001011234"` | `"110101********1234"` |
+| `maskEmail(String)`       | Mask email address     | `"user@example.com"`   | `"u**r@example.com"`   |
+| `maskChineseName(String)` | Mask Chinese name      | `"张三丰"`                | `"张*丰"`                |
+| `maskEnglishName(String)` | Mask English name      | `"John"`               | `"J**n"`               |
 
 ### EncryptionAlgo Interface
 
-| Method | Description | Parameters | Returns |
-|--------|-------------|------------|---------|
-| `encrypt(String)` | Encrypt plain text | Plain text string | Encrypted string (Base64) |
-| `decrypt(String)` | Decrypt encrypted text | Encrypted string (Base64) | Plain text string |
+| Method            | Description            | Parameters                | Returns                   |
+|-------------------|------------------------|---------------------------|---------------------------|
+| `encrypt(String)` | Encrypt plain text     | Plain text string         | Encrypted string (Base64) |
+| `decrypt(String)` | Decrypt encrypted text | Encrypted string (Base64) | Plain text string         |
 
 ### SpringContextUtil Class
 
-| Method | Description | Parameters | Returns |
-|--------|-------------|------------|---------|
-| `getBean(Class<T>)` | Get bean by type | Bean class | Bean instance |
-| `getBean(String)` | Get bean by name | Bean name | Bean instance |
-| `getBeanSafely(Class<T>)` | Safely get bean by type | Bean class | Bean instance or null |
-| `containsBean(String)` | Check if bean exists | Bean name | boolean |
-| `isInitialized()` | Check if context is ready | None | boolean |
+| Method                    | Description               | Parameters | Returns               |
+|---------------------------|---------------------------|------------|-----------------------|
+| `getBean(Class<T>)`       | Get bean by type          | Bean class | Bean instance         |
+| `getBean(String)`         | Get bean by name          | Bean name  | Bean instance         |
+| `getBeanSafely(Class<T>)` | Safely get bean by type   | Bean class | Bean instance or null |
+| `containsBean(String)`    | Check if bean exists      | Bean name  | boolean               |
+| `isInitialized()`         | Check if context is ready | None       | boolean               |
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to
+discuss what you would like to change.
 
 ### Development Setup
 
@@ -346,6 +358,7 @@ SOFTWARE.
 ## Changelog
 
 ### Version 1.0.0
+
 - Initial release
 - Basic masking algorithms for phone, ID card, email, and names
 - DES encryption support

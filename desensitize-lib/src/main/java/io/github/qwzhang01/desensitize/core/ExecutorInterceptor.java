@@ -37,6 +37,13 @@ import org.mybatis.logging.LoggerFactory;
  * ExecutorInterceptor
  * Executor 是 MyBatis 的核心执行器，负责管理数据库操作（如查询、更新、事务管理等）。
  * 拦截 Executor 可以控制整个 SQL 执行流程，包括查询、更新、插入、删除以及事务相关操作。
+ * <p>
+ * 拦截器执行顺序
+ * Executor：首先执行，负责整体执行逻辑（如update、query）。
+ * StatementHandler（prepare阶段）：其次执行，准备SQL语句。
+ * ParameterHandler：然后执行，处理参数绑定。
+ * StatementHandler（execute阶段）：再次执行，实际执行SQL。
+ * ResultSetHandler：最后执行，处理结果集
  */
 @Intercepts({
         @Signature(
