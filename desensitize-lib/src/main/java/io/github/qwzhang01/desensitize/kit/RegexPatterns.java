@@ -15,7 +15,7 @@ public final class RegexPatterns {
     public static final Pattern WHERE_CONDITION_PATTERN = Pattern.compile(
             "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE)\\s*\\?|" +
                     "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IN|NOT\\s+IN)\\s*\\([^)]*\\?[^)]*\\)|" +
-                    "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:BETWEEN|NOT\\s+BETWEEN)\\s*(?:\\(\\s*\\?\\s*,\\s*\\?\\s*\\)|\\?\\s*AND\\s*\\?)|" +
+                    "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:BETWEEN|NOT\\s+BETWEEN)\\s+\\?\\s+AND\\s+\\?|" +
                     "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IS|IS\\s+NOT)\\s+(?:NULL|NOT\\s+NULL)",
             Pattern.CASE_INSENSITIVE
     );
@@ -138,6 +138,28 @@ public final class RegexPatterns {
     public static final Pattern WHERE_PATTERN = Pattern.compile(
             "(?i)\\bWHERE\\s+(.*?)(?:\\s+(?:ORDER\\s+BY|GROUP\\s+BY|HAVING|LIMIT|UNION|;)\\s+|$)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
+
+    /**
+     * JOIN ON 条件模式 - 匹配 JOIN 语句的 ON 条件
+     * 支持各种类型的 JOIN 和复杂的 ON 条件
+     */
+    public static final Pattern JOIN_ON_PATTERN = Pattern.compile(
+            "(?i)\\b(?:LEFT|RIGHT|INNER|FULL|CROSS)?\\s*(?:OUTER\\s+)?JOIN\\s+" +
+                    "(?:`[\\w_]+`|[\\w_]+)(?:\\s+(?:AS\\s+)?(?:`[\\w_]+`|[\\w_]+))?\\s+" +
+                    "ON\\s+(.*?)(?=\\s+(?:LEFT|RIGHT|INNER|FULL|CROSS|WHERE|ORDER\\s+BY|GROUP\\s+BY|HAVING|LIMIT|UNION|;)|$)",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+    );
+
+    /**
+     * ON 条件字段模式 - 专门用于解析 JOIN ON 条件中的字段
+     * 与 WHERE_CONDITION_PATTERN 类似，但专门针对 ON 条件优化
+     */
+    public static final Pattern ON_CONDITION_PATTERN = Pattern.compile(
+            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE)\\s*\\?|" +
+                    "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IN|NOT\\s+IN)\\s*\\([^)]*\\?[^)]*\\)|" +
+                    "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:BETWEEN|NOT\\s+BETWEEN)\\s+\\?\\s+AND\\s+\\?",
+            Pattern.CASE_INSENSITIVE
     );
 
     private RegexPatterns() {
