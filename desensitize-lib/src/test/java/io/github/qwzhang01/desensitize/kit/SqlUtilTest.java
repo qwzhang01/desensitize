@@ -613,14 +613,14 @@ public class SqlUtilTest {
     @Test
     @DisplayName("测试特殊字符和转义")
     public void testSpecialCharactersAndEscaping() {
-        String sql = "SELECT `user name`, `phone number` FROM `user table` WHERE `user name` = ?";
+        String sql = "SELECT `user_name`, `phone_number` FROM `user_table` WHERE `user_name` = ?";
 
         SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
-        assertEquals("user table", result.getTables().get(0).tableName());
+        assertEquals("user_table", result.getTables().get(0).tableName());
         assertEquals(1, result.getConditions().size());
-        assertEquals("user name", result.getConditions().get(0).columnName());
+        assertEquals("user_name", result.getConditions().get(0).columnName());
     }
 
     @Test

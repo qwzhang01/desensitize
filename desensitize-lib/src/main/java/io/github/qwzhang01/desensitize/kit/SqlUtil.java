@@ -324,53 +324,82 @@ public final class SqlUtil {
 
         log.debug("解析 WHERE 子句: {}", whereClause);
 
-        // 使用统一的正则表达式，同时处理带表前缀和不带表前缀的情况
+        // 使用统一的正则表达式找到所有条件
         Matcher matcher = WHERE_CONDITION_PATTERN.matcher(whereClause);
         while (matcher.find()) {
-            String tableAlias = null;
-            String fieldName = null;
-            OperatorType operatorType = OperatorType.SINGLE_PARAM;
-            int actualParamCount = 1;
-
             String matchedText = matcher.group(0);
-
-            // 检查不同的匹配分组
-            // 第一种情况：普通操作符 (=, !=, <, >, LIKE 等)
-            if (matcher.group(1) != null || matcher.group(2) != null || matcher.group(3) != null || matcher.group(4) != null) {
-                tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
-                fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
-                operatorType = OperatorType.SINGLE_PARAM;
-                actualParamCount = 1;
-            }
-            // 第二种情况：IN 操作符
-            else if (matcher.group(5) != null || matcher.group(6) != null) {
-                tableAlias = getFirstNonNull(matcher.group(5), matcher.group(6));
-                fieldName = getFirstNonNull(matcher.group(7), matcher.group(8));
-                operatorType = OperatorType.IN_OPERATOR;
-                // 计算 IN 子句中的参数个数
-                actualParamCount = countParametersInMatch(matchedText);
-            }
-            // 第三种情况：BETWEEN 操作符
-            else if (matcher.group(9) != null || matcher.group(10) != null || matcher.group(11) != null || matcher.group(12) != null) {
-                tableAlias = getFirstNonNull(matcher.group(9), matcher.group(10));
-                fieldName = getFirstNonNull(matcher.group(11), matcher.group(12));
-                operatorType = OperatorType.BETWEEN_OPERATOR;
-                actualParamCount = 2;
-            }
-            // 第四种情况：IS NULL / IS NOT NULL
-            /*else if (matcher.group(13) != null || matcher.group(14) != null) {
-                tableAlias = getFirstNonNull(matcher.group(13), matcher.group(14));
-                fieldName = getFirstNonNull(matcher.group(15), matcher.group(16));
-                operatorType = OperatorType.NO_PARAM;
-                actualParamCount = 0;
-            }*/
-
-            if (fieldName != null) {
-                FieldCondition condition = new FieldCondition(tableAlias, fieldName, FieldType.CONDITION, operatorType, actualParamCount);
+            
+            // 使用改进的方法解析每个条件
+            ConditionInfo conditionInfo = parseCondition(matchedText);
+            
+            if (conditionInfo.fieldName != null) {
+                FieldCondition condition = new FieldCondition(
+                    conditionInfo.tableAlias, 
+                    conditionInfo.fieldName, 
+                    FieldType.CONDITION, 
+                    conditionInfo.operatorType, 
+                    conditionInfo.actualParamCount
+                );
                 result.addCondition(condition);
-                log.debug("发现 WHERE 条件字段: {}.{} 操作符:{} 参数数量:{}", tableAlias, fieldName, operatorType, actualParamCount);
+                log.debug("发现 WHERE 条件字段: {}.{} 操作符:{} 参数数量:{}", 
+                    conditionInfo.tableAlias, conditionInfo.fieldName, conditionInfo.operatorType, conditionInfo.actualParamCount);
             }
         }
+    }
+
+    /**
+     * 解析单个条件的信息
+     * 使用更清晰的逻辑来确定操作符类型和提取字段信息
+     */
+    private static ConditionInfo parseCondition(String condition) {
+        ConditionInfo info = new ConditionInfo();
+        
+        // 按优先级检查不同的操作符类型
+        Matcher matcher;
+        
+        // 1. 检查 IN 操作符
+        matcher = RegexPatterns.IN_OPERATOR_PATTERN.matcher(condition);
+        if (matcher.matches()) {
+            info.operatorType = OperatorType.IN_OPERATOR;
+            info.tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
+            info.fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
+            info.actualParamCount = countParametersInMatch(condition);
+            return info;
+        }
+        
+        // 2. 检查 BETWEEN 操作符
+        matcher = RegexPatterns.BETWEEN_OPERATOR_PATTERN.matcher(condition);
+        if (matcher.matches()) {
+            info.operatorType = OperatorType.BETWEEN_OPERATOR;
+            info.tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
+            info.fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
+            info.actualParamCount = 2;
+            return info;
+        }
+        
+        // 3. 检查普通操作符
+        matcher = RegexPatterns.SINGLE_PARAM_PATTERN.matcher(condition);
+        if (matcher.matches()) {
+            info.operatorType = OperatorType.SINGLE_PARAM;
+            info.tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
+            info.fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
+            info.actualParamCount = 1;
+            return info;
+        }
+        
+        // 如果都不匹配，返回未知类型
+        info.operatorType = OperatorType.SINGLE_PARAM; // 默认为单参数
+        return info;
+    }
+
+    /**
+     * 条件信息内部类
+     */
+    private static class ConditionInfo {
+        String tableAlias;
+        String fieldName;
+        OperatorType operatorType;
+        int actualParamCount;
     }
 
 
@@ -498,43 +527,22 @@ public final class SqlUtil {
             // 使用专门的 ON 条件模式解析字段
             Matcher conditionMatcher = ON_CONDITION_PATTERN.matcher(onClause);
             while (conditionMatcher.find()) {
-                String tableAlias = null;
-                String fieldName = null;
-                OperatorType operatorType = OperatorType.SINGLE_PARAM;
-                int actualParamCount = 1;
-
                 String matchedText = conditionMatcher.group(0);
-
-                // 检查不同的匹配分组
-                // 第一种情况：普通操作符 (=, !=, <, >, LIKE 等)
-                if (conditionMatcher.group(1) != null || conditionMatcher.group(2) != null ||
-                        conditionMatcher.group(3) != null || conditionMatcher.group(4) != null) {
-                    tableAlias = getFirstNonNull(conditionMatcher.group(1), conditionMatcher.group(2));
-                    fieldName = getFirstNonNull(conditionMatcher.group(3), conditionMatcher.group(4));
-                    operatorType = OperatorType.SINGLE_PARAM;
-                    actualParamCount = 1;
-                }
-                // 第二种情况：IN 操作符
-                else if (conditionMatcher.group(5) != null || conditionMatcher.group(6) != null) {
-                    tableAlias = getFirstNonNull(conditionMatcher.group(5), conditionMatcher.group(6));
-                    fieldName = getFirstNonNull(conditionMatcher.group(7), conditionMatcher.group(8));
-                    operatorType = OperatorType.IN_OPERATOR;
-                    // 计算 IN 子句中的参数个数
-                    actualParamCount = countParametersInMatch(matchedText);
-                }
-                // 第三种情况：BETWEEN 操作符
-                else if (conditionMatcher.group(9) != null || conditionMatcher.group(10) != null || 
-                         conditionMatcher.group(11) != null || conditionMatcher.group(12) != null) {
-                    tableAlias = getFirstNonNull(conditionMatcher.group(9), conditionMatcher.group(10));
-                    fieldName = getFirstNonNull(conditionMatcher.group(11), conditionMatcher.group(12));
-                    operatorType = OperatorType.BETWEEN_OPERATOR;
-                    actualParamCount = 2;
-                }
-
-                if (fieldName != null) {
-                    FieldCondition condition = new FieldCondition(tableAlias, fieldName, FieldType.CONDITION, operatorType, actualParamCount);
+                
+                // 使用改进的方法解析每个 ON 条件
+                ConditionInfo conditionInfo = parseCondition(matchedText);
+                
+                if (conditionInfo.fieldName != null) {
+                    FieldCondition condition = new FieldCondition(
+                        conditionInfo.tableAlias, 
+                        conditionInfo.fieldName, 
+                        FieldType.CONDITION, 
+                        conditionInfo.operatorType, 
+                        conditionInfo.actualParamCount
+                    );
                     result.addCondition(condition);
-                    log.debug("发现 JOIN ON 条件字段: {}.{} 操作符:{} 参数数量:{}", tableAlias, fieldName, operatorType, actualParamCount);
+                    log.debug("发现 JOIN ON 条件字段: {}.{} 操作符:{} 参数数量:{}", 
+                        conditionInfo.tableAlias, conditionInfo.fieldName, conditionInfo.operatorType, conditionInfo.actualParamCount);
                 }
             }
         }

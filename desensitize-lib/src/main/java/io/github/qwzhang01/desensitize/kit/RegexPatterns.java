@@ -55,7 +55,7 @@ public final class RegexPatterns {
      * UPDATE SET 子句模式 - 匹配 UPDATE 语句的 SET 子句
      */
     public static final Pattern UPDATE_SET_PATTERN = Pattern.compile(
-            "(?i)\\bSET\\s+(.*?)\\s+(?:WHERE|$)",
+            "(?i)\\bSET\\s+(.*?)(?:\\s+WHERE|$)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
     );
     /**
@@ -159,6 +159,32 @@ public final class RegexPatterns {
             "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE)\\s*\\?|" +
                     "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IN|NOT\\s+IN)\\s*\\([^)]*\\?[^)]*\\)|" +
                     "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:BETWEEN|NOT\\s+BETWEEN)\\s+\\?\\s+AND\\s+\\?",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    // ========== 专用操作符正则表达式 ==========
+    
+    /**
+     * 单参数操作符模式 - 专门匹配 =, !=, <, >, LIKE 等操作符
+     */
+    public static final Pattern SINGLE_PARAM_PATTERN = Pattern.compile(
+            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE)\\s*\\?",
+            Pattern.CASE_INSENSITIVE
+    );
+    
+    /**
+     * IN 操作符模式 - 专门匹配 IN 和 NOT IN 操作符
+     */
+    public static final Pattern IN_OPERATOR_PATTERN = Pattern.compile(
+            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IN|NOT\\s+IN)\\s*\\([^)]*\\?[^)]*\\)",
+            Pattern.CASE_INSENSITIVE
+    );
+    
+    /**
+     * BETWEEN 操作符模式 - 专门匹配 BETWEEN 和 NOT BETWEEN 操作符
+     */
+    public static final Pattern BETWEEN_OPERATOR_PATTERN = Pattern.compile(
+            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:BETWEEN|NOT\\s+BETWEEN)\\s+\\?\\s+AND\\s+\\?",
             Pattern.CASE_INSENSITIVE
     );
 
