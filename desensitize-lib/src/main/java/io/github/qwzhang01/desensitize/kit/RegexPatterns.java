@@ -8,17 +8,6 @@ import java.util.regex.Pattern;
  * @author avinzhang
  */
 public final class RegexPatterns {
-    /**
-     * 统一的 WHERE 条件字段模式 - 同时处理带表前缀和不带表前缀的情况
-     * 支持反引号和普通标识符，支持单个参数、IN 子句、BETWEEN 子句等
-     */
-    public static final Pattern WHERE_CONDITION_PATTERN = Pattern.compile(
-            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE)\\s*\\?|" +
-                    "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IN|NOT\\s+IN)\\s*\\([^)]*\\?[^)]*\\)|" +
-                    "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:BETWEEN|NOT\\s+BETWEEN)\\s+\\?\\s+AND\\s+\\?|" +
-                    "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IS|IS\\s+NOT)\\s+(?:NULL|NOT\\s+NULL)",
-            Pattern.CASE_INSENSITIVE
-    );
 
     // ========== SQL 解析相关正则表达式 ==========
     /**
@@ -73,24 +62,10 @@ public final class RegexPatterns {
             Pattern.CASE_INSENSITIVE
     );
     /**
-     * INSERT VALUES 模式 - 匹配 INSERT 语句的 VALUES 部分
-     */
-    public static final Pattern INSERT_VALUES_PATTERN = Pattern.compile(
-            "(?i)\\bVALUES\\s*\\(([^)]+)\\)",
-            Pattern.CASE_INSENSITIVE
-    );
-    /**
      * SELECT 字段模式 - 匹配 SELECT 语句的字段列表
      */
     public static final Pattern SELECT_FIELDS_PATTERN = Pattern.compile(
             "(?i)\\bSELECT\\s+(.*?)\\s+FROM",
-            Pattern.CASE_INSENSITIVE | Pattern.DOTALL
-    );
-    /**
-     * 子查询模式 - 匹配括号中的子查询
-     */
-    public static final Pattern SUBQUERY_PATTERN = Pattern.compile(
-            "\\(\\s*(?i:SELECT)\\s+.*?\\)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
     );
     /**
@@ -100,20 +75,7 @@ public final class RegexPatterns {
     public static final Pattern INSERT_PATTERN = Pattern.compile("^\\s*INSERT\\b", Pattern.CASE_INSENSITIVE);
     public static final Pattern UPDATE_PATTERN = Pattern.compile("^\\s*UPDATE\\b", Pattern.CASE_INSENSITIVE);
     public static final Pattern DELETE_PATTERN = Pattern.compile("^\\s*DELETE\\b", Pattern.CASE_INSENSITIVE);
-    /**
-     * 字段名提取模式 - 从复杂的字段表达式中提取字段名
-     */
-    public static final Pattern FIELD_NAME_PATTERN = Pattern.compile(
-            "(?i)(?:`([\\w_]+)`|([\\w_]+))(?:\\s+(?:AS\\s+)?(?:`([\\w_]+)`|([\\w_]+)))?",
-            Pattern.CASE_INSENSITIVE
-    );
-    /**
-     * 表别名引用模式 - 匹配 table.field 格式
-     */
-    public static final Pattern TABLE_FIELD_PATTERN = Pattern.compile(
-            "(?i)(?:`([\\w_]+)`|([\\w_]+))\\.(?:`([\\w_]+)`|([\\w_]+))",
-            Pattern.CASE_INSENSITIVE
-    );
+
     /**
      * QueryWrapper 等值条件模式 - field_name = #{ew.paramNameValuePairs.MPGENVAL1}
      */
@@ -149,43 +111,6 @@ public final class RegexPatterns {
                     "(?:`[\\w_]+`|[\\w_]+)(?:\\s+(?:AS\\s+)?(?:`[\\w_]+`|[\\w_]+))?\\s+" +
                     "ON\\s+(.*?)(?=\\s+(?:LEFT|RIGHT|INNER|FULL|CROSS|WHERE|ORDER\\s+BY|GROUP\\s+BY|HAVING|LIMIT|UNION|;)|$)",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
-    );
-
-    /**
-     * ON 条件字段模式 - 专门用于解析 JOIN ON 条件中的字段
-     * 与 WHERE_CONDITION_PATTERN 类似，但专门针对 ON 条件优化
-     */
-    public static final Pattern ON_CONDITION_PATTERN = Pattern.compile(
-            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE)\\s*\\?|" +
-                    "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IN|NOT\\s+IN)\\s*\\([^)]*\\?[^)]*\\)|" +
-                    "(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:BETWEEN|NOT\\s+BETWEEN)\\s+\\?\\s+AND\\s+\\?",
-            Pattern.CASE_INSENSITIVE
-    );
-
-    // ========== 专用操作符正则表达式 ==========
-    
-    /**
-     * 单参数操作符模式 - 专门匹配 =, !=, <, >, LIKE 等操作符
-     */
-    public static final Pattern SINGLE_PARAM_PATTERN = Pattern.compile(
-            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE)\\s*\\?",
-            Pattern.CASE_INSENSITIVE
-    );
-    
-    /**
-     * IN 操作符模式 - 专门匹配 IN 和 NOT IN 操作符
-     */
-    public static final Pattern IN_OPERATOR_PATTERN = Pattern.compile(
-            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:IN|NOT\\s+IN)\\s*\\([^)]*\\?[^)]*\\)",
-            Pattern.CASE_INSENSITIVE
-    );
-    
-    /**
-     * BETWEEN 操作符模式 - 专门匹配 BETWEEN 和 NOT BETWEEN 操作符
-     */
-    public static final Pattern BETWEEN_OPERATOR_PATTERN = Pattern.compile(
-            "(?i)(?:(?:`([\\w_]+)`|([\\w_]+))\\.)?(?:`([\\w_]+)`|([\\w_]+))\\s*(?:BETWEEN|NOT\\s+BETWEEN)\\s+\\?\\s+AND\\s+\\?",
-            Pattern.CASE_INSENSITIVE
     );
 
     private RegexPatterns() {

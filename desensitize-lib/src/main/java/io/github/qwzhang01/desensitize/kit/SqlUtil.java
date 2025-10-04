@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.github.qwzhang01.desensitize.kit.RegexPatterns.*;
 
@@ -313,6 +314,7 @@ public final class SqlUtil {
 
     /**
      * 解析 WHERE 条件
+     * 使用简单可靠的方法：按 AND/OR 分割条件，然后逐个分析
      */
     private static void parseWhereConditions(String sql, SqlAnalysisInfo result) {
         // 提取 WHERE 子句部分
@@ -324,84 +326,129 @@ public final class SqlUtil {
 
         log.debug("解析 WHERE 子句: {}", whereClause);
 
-        // 使用统一的正则表达式找到所有条件
-        Matcher matcher = WHERE_CONDITION_PATTERN.matcher(whereClause);
-        while (matcher.find()) {
-            String matchedText = matcher.group(0);
-            
-            // 使用改进的方法解析每个条件
-            ConditionInfo conditionInfo = parseCondition(matchedText);
-            
-            if (conditionInfo.fieldName != null) {
-                FieldCondition condition = new FieldCondition(
-                    conditionInfo.tableAlias, 
-                    conditionInfo.fieldName, 
-                    FieldType.CONDITION, 
-                    conditionInfo.operatorType, 
-                    conditionInfo.actualParamCount
+        // 按 AND/OR 分割条件
+        String[] conditions = whereClause.split("\\s+(?:AND|OR)\\s+");
+
+        for (String condition : conditions) {
+            condition = condition.trim();
+
+            // 只处理包含参数 '?' 的条件
+            if (!condition.contains("?")) {
+                log.debug("跳过无参数条件: {}", condition);
+                continue;
+            }
+
+            ConditionInfo conditionInfo = parseConditionSimple(condition);
+
+            if (conditionInfo != null && conditionInfo.fieldName != null) {
+                FieldCondition fieldCondition = new FieldCondition(
+                        conditionInfo.tableAlias,
+                        conditionInfo.fieldName,
+                        FieldType.CONDITION,
+                        conditionInfo.operatorType,
+                        conditionInfo.actualParamCount
                 );
-                result.addCondition(condition);
-                log.debug("发现 WHERE 条件字段: {}.{} 操作符:{} 参数数量:{}", 
-                    conditionInfo.tableAlias, conditionInfo.fieldName, conditionInfo.operatorType, conditionInfo.actualParamCount);
+                result.addCondition(fieldCondition);
+                log.debug("发现 WHERE 条件字段: {}.{} 操作符:{} 参数数量:{}",
+                        conditionInfo.tableAlias, conditionInfo.fieldName, conditionInfo.operatorType, conditionInfo.actualParamCount);
             }
         }
     }
 
     /**
      * 解析单个条件的信息
-     * 使用更清晰的逻辑来确定操作符类型和提取字段信息
+     * 使用简单直接的方法分析每种操作符类型
      */
-    private static ConditionInfo parseCondition(String condition) {
-        ConditionInfo info = new ConditionInfo();
-        
-        // 按优先级检查不同的操作符类型
-        Matcher matcher;
-        
-        // 1. 检查 IN 操作符
-        matcher = RegexPatterns.IN_OPERATOR_PATTERN.matcher(condition);
-        if (matcher.matches()) {
-            info.operatorType = OperatorType.IN_OPERATOR;
-            info.tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
-            info.fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
-            info.actualParamCount = countParametersInMatch(condition);
-            return info;
+    private static ConditionInfo parseConditionSimple(String condition) {
+        // 分析不同类型的条件
+        if (condition.toUpperCase().contains("BETWEEN")) {
+            return parseBetweenCondition(condition);
+        } else if (condition.toUpperCase().contains("IN")) {
+            return parseInCondition(condition);
+        } else {
+            return parseSimpleCondition(condition);
         }
-        
-        // 2. 检查 BETWEEN 操作符
-        matcher = RegexPatterns.BETWEEN_OPERATOR_PATTERN.matcher(condition);
-        if (matcher.matches()) {
-            info.operatorType = OperatorType.BETWEEN_OPERATOR;
-            info.tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
-            info.fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
-            info.actualParamCount = 2;
-            return info;
-        }
-        
-        // 3. 检查普通操作符
-        matcher = RegexPatterns.SINGLE_PARAM_PATTERN.matcher(condition);
-        if (matcher.matches()) {
-            info.operatorType = OperatorType.SINGLE_PARAM;
-            info.tableAlias = getFirstNonNull(matcher.group(1), matcher.group(2));
-            info.fieldName = getFirstNonNull(matcher.group(3), matcher.group(4));
-            info.actualParamCount = 1;
-            return info;
-        }
-        
-        // 如果都不匹配，返回未知类型
-        info.operatorType = OperatorType.SINGLE_PARAM; // 默认为单参数
-        return info;
     }
 
     /**
-     * 条件信息内部类
+     * 解析 BETWEEN 条件
      */
-    private static class ConditionInfo {
-        String tableAlias;
-        String fieldName;
-        OperatorType operatorType;
-        int actualParamCount;
+    private static ConditionInfo parseBetweenCondition(String condition) {
+        // 匹配 BETWEEN 条件的多种格式
+        Pattern[] patterns = {
+                // 格式1: table.field BETWEEN(?, ?)
+                Pattern.compile("(?:([\\w_]+|`[\\w_]+`)\\.)?([\\w_]+|`[\\w_]+`)\\s+BETWEEN\\s*\\(\\s*\\?\\s*,\\s*\\?\\s*\\)", Pattern.CASE_INSENSITIVE),
+                // 格式2: table.field BETWEEN ? AND ?
+                Pattern.compile("(?:([\\w_]+|`[\\w_]+`)\\.)?([\\w_]+|`[\\w_]+`)\\s+BETWEEN\\s+\\?\\s+AND\\s+\\?", Pattern.CASE_INSENSITIVE),
+                // 格式3: table.field BETWEEN(? AND ?)
+                Pattern.compile("(?:([\\w_]+|`[\\w_]+`)\\.)?([\\w_]+|`[\\w_]+`)\\s+BETWEEN\\s*\\(\\s*\\?\\s+AND\\s+\\?\\s*\\)", Pattern.CASE_INSENSITIVE)
+        };
+
+        for (Pattern pattern : patterns) {
+            Matcher matcher = pattern.matcher(condition);
+            if (matcher.find()) {
+                ConditionInfo info = new ConditionInfo();
+                info.tableAlias = cleanName(matcher.group(1));
+                info.fieldName = cleanName(matcher.group(2));
+                info.operatorType = OperatorType.BETWEEN_OPERATOR;
+                info.actualParamCount = 2;
+                return info;
+            }
+        }
+
+        return null;
     }
 
+    /**
+     * 解析 IN 条件
+     */
+    private static ConditionInfo parseInCondition(String condition) {
+        // 匹配 IN 条件：table.field IN(?, ?, ...)
+        Pattern pattern = Pattern.compile("(?:([\\w_]+|`[\\w_]+`)\\.)?([\\w_]+|`[\\w_]+`)\\s+IN\\s*\\(([^)]+)\\)", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(condition);
+
+        if (matcher.find()) {
+            ConditionInfo info = new ConditionInfo();
+            info.tableAlias = cleanName(matcher.group(1));
+            info.fieldName = cleanName(matcher.group(2));
+            info.operatorType = OperatorType.IN_OPERATOR;
+
+            // 计算 IN 中的参数数量
+            String inContent = matcher.group(3);
+            info.actualParamCount = countParametersInMatch(inContent);
+            return info;
+        }
+
+        return null;
+    }
+
+    /**
+     * 解析简单条件
+     */
+    private static ConditionInfo parseSimpleCondition(String condition) {
+        // 匹配简单条件：table.field = ? 或 table.field LIKE ? 等
+        Pattern pattern = Pattern.compile("(?:([\\w_]+|`[\\w_]+`)\\.)?([\\w_]+|`[\\w_]+`)\\s*(=|!=|<>|<|>|<=|>=|LIKE|NOT\\s+LIKE)\\s*\\?", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(condition);
+
+        if (matcher.find()) {
+            ConditionInfo info = new ConditionInfo();
+            info.tableAlias = cleanName(matcher.group(1));
+            info.fieldName = cleanName(matcher.group(2));
+            info.operatorType = OperatorType.SINGLE_PARAM;
+            info.actualParamCount = 1;
+            return info;
+        }
+
+        return null;
+    }
+
+    /**
+     * 清理字段名，移除反引号
+     */
+    private static String cleanName(String name) {
+        if (name == null) return null;
+        return name.replaceAll("`", "").trim();
+    }
 
     /**
      * 提取 WHERE 子句内容
@@ -513,6 +560,7 @@ public final class SqlUtil {
 
     /**
      * 解析 JOIN ON 条件
+     * 使用与 WHERE 条件相同的简单可靠方法
      */
     private static void parseJoinOnConditions(String sql, SqlAnalysisInfo result) {
         Matcher joinMatcher = JOIN_ON_PATTERN.matcher(sql);
@@ -524,25 +572,31 @@ public final class SqlUtil {
 
             log.debug("解析 JOIN ON 条件: {}", onClause);
 
-            // 使用专门的 ON 条件模式解析字段
-            Matcher conditionMatcher = ON_CONDITION_PATTERN.matcher(onClause);
-            while (conditionMatcher.find()) {
-                String matchedText = conditionMatcher.group(0);
-                
-                // 使用改进的方法解析每个 ON 条件
-                ConditionInfo conditionInfo = parseCondition(matchedText);
-                
-                if (conditionInfo.fieldName != null) {
-                    FieldCondition condition = new FieldCondition(
-                        conditionInfo.tableAlias, 
-                        conditionInfo.fieldName, 
-                        FieldType.CONDITION, 
-                        conditionInfo.operatorType, 
-                        conditionInfo.actualParamCount
+            // 按 AND/OR 分割 ON 条件
+            String[] conditions = onClause.split("\\s+(?:AND|OR)\\s+");
+
+            for (String condition : conditions) {
+                condition = condition.trim();
+
+                // 只处理包含参数 '?' 的条件
+                if (!condition.contains("?")) {
+                    log.debug("跳过无参数 ON 条件: {}", condition);
+                    continue;
+                }
+
+                ConditionInfo conditionInfo = parseConditionSimple(condition);
+
+                if (conditionInfo != null && conditionInfo.fieldName != null) {
+                    FieldCondition fieldCondition = new FieldCondition(
+                            conditionInfo.tableAlias,
+                            conditionInfo.fieldName,
+                            FieldType.CONDITION,
+                            conditionInfo.operatorType,
+                            conditionInfo.actualParamCount
                     );
-                    result.addCondition(condition);
-                    log.debug("发现 JOIN ON 条件字段: {}.{} 操作符:{} 参数数量:{}", 
-                        conditionInfo.tableAlias, conditionInfo.fieldName, conditionInfo.operatorType, conditionInfo.actualParamCount);
+                    result.addCondition(fieldCondition);
+                    log.debug("发现 JOIN ON 条件字段: {}.{} 操作符:{} 参数数量:{}",
+                            conditionInfo.tableAlias, conditionInfo.fieldName, conditionInfo.operatorType, conditionInfo.actualParamCount);
                 }
             }
         }
@@ -559,5 +613,15 @@ public final class SqlUtil {
             }
         }
         return count;
+    }
+
+    /**
+     * 条件信息内部类
+     */
+    private static class ConditionInfo {
+        String tableAlias;
+        String fieldName;
+        OperatorType operatorType;
+        int actualParamCount;
     }
 }

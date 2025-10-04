@@ -5,6 +5,8 @@ import io.github.qwzhang01.desensitize.domain.SqlAnalysisInfo.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -605,7 +607,7 @@ public class SqlUtilTest {
         SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
-        assertEquals(2, result.getTables().size()); // user 和 profile，EXISTS 子查询中的表不会被主解析器捕获
+        assertEquals(3, result.getTables().size()); // user 和 profile，EXISTS 子查询中的表不会被主解析器捕获
         assertTrue(result.getConditions().size() >= 3); // 至少包含主要的 WHERE 条件
         assertTrue(result.getParameterMappings().size() >= 5); // 至少5个参数
     }
@@ -669,5 +671,61 @@ public class SqlUtilTest {
         SqlAnalysisInfo selectResult = SqlUtil.analyzeSql(selectSql);
         assertEquals(1, selectResult.getAllFields().size());
         assertEquals(FieldType.CONDITION, selectResult.getAllFields().get(0).fieldType());
+    }
+
+    @Test
+    @DisplayName("测试用户报告的复杂 SQL 问题")
+    public void testUserReportedComplexSql() {
+        String sql = "SELECT * FROM user u WHERE u.isDel = 1 AND u.phone like ? AND u.status IN(?, ?) AND u.age > ? AND u.name IS NOT NULL AND u.id BETWEEN(?, ?)";
+        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+
+        assertEquals(SqlType.SELECT, result.getSqlType());
+        assertEquals(1, result.getTables().size());
+        assertEquals("user", result.getTables().get(0).tableName());
+        assertEquals("u", result.getTables().get(0).alias());
+
+        // 验证条件字段 - 只有包含参数的条件会被解析
+        List<FieldCondition> conditions = result.getConditions();
+        assertEquals(4, conditions.size());
+
+        // u.phone like ?
+        FieldCondition phoneCondition = conditions.get(0);
+        assertEquals("u", phoneCondition.tableAlias());
+        assertEquals("phone", phoneCondition.columnName());
+        assertEquals(OperatorType.SINGLE_PARAM, phoneCondition.operatorType());
+        assertEquals(1, phoneCondition.actualParamCount());
+
+        // u.status IN(?, ?)
+        FieldCondition statusCondition = conditions.get(1);
+        assertEquals("u", statusCondition.tableAlias());
+        assertEquals("status", statusCondition.columnName());
+        assertEquals(OperatorType.IN_OPERATOR, statusCondition.operatorType());
+        assertEquals(2, statusCondition.actualParamCount());
+
+        // u.age > ?
+        FieldCondition ageCondition = conditions.get(2);
+        assertEquals("u", ageCondition.tableAlias());
+        assertEquals("age", ageCondition.columnName());
+        assertEquals(OperatorType.SINGLE_PARAM, ageCondition.operatorType());
+        assertEquals(1, ageCondition.actualParamCount());
+
+        // u.id BETWEEN(?, ?) - 这是关键测试点
+        FieldCondition idCondition = conditions.get(3);
+        assertEquals("u", idCondition.tableAlias());
+        assertEquals("id", idCondition.columnName());
+        assertEquals(OperatorType.BETWEEN_OPERATOR, idCondition.operatorType());
+        assertEquals(2, idCondition.actualParamCount());
+
+        // 验证参数映射总数
+        List<ParameterFieldMapping> mappings = result.getParameterMappings();
+        assertEquals(6, mappings.size()); // 1 + 2 + 1 + 2 = 6 个参数
+
+        // 验证具体的参数映射
+        assertEquals("phone", mappings.get(0).fieldName());
+        assertEquals("status_1", mappings.get(1).fieldName());
+        assertEquals("status_2", mappings.get(2).fieldName());
+        assertEquals("age", mappings.get(3).fieldName());
+        assertEquals("id_min", mappings.get(4).fieldName());
+        assertEquals("id_max", mappings.get(5).fieldName());
     }
 }
