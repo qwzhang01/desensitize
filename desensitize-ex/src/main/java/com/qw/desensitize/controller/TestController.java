@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,9 +18,12 @@ import java.util.Map;
 public class TestController {
 
     private final Environment environment;
+    private final DataSource dataSource;
 
     @GetMapping("db-config")
     public RespEntity<Map<String, String>> testDbConfig() {
+        Class<? extends DataSource> aClass = dataSource.getClass();
+        System.out.println(aClass.getSimpleName());
         Map<String, String> map = new HashMap<>(7);
         map.put("driverClassName", "com.mysql.cj.jdbc.Driver");
         map.put("url", environment.getProperty("spring.datasource.url"));

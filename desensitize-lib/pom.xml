@@ -58,6 +58,7 @@
         <spring-boot.version>3.1.5</spring-boot.version>
         <mysql-connector-java.version>8.0.29</mysql-connector-java.version>
         <mybatis-plus.version>3.5.11</mybatis-plus.version>
+        <sql-tool.version>1.0.0</sql-tool.version>
     </properties>
 
     <dependencyManagement>
@@ -73,6 +74,11 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>io.github.qwzhang01</groupId>
+            <artifactId>sql-tool</artifactId>
+            <version>${sql-tool.version}</version>
+        </dependency>
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

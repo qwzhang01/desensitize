@@ -1,7 +1,10 @@
 package io.github.qwzhang01.desensitize.kit;
 
-import io.github.qwzhang01.desensitize.domain.SqlAnalysisInfo;
-import io.github.qwzhang01.desensitize.domain.SqlAnalysisInfo.*;
+import io.github.qwzhang01.sql.tool.enums.FieldType;
+import io.github.qwzhang01.sql.tool.enums.SqlType;
+import io.github.qwzhang01.sql.tool.enums.TableType;
+import io.github.qwzhang01.sql.tool.helper.SqlGatherHelper;
+import io.github.qwzhang01.sql.tool.model.SqlGather;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +23,7 @@ public class SqlUtilTestBak {
     public void testJoin() {
         String sql = "LEFT JOIN user u ON u.id = d.userId AND d.status = 1";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         System.out.println("");
     }
@@ -30,7 +33,7 @@ public class SqlUtilTestBak {
     public void testSimpleSelect() {
         String sql = "SELECT id, name, phone FROM user WHERE phone = ? AND status = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
         assertEquals(1, result.getTables().size());
@@ -48,7 +51,7 @@ public class SqlUtilTestBak {
     public void testSelectWithAlias() {
         String sql = "SELECT u.id, u.name, u.phone FROM user u WHERE u.phone = ? AND u.status = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
         assertEquals(1, result.getTables().size());
@@ -68,19 +71,19 @@ public class SqlUtilTestBak {
                 "LEFT JOIN profile p ON u.id = p.user_id " +
                 "WHERE u.phone = ? AND p.status = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
         assertEquals(2, result.getTables().size());
 
         // 验证主表
-        TableInfo mainTable = result.getTables().get(0);
+        SqlGather.TableInfo mainTable = result.getTables().get(0);
         assertEquals("user", mainTable.tableName());
         assertEquals("u", mainTable.alias());
         assertEquals(TableType.MAIN, mainTable.tableType());
 
         // 验证 JOIN 表
-        TableInfo joinTable = result.getTables().get(1);
+        SqlGather.TableInfo joinTable = result.getTables().get(1);
         assertEquals("profile", joinTable.tableName());
         assertEquals("p", joinTable.alias());
         assertEquals(TableType.JOIN, joinTable.tableType());
@@ -102,7 +105,7 @@ public class SqlUtilTestBak {
                 "INNER JOIN department d ON u.dept_id = d.id " +
                 "WHERE u.phone = ? AND p.status = ? AND d.code = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
         assertEquals(3, result.getTables().size());
@@ -119,7 +122,7 @@ public class SqlUtilTestBak {
     public void testInsertStatement() {
         String sql = "INSERT INTO user (name, phone, email, status) VALUES (?, ?, ?, ?)";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.INSERT, result.getSqlType());
         assertEquals(1, result.getTables().size());
@@ -144,7 +147,7 @@ public class SqlUtilTestBak {
     public void testUpdateStatement() {
         String sql = "UPDATE user SET name = ?, phone = ?, status = ? WHERE id = ? AND dept_id = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.UPDATE, result.getSqlType());
         assertEquals(1, result.getTables().size());
@@ -175,7 +178,7 @@ public class SqlUtilTestBak {
     public void testUpdateWithAlias() {
         String sql = "UPDATE user u SET u.name = ?, u.phone = ? WHERE u.id = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.UPDATE, result.getSqlType());
         assertEquals("user", result.getTables().get(0).tableName());
@@ -189,7 +192,7 @@ public class SqlUtilTestBak {
     public void testDeleteStatement() {
         String sql = "DELETE FROM user WHERE phone = ? AND status = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.DELETE, result.getSqlType());
         assertEquals(1, result.getTables().size());
@@ -207,7 +210,7 @@ public class SqlUtilTestBak {
     public void testDeleteWithAlias() {
         String sql = "DELETE FROM user u WHERE u.phone = ? AND u.status = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.DELETE, result.getSqlType());
         assertEquals("user", result.getTables().get(0).tableName());
@@ -224,7 +227,7 @@ public class SqlUtilTestBak {
     public void testWithBackticks() {
         String sql = "SELECT `user`.`name`, `user`.`phone` FROM `user` WHERE `user`.`phone` = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
         assertEquals("user", result.getTables().get(0).tableName());
@@ -237,7 +240,7 @@ public class SqlUtilTestBak {
     public void testComplexWhereConditions() {
         String sql = "SELECT * FROM user u WHERE u.isDel = 1 AND u.phone like ? AND u.status IN(?, ?) AND u.age > ? AND u.name IS NOT NULL AND u.id BETWEEN(?, ?)";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
         // 注意：IS NOT NULL 不会产生参数占位符，所以只有3个条件字段
@@ -248,9 +251,10 @@ public class SqlUtilTestBak {
     @Test
     @DisplayName("测试空 SQL 处理")
     public void testEmptySQL() {
-        SqlAnalysisInfo result1 = SqlUtil.analyzeSql("");
-        SqlAnalysisInfo result2 = SqlUtil.analyzeSql(null);
-        SqlAnalysisInfo result3 = SqlUtil.analyzeSql("   ");
+        SqlGather result1 = SqlGatherHelper.analysis("");
+        SqlGather result2 = SqlGatherHelper.analysis(null);
+        SqlGather result3 = SqlGatherHelper.analysis("   ");
+
 
         assertTrue(result1.getTables().isEmpty());
         assertTrue(result2.getTables().isEmpty());
@@ -262,7 +266,7 @@ public class SqlUtilTestBak {
     public void testSQLWithComments() {
         String sql = "SELECT u.name, u.phone /* 用户信息 */ FROM user u -- 用户表 \n WHERE u.phone = ? /* 手机号条件 */";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
         assertEquals(1, result.getTables().size());
@@ -274,18 +278,18 @@ public class SqlUtilTestBak {
     public void testParameterMappingTableName() {
         String sql = "SELECT u.name FROM user u LEFT JOIN profile p ON u.id = p.user_id WHERE u.phone = ? AND p.status = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(2, result.getParameterMappings().size());
 
         // 第一个参数应该映射到 user 表
-        ParameterFieldMapping mapping1 = result.getParameterMappings().get(0);
+        SqlGather.ParameterFieldMapping mapping1 = result.getParameterMappings().get(0);
         assertEquals("user", mapping1.tableName());
         assertEquals("phone", mapping1.fieldName());
         assertEquals("u", mapping1.tableAlias());
 
         // 第二个参数应该映射到 profile 表
-        ParameterFieldMapping mapping2 = result.getParameterMappings().get(1);
+        SqlGather.ParameterFieldMapping mapping2 = result.getParameterMappings().get(1);
         assertEquals("profile", mapping2.tableName());
         assertEquals("status", mapping2.fieldName());
         assertEquals("p", mapping2.tableAlias());
@@ -296,7 +300,7 @@ public class SqlUtilTestBak {
     public void testExistsSql() {
         String sql = "SELECT * FROM user WHERE EXISTS(SELECT * FROM  profile p WHERE p.id = user.profileId p.status = ?";
 
-        SqlAnalysisInfo result = SqlUtil.analyzeSql(sql);
+        SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(1, result.getParameterMappings().size());
     }

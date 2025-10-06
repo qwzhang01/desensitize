@@ -27,13 +27,15 @@ package io.github.qwzhang01.desensitize.core;
 import io.github.qwzhang01.desensitize.container.DataScopeStrategyContainer;
 import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
-import io.github.qwzhang01.desensitize.domain.SqlAnalysisInfo;
 import io.github.qwzhang01.desensitize.kit.ParamUtil;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
-import io.github.qwzhang01.desensitize.kit.SqlUtil;
 import io.github.qwzhang01.desensitize.kit.StringUtil;
 import io.github.qwzhang01.desensitize.scope.DataScopeHelper;
 import io.github.qwzhang01.desensitize.scope.DataScopeStrategy;
+import io.github.qwzhang01.sql.tool.helper.SqlGatherHelper;
+import io.github.qwzhang01.sql.tool.helper.SqlParseHelper;
+import io.github.qwzhang01.sql.tool.model.SqlGather;
+import io.github.qwzhang01.sql.tool.model.SqlObj;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.plugin.*;
@@ -102,7 +104,6 @@ public class SqlRewriteInterceptor implements Interceptor {
             return invocation.proceed();
         } else if ("update".equalsIgnoreCase(methodName) || "query".equals(methodName) || "queryCursor".equals(methodName)) {
             try {
-
                 return invocation.proceed();
             } finally {
                 SqlRewriteContext.restore();
@@ -131,8 +132,13 @@ public class SqlRewriteInterceptor implements Interceptor {
             }
 
             // 1. 解析 SQL 获取所有涉及的表信息
-            SqlAnalysisInfo sqlAnalysis = SqlUtil.analyzeSql(originalSql);
-            if (sqlAnalysis.getTables().isEmpty()) {
+            SqlGather sqlAnalysis = null;
+            try {
+                sqlAnalysis = SqlGatherHelper.analysis(originalSql);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            }
+            if (sqlAnalysis == null || sqlAnalysis.getTables() == null || sqlAnalysis.getTables().isEmpty()) {
                 log.warn("未找到表信息，跳过加密处理");
                 return;
             }
@@ -183,16 +189,16 @@ public class SqlRewriteInterceptor implements Interceptor {
         }
 
         // 1. 解析 SQL 获取所有涉及的表信息
-        SqlAnalysisInfo sqlAnalysis = SqlUtil.analyzeSql(originalSql);
-        if (sqlAnalysis.getTables().isEmpty()) {
+        SqlObj sqlInfo = SqlParseHelper.parseSQL(originalSql);
+        if (sqlInfo == null) {
             return originalSql;
         }
 
         if (!StringUtil.isEmpty(join)) {
-
+            // todo 待实现
         }
         if (!StringUtil.isEmpty(where)) {
-
+            // todo 待实现
         }
 
         return originalSql;

@@ -46,8 +46,8 @@ public class DefaultCoverAlgoTest {
     @Test
     void testMaskPhone() {
         // 正常手机号
-        assertEquals("1381****5678", coverAlgo.maskPhone("13812345678"));
-        assertEquals("1501****9999", coverAlgo.maskPhone("15012349999"));
+        assertEquals("138****5678", coverAlgo.maskPhone("13812345678"));
+        assertEquals("150****9999", coverAlgo.maskPhone("15012349999"));
 
         // 边界情况
         assertNull(coverAlgo.maskPhone(null));
@@ -81,7 +81,7 @@ public class DefaultCoverAlgoTest {
     @Test
     void testMaskEmail() {
         // 正常邮箱
-        assertEquals("e****e@gmail.com", coverAlgo.maskEmail("example@gmail.com"));
+        assertEquals("e*****e@gmail.com", coverAlgo.maskEmail("example@gmail.com"));
         assertEquals("t**t@qq.com", coverAlgo.maskEmail("test@qq.com"));
         assertEquals("a*c@163.com", coverAlgo.maskEmail("abc@163.com"));
 
@@ -110,8 +110,8 @@ public class DefaultCoverAlgoTest {
         assertEquals("诸*亮", coverAlgo.maskChineseName("诸葛亮"));
 
         // 4位中文名
-        assertEquals("欧***文", coverAlgo.maskChineseName("欧阳修文"));
-        assertEquals("司***光", coverAlgo.maskChineseName("司马相光"));
+        assertEquals("欧**文", coverAlgo.maskChineseName("欧阳修文"));
+        assertEquals("司**光", coverAlgo.maskChineseName("司马相光"));
 
         // 单字名
         assertEquals("王", coverAlgo.maskChineseName("王"));
@@ -130,7 +130,7 @@ public class DefaultCoverAlgoTest {
         // 正常英文名
         assertEquals("J**n", coverAlgo.maskEnglishName("John"));
         assertEquals("S***h", coverAlgo.maskEnglishName("Smith"));
-        assertEquals("A*e", coverAlgo.maskEnglishName("Alice"));
+        assertEquals("A***e", coverAlgo.maskEnglishName("Alice"));
 
         // 短名字
         assertEquals("A*", coverAlgo.maskEnglishName("Ab"));

@@ -2,8 +2,8 @@ package io.github.qwzhang01.desensitize.kit;
 
 import io.github.qwzhang01.desensitize.container.EncryptFieldTableContainer;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
-import io.github.qwzhang01.desensitize.domain.SqlAnalysisInfo;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.sql.tool.model.SqlGather;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,12 +78,12 @@ public final class FieldMatchUtil {
      * @return 加密信息对象，如果不匹配则返回null
      */
     public static ParameterEncryptInfo matchParameterToTableField(String paramName, String paramValue,
-                                                                  SqlAnalysisInfo sqlAnalysis) {
+                                                                  SqlGather sqlAnalysis) {
         // 清理参数名
         String cleanParamName = StringUtil.cleanParameterName(paramName);
 
         // 遍历所有表，检查是否有匹配的加密字段
-        for (SqlAnalysisInfo.TableInfo tableInfo : sqlAnalysis.getTables()) {
+        for (SqlGather.TableInfo tableInfo : sqlAnalysis.getTables()) {
             String tableName = tableInfo.tableName();
 
             ParameterEncryptInfo encryptInfo = createEncryptInfo(tableName, cleanParamName, paramValue);
@@ -94,12 +94,12 @@ public final class FieldMatchUtil {
         }
 
         // 从 SQL 条件中匹配
-        for (SqlAnalysisInfo.FieldCondition condition : sqlAnalysis.getConditions()) {
+        for (SqlGather.FieldCondition condition : sqlAnalysis.getConditions()) {
             String columnName = condition.columnName();
 
             if (isFieldNameMatch(cleanParamName, columnName)) {
                 // 找到匹配的字段，检查哪个表包含这个加密字段
-                for (SqlAnalysisInfo.TableInfo tableInfo : sqlAnalysis.getTables()) {
+                for (SqlGather.TableInfo tableInfo : sqlAnalysis.getTables()) {
                     String tableName = tableInfo.tableName();
                     ParameterEncryptInfo encryptInfo = createEncryptInfo(tableName, columnName, paramValue);
                     if (encryptInfo != null) {

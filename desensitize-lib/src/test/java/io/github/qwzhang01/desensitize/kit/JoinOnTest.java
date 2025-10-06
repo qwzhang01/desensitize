@@ -1,6 +1,7 @@
 package io.github.qwzhang01.desensitize.kit;
 
-import io.github.qwzhang01.desensitize.domain.SqlAnalysisInfo;
+import io.github.qwzhang01.sql.tool.helper.SqlGatherHelper;
+import io.github.qwzhang01.sql.tool.model.SqlGather;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +18,7 @@ public class JoinOnTest {
                 "WHERE u.status = ?";
 
         System.out.println("测试 SQL 1: " + sql1);
-        SqlAnalysisInfo result1 = SqlUtil.analyzeSql(sql1);
+        SqlGather result1 = SqlGatherHelper.analysis(sql1);
         printAnalysisResult(result1);
 
         System.out.println("\n" + "=".repeat(50) + "\n");
@@ -29,7 +30,7 @@ public class JoinOnTest {
                 "WHERE u.active = ? AND p.published = ?";
 
         System.out.println("测试 SQL 2: " + sql2);
-        SqlAnalysisInfo result2 = SqlUtil.analyzeSql(sql2);
+        SqlGather result2 = SqlGatherHelper.analysis(sql2);
         printAnalysisResult(result2);
 
         System.out.println("\n" + "=".repeat(50) + "\n");
@@ -41,11 +42,11 @@ public class JoinOnTest {
                 "WHERE u.department_id = ?";
 
         System.out.println("测试 SQL 3: " + sql3);
-        SqlAnalysisInfo result3 = SqlUtil.analyzeSql(sql3);
+        SqlGather result3 = SqlGatherHelper.analysis(sql3);
         printAnalysisResult(result3);
     }
 
-    private void printAnalysisResult(SqlAnalysisInfo result) {
+    private void printAnalysisResult(SqlGather result) {
         System.out.println("SQL 类型: " + result.getSqlType());
 
         System.out.println("表信息:");
