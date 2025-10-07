@@ -9,8 +9,11 @@ import com.qw.desensitize.dto.UserDto;
 import com.qw.desensitize.dto.UserParam;
 import com.qw.desensitize.entity.User;
 import com.qw.desensitize.mapper.UserMapper;
+import com.qw.desensitize.strategy.JoinDataScopeStrategy;
+import com.qw.desensitize.strategy.WhereDataScopeStrategy;
 import io.github.qwzhang01.desensitize.context.MaskContext;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
+import io.github.qwzhang01.desensitize.scope.DataScopeHelper;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -34,14 +37,19 @@ public class UserController {
     public R<Page<?>> pageMapperObj() {
         UserParam userParam = new UserParam();
         userParam.setPhone("13900139002");
-        Page<UserDto> userPage = mapper.listObj(new Page<>(1, 10), userParam);
+        Page<UserDto> userPage = DataScopeHelper
+                .strategy(JoinDataScopeStrategy.class)
+                .query(() -> mapper.listObj(new Page<>(1, 10), userParam));
+
         MaskContext.start();
         return R.ok(userPage);
     }
 
     @GetMapping("page-mapper-param")
     public R<Page<?>> pageMapperParam() {
-        Page<UserDto> userPage = mapper.listParam(new Page<>(1, 10), "13900139002");
+        Page<UserDto> userPage = DataScopeHelper
+                .strategy(WhereDataScopeStrategy.class)
+                .query(() -> mapper.listParam(new Page<>(1, 10), "13900139002"));
         MaskContext.start();
         return R.ok(userPage);
     }

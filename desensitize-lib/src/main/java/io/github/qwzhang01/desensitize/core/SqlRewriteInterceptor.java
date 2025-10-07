@@ -27,7 +27,6 @@ package io.github.qwzhang01.desensitize.core;
 import io.github.qwzhang01.desensitize.container.DataScopeStrategyContainer;
 import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
-import io.github.qwzhang01.desensitize.exception.DataScopeErrorException;
 import io.github.qwzhang01.desensitize.kit.ParamUtil;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.kit.StringUtil;
@@ -112,6 +111,7 @@ public class SqlRewriteInterceptor implements Interceptor {
                 return invocation.proceed();
             } finally {
                 SqlRewriteContext.restore();
+                DataScopeHelper.clear();
             }
         }
         return invocation.proceed();
@@ -204,7 +204,10 @@ public class SqlRewriteInterceptor implements Interceptor {
 
         if (!StringUtil.isEmpty(join)) {
             List<SqlGather.Table> tables = sqlAnalysis.getTables();
-            Map<String, String> map = tables.stream().collect(Collectors.toMap(SqlGather.Table::tableName, SqlGather.Table::alias, (v1, v2) -> v1));
+            Map<String, String> map = tables.stream()
+                    .filter(s -> !StringUtil.isEmpty(s.tableName()))
+                    .filter(s -> !StringUtil.isEmpty(s.alias()))
+                    .collect(Collectors.toMap(SqlGather.Table::tableName, SqlGather.Table::alias, (v1, v2) -> v1));
             List<SqlJoin> joins = SqlParseHelper.parseJoin(join);
             for (SqlJoin joinPart : joins) {
                 List<SqlCondition> conditions = joinPart.getJoinConditions();
@@ -214,17 +217,11 @@ public class SqlRewriteInterceptor implements Interceptor {
                     if (!StringUtil.isEmpty(rightFieldInfo.getTableAlias()) && !alias.equals(rightFieldInfo.getTableAlias())) {
                         rightFieldInfo.setTableName(rightFieldInfo.getTableAlias());
                         rightFieldInfo.setTableAlias(map.get(rightFieldInfo.getTableAlias()));
-                        if (StringUtil.isEmpty(rightFieldInfo.getTableAlias())) {
-                            throw new DataScopeErrorException("数据权限的关联表，无法与主SQL关联起来，请检查表名是否正确");
-                        }
                     }
                     SqlField leftFieldInfo = condition.getFieldInfo();
                     if (!StringUtil.isEmpty(leftFieldInfo.getTableAlias()) && !alias.equals(leftFieldInfo.getTableAlias())) {
                         leftFieldInfo.setTableName(leftFieldInfo.getTableAlias());
                         leftFieldInfo.setTableAlias(map.get(leftFieldInfo.getTableAlias()));
-                        if (StringUtil.isEmpty(leftFieldInfo.getTableAlias())) {
-                            throw new DataScopeErrorException("数据权限的关联表，无法与主SQL关联起来，请检查表名是否正确");
-                        }
                     }
                 }
             }
@@ -234,7 +231,7 @@ public class SqlRewriteInterceptor implements Interceptor {
             List<SqlCondition> sqlConditions = SqlParseHelper.parseWhere(where);
             // todo 待处理
         }
-
+        originalSql = SqlGatherHelper.joint(originalSql, join, where);
         return originalSql;
     }
 

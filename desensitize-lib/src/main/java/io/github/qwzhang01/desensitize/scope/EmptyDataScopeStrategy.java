@@ -7,7 +7,7 @@ package io.github.qwzhang01.desensitize.scope;
  *
  * @author avinzhang
  */
-public class DefaultDataScopeStrategy implements DataScopeStrategy {
+public class EmptyDataScopeStrategy implements DataScopeStrategy {
 
     @Override
     public String join() {
