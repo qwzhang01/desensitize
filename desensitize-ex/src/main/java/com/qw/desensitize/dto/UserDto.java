@@ -1,5 +1,6 @@
 package com.qw.desensitize.dto;
 
+import com.qw.desensitize.common.MaskName;
 import io.github.qwzhang01.desensitize.annotation.EncryptField;
 import io.github.qwzhang01.desensitize.annotation.Mask;
 import io.github.qwzhang01.desensitize.annotation.MaskId;
@@ -23,6 +24,7 @@ public class UserDto {
     @MaskPhone
     @EncryptField
     private String phoneNo;
+    @MaskName
     private String gender;
     @MaskId
     private Encrypt idNo;

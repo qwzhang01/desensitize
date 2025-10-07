@@ -68,5 +68,5 @@ public @interface EncryptField {
      *
      * @return the encryption algorithm class
      */
-    Class<? extends EncryptionAlgo> value() default DefaultEncryptionAlgo.class;
+    Class<? extends EncryptionAlgo> value() default EncryptionAlgo.class;
 }

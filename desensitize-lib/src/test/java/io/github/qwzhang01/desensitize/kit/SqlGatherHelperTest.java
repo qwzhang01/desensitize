@@ -76,7 +76,7 @@ public class SqlGatherHelperTest {
     @Test
     @DisplayName("测试带别名的 SELECT 语句解析")
     public void testSelectWithAlias() {
-        String sql = "SELECT u.id, u.name, u.phone FROM user u WHERE u.phone = ? AND u.status = ?";
+        String sql = "SELECT u.id, u.name, u.phone FROM user u WHERE u.phone = '0000' AND u.status = ?";
 
         SqlObj sqlInfo1 = SqlParseHelper.parseSQL(sql);
         SqlGather result = SqlGatherHelper.analysis(sql);

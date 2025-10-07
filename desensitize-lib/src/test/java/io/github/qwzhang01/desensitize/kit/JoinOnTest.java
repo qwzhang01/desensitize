@@ -1,14 +1,34 @@
 package io.github.qwzhang01.desensitize.kit;
 
 import io.github.qwzhang01.sql.tool.helper.SqlGatherHelper;
+import io.github.qwzhang01.sql.tool.helper.SqlParseHelper;
 import io.github.qwzhang01.sql.tool.model.SqlGather;
+import io.github.qwzhang01.sql.tool.model.SqlJoin;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 /**
  * JOIN ON 条件解析测试
  */
 public class JoinOnTest {
+    @Test
+    @DisplayName("测试带 join 语句解析")
+    public void testJoin1() {
+        String sql = """
+                LEFT JOIN posts p ON u.id = p.user_id AND p.status = ?
+                INNER JOIN comments c ON p.id = c.post_id AND c.created_at > ?
+                """;
+
+        List<SqlJoin> joins = SqlParseHelper.parseJoin(sql);
+
+        String sqlParse = SqlParseHelper.toSQL(joins);
+
+        System.out.println("解析后 SQL: " + sqlParse);
+    }
+
+
     @Test
     @DisplayName("测试简单 join 语句解析")
     public void testJoin() {

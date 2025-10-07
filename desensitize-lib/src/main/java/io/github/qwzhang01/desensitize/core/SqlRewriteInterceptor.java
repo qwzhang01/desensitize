@@ -27,6 +27,7 @@ package io.github.qwzhang01.desensitize.core;
 import io.github.qwzhang01.desensitize.container.DataScopeStrategyContainer;
 import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
+import io.github.qwzhang01.desensitize.exception.DataScopeErrorException;
 import io.github.qwzhang01.desensitize.kit.ParamUtil;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.kit.StringUtil;
@@ -34,8 +35,10 @@ import io.github.qwzhang01.desensitize.scope.DataScopeHelper;
 import io.github.qwzhang01.desensitize.scope.DataScopeStrategy;
 import io.github.qwzhang01.sql.tool.helper.SqlGatherHelper;
 import io.github.qwzhang01.sql.tool.helper.SqlParseHelper;
+import io.github.qwzhang01.sql.tool.model.SqlCondition;
+import io.github.qwzhang01.sql.tool.model.SqlField;
 import io.github.qwzhang01.sql.tool.model.SqlGather;
-import io.github.qwzhang01.sql.tool.model.SqlObj;
+import io.github.qwzhang01.sql.tool.model.SqlJoin;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.plugin.*;
@@ -47,7 +50,9 @@ import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 /**
  * 拦截器执行顺序
@@ -189,16 +194,45 @@ public class SqlRewriteInterceptor implements Interceptor {
         }
 
         // 1. 解析 SQL 获取所有涉及的表信息
-        SqlObj sqlInfo = SqlParseHelper.parseSQL(originalSql);
-        if (sqlInfo == null) {
+        SqlGather sqlAnalysis = null;
+        try {
+            sqlAnalysis = SqlGatherHelper.analysis(originalSql);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
             return originalSql;
         }
 
         if (!StringUtil.isEmpty(join)) {
-            // todo 待实现
+            List<SqlGather.Table> tables = sqlAnalysis.getTables();
+            Map<String, String> map = tables.stream().collect(Collectors.toMap(SqlGather.Table::tableName, SqlGather.Table::alias, (v1, v2) -> v1));
+            List<SqlJoin> joins = SqlParseHelper.parseJoin(join);
+            for (SqlJoin joinPart : joins) {
+                List<SqlCondition> conditions = joinPart.getJoinConditions();
+                for (SqlCondition condition : conditions) {
+                    String alias = joinPart.getAlias();
+                    SqlField rightFieldInfo = condition.getRightFieldInfo();
+                    if (!StringUtil.isEmpty(rightFieldInfo.getTableAlias()) && !alias.equals(rightFieldInfo.getTableAlias())) {
+                        rightFieldInfo.setTableName(rightFieldInfo.getTableAlias());
+                        rightFieldInfo.setTableAlias(map.get(rightFieldInfo.getTableAlias()));
+                        if (StringUtil.isEmpty(rightFieldInfo.getTableAlias())) {
+                            throw new DataScopeErrorException("数据权限的关联表，无法与主SQL关联起来，请检查表名是否正确");
+                        }
+                    }
+                    SqlField leftFieldInfo = condition.getFieldInfo();
+                    if (!StringUtil.isEmpty(leftFieldInfo.getTableAlias()) && !alias.equals(leftFieldInfo.getTableAlias())) {
+                        leftFieldInfo.setTableName(leftFieldInfo.getTableAlias());
+                        leftFieldInfo.setTableAlias(map.get(leftFieldInfo.getTableAlias()));
+                        if (StringUtil.isEmpty(leftFieldInfo.getTableAlias())) {
+                            throw new DataScopeErrorException("数据权限的关联表，无法与主SQL关联起来，请检查表名是否正确");
+                        }
+                    }
+                }
+            }
+            join = SqlParseHelper.toSQL(joins);
         }
         if (!StringUtil.isEmpty(where)) {
-            // todo 待实现
+            List<SqlCondition> sqlConditions = SqlParseHelper.parseWhere(where);
+            // todo 待处理
         }
 
         return originalSql;

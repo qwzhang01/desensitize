@@ -45,6 +45,9 @@ public abstract class AbstractEncryptAlgoContainer {
      * @return the encryption algorithm instance
      */
     public EncryptionAlgo getAlgo(Class<? extends EncryptionAlgo> clazz) {
+        if (EncryptionAlgo.class.equals(clazz)) {
+            return defaultEncryptAlgo();
+        }
         return ALGO_CACHE.computeIfAbsent(clazz, key -> {
             // First try to get from Spring context if available
             if (SpringContextUtil.isInitialized()) {
