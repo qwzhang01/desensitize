@@ -138,13 +138,13 @@ public class SqlGatherHelperTest {
         assertEquals(2, result.getTables().size());
 
         // 验证主表
-        SqlGather.TableInfo mainTable = result.getTables().get(0);
+        SqlGather.Table mainTable = result.getTables().get(0);
         assertEquals("user", mainTable.tableName());
         assertEquals("u", mainTable.alias());
         assertEquals(TableType.MAIN, mainTable.tableType());
 
         // 验证 JOIN 表
-        SqlGather.TableInfo joinTable = result.getTables().get(1);
+        SqlGather.Table joinTable = result.getTables().get(1);
         assertEquals("profile", joinTable.tableName());
         assertEquals("p", joinTable.alias());
         assertEquals(TableType.JOIN, joinTable.tableType());
@@ -215,7 +215,7 @@ public class SqlGatherHelperTest {
         assertEquals(3, result.getConditions().size());
 
         // 验证 IN 操作符的参数计数
-        SqlGather.FieldCondition inCondition = result.getConditions().stream().filter(c -> c.operatorType() == OperatorType.IN_OPERATOR).findFirst().orElse(null);
+        SqlGather.Field inCondition = result.getConditions().stream().filter(c -> c.operatorType() == OperatorType.IN_OPERATOR).findFirst().orElse(null);
         assertNotNull(inCondition);
         assertEquals(2, inCondition.getEffectiveParamCount());
 
@@ -308,8 +308,8 @@ public class SqlGatherHelperTest {
         assertEquals(FieldType.UPDATE_SET, result.getParameterMappings().get(0).fieldType());
         assertEquals(FieldType.UPDATE_SET, result.getParameterMappings().get(1).fieldType());
         assertEquals(FieldType.UPDATE_SET, result.getParameterMappings().get(2).fieldType());
-        assertEquals(FieldType.CONDITION, result.getParameterMappings().get(3).fieldType());
-        assertEquals(FieldType.CONDITION, result.getParameterMappings().get(4).fieldType());
+        assertEquals(FieldType.CONDITION_WHERE, result.getParameterMappings().get(3).fieldType());
+        assertEquals(FieldType.CONDITION_WHERE, result.getParameterMappings().get(4).fieldType());
     }
 
     @Test
@@ -379,7 +379,7 @@ public class SqlGatherHelperTest {
 
         // 验证参数映射类型
         for (SqlGather.ParameterFieldMapping mapping : result.getParameterMappings()) {
-            assertEquals(FieldType.CONDITION, mapping.fieldType());
+            assertEquals(FieldType.CONDITION_WHERE, mapping.fieldType());
         }
     }
 
@@ -428,19 +428,19 @@ public class SqlGatherHelperTest {
         assertEquals(6, result.getParameterMappings().size());
 
         // 验证不同操作符类型
-        SqlGather.FieldCondition likeCondition = result.getConditions().get(0);
+        SqlGather.Field likeCondition = result.getConditions().get(0);
         assertEquals(OperatorType.SINGLE_PARAM, likeCondition.operatorType());
         assertEquals(1, likeCondition.getEffectiveParamCount());
 
-        SqlGather.FieldCondition inCondition = result.getConditions().get(1);
+        SqlGather.Field inCondition = result.getConditions().get(1);
         assertEquals(OperatorType.IN_OPERATOR, inCondition.operatorType());
         assertEquals(2, inCondition.getEffectiveParamCount());
 
-        SqlGather.FieldCondition betweenCondition = result.getConditions().get(2);
+        SqlGather.Field betweenCondition = result.getConditions().get(2);
         assertEquals(OperatorType.BETWEEN_OPERATOR, betweenCondition.operatorType());
         assertEquals(2, betweenCondition.getEffectiveParamCount());
 
-        SqlGather.FieldCondition singleCondition = result.getConditions().get(3);
+        SqlGather.Field singleCondition = result.getConditions().get(3);
         assertEquals(OperatorType.SINGLE_PARAM, singleCondition.operatorType());
         assertEquals(1, singleCondition.getEffectiveParamCount());
     }
@@ -453,7 +453,7 @@ public class SqlGatherHelperTest {
         SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(1, result.getConditions().size());
-        SqlGather.FieldCondition inCondition = result.getConditions().get(0);
+        SqlGather.Field inCondition = result.getConditions().get(0);
         assertEquals(OperatorType.IN_OPERATOR, inCondition.operatorType());
         assertEquals(4, inCondition.getEffectiveParamCount());
         assertEquals(4, result.getParameterMappings().size());
@@ -473,7 +473,7 @@ public class SqlGatherHelperTest {
         SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(1, result.getConditions().size());
-        SqlGather.FieldCondition betweenCondition = result.getConditions().get(0);
+        SqlGather.Field betweenCondition = result.getConditions().get(0);
         assertEquals("age", betweenCondition.columnName());
         assertEquals(OperatorType.BETWEEN_OPERATOR, betweenCondition.operatorType());
         assertEquals(2, betweenCondition.getEffectiveParamCount());
@@ -495,7 +495,7 @@ public class SqlGatherHelperTest {
         assertEquals(5, result.getParameterMappings().size());
 
         // 所有条件都应该是单参数操作符
-        for (SqlGather.FieldCondition condition : result.getConditions()) {
+        for (SqlGather.Field condition : result.getConditions()) {
             assertEquals(OperatorType.SINGLE_PARAM, condition.operatorType());
             assertEquals(1, condition.getEffectiveParamCount());
         }
@@ -595,7 +595,7 @@ public class SqlGatherHelperTest {
         SqlGather result = SqlGatherHelper.analysis(sql);
 
         assertEquals(SqlType.SELECT, result.getSqlType());
-        assertEquals(3, result.getTables().size()); // user 和 profile，EXISTS 子查询中的表不会被主解析器捕获
+        assertEquals(2, result.getTables().size()); // user 和 profile，EXISTS 子查询中的表不会被主解析器捕获
         assertTrue(result.getConditions().size() >= 3); // 至少包含主要的 WHERE 条件
         assertTrue(result.getParameterMappings().size() >= 5); // 至少5个参数
     }
@@ -647,13 +647,13 @@ public class SqlGatherHelperTest {
         assertEquals(3, updateResult.getAllFields().size());
         assertEquals(FieldType.UPDATE_SET, updateResult.getAllFields().get(0).fieldType());
         assertEquals(FieldType.UPDATE_SET, updateResult.getAllFields().get(1).fieldType());
-        assertEquals(FieldType.CONDITION, updateResult.getAllFields().get(2).fieldType());
+        assertEquals(FieldType.CONDITION_WHERE, updateResult.getAllFields().get(2).fieldType());
 
         // SELECT/DELETE: 只有 conditions
         String selectSql = "SELECT * FROM user WHERE phone = ?";
         SqlGather selectResult = SqlGatherHelper.analysis(selectSql);
         assertEquals(1, selectResult.getAllFields().size());
-        assertEquals(FieldType.CONDITION, selectResult.getAllFields().get(0).fieldType());
+        assertEquals(FieldType.CONDITION_WHERE, selectResult.getAllFields().get(0).fieldType());
     }
 
     @Test
@@ -675,32 +675,32 @@ public class SqlGatherHelperTest {
         assertEquals("u", result.getTables().get(0).alias());
 
         // 验证条件字段 - 只有包含参数的条件会被解析
-        List<SqlGather.FieldCondition> conditions = result.getConditions();
+        List<SqlGather.Field> conditions = result.getConditions();
         assertEquals(6, conditions.size());
 
         // u.phone like ?
-        SqlGather.FieldCondition phoneCondition = conditions.get(1);
+        SqlGather.Field phoneCondition = conditions.get(1);
         assertEquals("u", phoneCondition.tableAlias());
         assertEquals("phone", phoneCondition.columnName());
         assertEquals(OperatorType.SINGLE_PARAM, phoneCondition.operatorType());
         assertEquals(1, phoneCondition.actualParamCount());
 
         // u.status IN(?, ?)
-        SqlGather.FieldCondition statusCondition = conditions.get(2);
+        SqlGather.Field statusCondition = conditions.get(2);
         assertEquals("u", statusCondition.tableAlias());
         assertEquals("status", statusCondition.columnName());
         assertEquals(OperatorType.IN_OPERATOR, statusCondition.operatorType());
         assertEquals(2, statusCondition.actualParamCount());
 
         // u.age > ?
-        SqlGather.FieldCondition ageCondition = conditions.get(3);
+        SqlGather.Field ageCondition = conditions.get(3);
         assertEquals("u", ageCondition.tableAlias());
         assertEquals("age", ageCondition.columnName());
         assertEquals(OperatorType.SINGLE_PARAM, ageCondition.operatorType());
         assertEquals(1, ageCondition.actualParamCount());
 
         // u.id BETWEEN(?, ?) - 这是关键测试点
-        SqlGather.FieldCondition idCondition = conditions.get(5);
+        SqlGather.Field idCondition = conditions.get(5);
         assertEquals("u", idCondition.tableAlias());
         assertEquals("id", idCondition.columnName());
         assertEquals(OperatorType.BETWEEN_OPERATOR, idCondition.operatorType());

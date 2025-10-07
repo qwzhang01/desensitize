@@ -256,15 +256,15 @@ public final class ParamUtil {
                                                                  List<ParameterMapping> parameterMappings) {
         // 1. 首先尝试通过参数在SQL中的位置来确定对应的字段
         int paramIndex = findParameterIndex(paramProperty, parameterMappings);
-        List<SqlGather.FieldCondition> allFields = sqlAnalysis.getAllFields();
+        List<SqlGather.Field> allFields = sqlAnalysis.getAllFields();
 
         if (paramIndex >= 0 && paramIndex < allFields.size()) {
             // 根据参数在SQL中的位置，找到对应的字段条件
-            SqlGather.FieldCondition condition = allFields.get(paramIndex);
+            SqlGather.Field condition = allFields.get(paramIndex);
             String sqlFieldName = condition.columnName();
 
             // 检查这个字段是否需要加密
-            for (SqlGather.TableInfo tableInfo : sqlAnalysis.getTables()) {
+            for (SqlGather.Table tableInfo : sqlAnalysis.getTables()) {
                 String tableName = tableInfo.tableName();
                 ParameterEncryptInfo encryptInfo = FieldMatchUtil.createEncryptInfo(tableName, sqlFieldName, paramValue);
                 if (encryptInfo != null) {

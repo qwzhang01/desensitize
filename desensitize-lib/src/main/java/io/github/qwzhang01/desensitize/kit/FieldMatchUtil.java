@@ -83,7 +83,7 @@ public final class FieldMatchUtil {
         String cleanParamName = StringUtil.cleanParameterName(paramName);
 
         // 遍历所有表，检查是否有匹配的加密字段
-        for (SqlGather.TableInfo tableInfo : sqlAnalysis.getTables()) {
+        for (SqlGather.Table tableInfo : sqlAnalysis.getTables()) {
             String tableName = tableInfo.tableName();
 
             ParameterEncryptInfo encryptInfo = createEncryptInfo(tableName, cleanParamName, paramValue);
@@ -94,12 +94,12 @@ public final class FieldMatchUtil {
         }
 
         // 从 SQL 条件中匹配
-        for (SqlGather.FieldCondition condition : sqlAnalysis.getConditions()) {
+        for (SqlGather.Field condition : sqlAnalysis.getConditions()) {
             String columnName = condition.columnName();
 
             if (isFieldNameMatch(cleanParamName, columnName)) {
                 // 找到匹配的字段，检查哪个表包含这个加密字段
-                for (SqlGather.TableInfo tableInfo : sqlAnalysis.getTables()) {
+                for (SqlGather.Table tableInfo : sqlAnalysis.getTables()) {
                     String tableName = tableInfo.tableName();
                     ParameterEncryptInfo encryptInfo = createEncryptInfo(tableName, columnName, paramValue);
                     if (encryptInfo != null) {

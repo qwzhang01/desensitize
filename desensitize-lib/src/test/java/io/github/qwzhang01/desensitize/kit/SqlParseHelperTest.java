@@ -78,13 +78,13 @@ public class SqlParseHelperTest {
         assertEquals(2, result.getTables().size());
 
         // 验证主表
-        SqlGather.TableInfo mainTable = result.getTables().get(0);
+        SqlGather.Table mainTable = result.getTables().get(0);
         assertEquals("user", mainTable.tableName());
         assertEquals("u", mainTable.alias());
         assertEquals(TableType.MAIN, mainTable.tableType());
 
         // 验证 JOIN 表
-        SqlGather.TableInfo joinTable = result.getTables().get(1);
+        SqlGather.Table joinTable = result.getTables().get(1);
         assertEquals("profile", joinTable.tableName());
         assertEquals("p", joinTable.alias());
         assertEquals(TableType.JOIN, joinTable.tableType());
@@ -170,8 +170,8 @@ public class SqlParseHelperTest {
         assertEquals(FieldType.UPDATE_SET, result.getParameterMappings().get(0).fieldType());
         assertEquals(FieldType.UPDATE_SET, result.getParameterMappings().get(1).fieldType());
         assertEquals(FieldType.UPDATE_SET, result.getParameterMappings().get(2).fieldType());
-        assertEquals(FieldType.CONDITION, result.getParameterMappings().get(3).fieldType());
-        assertEquals(FieldType.CONDITION, result.getParameterMappings().get(4).fieldType());
+        assertEquals(FieldType.CONDITION_WHERE, result.getParameterMappings().get(3).fieldType());
+        assertEquals(FieldType.CONDITION_WHERE, result.getParameterMappings().get(4).fieldType());
     }
 
     @Test
