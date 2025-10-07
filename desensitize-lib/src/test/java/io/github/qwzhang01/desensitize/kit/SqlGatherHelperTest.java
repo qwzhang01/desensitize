@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * SqlUtil 测试类
  * 测试各种复杂 SQL 语句的解析功能
  */
-public class SqlUtilTest {
+public class SqlGatherHelperTest {
 
     @Test
     @DisplayName("测试 SQL 注释处理")

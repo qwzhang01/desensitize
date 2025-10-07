@@ -4,9 +4,13 @@ import io.github.qwzhang01.sql.tool.enums.FieldType;
 import io.github.qwzhang01.sql.tool.enums.SqlType;
 import io.github.qwzhang01.sql.tool.enums.TableType;
 import io.github.qwzhang01.sql.tool.helper.SqlGatherHelper;
+import io.github.qwzhang01.sql.tool.helper.SqlParseHelper;
 import io.github.qwzhang01.sql.tool.model.SqlGather;
+import io.github.qwzhang01.sql.tool.model.SqlJoin;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15,17 +19,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * SqlUtil 测试类
  * 测试各种复杂 SQL 语句的解析功能
  */
-public class SqlUtilTestBak {
+public class SqlParseHelperTest {
 
 
     @Test
     @DisplayName("测试简单 join 语句解析")
     public void testJoin() {
         String sql = "LEFT JOIN user u ON u.id = d.userId AND d.status = 1";
-
-        SqlGather result = SqlGatherHelper.analysis(sql);
-
-        System.out.println("");
+        List<SqlJoin> joins = SqlParseHelper.parseJoin(sql);
+        System.out.println(joins.size());
     }
 
     @Test
@@ -246,19 +248,6 @@ public class SqlUtilTestBak {
         // 注意：IS NOT NULL 不会产生参数占位符，所以只有3个条件字段
         assertEquals(4, result.getConditions().size());
         assertEquals(6, result.getParameterMappings().size());
-    }
-
-    @Test
-    @DisplayName("测试空 SQL 处理")
-    public void testEmptySQL() {
-        SqlGather result1 = SqlGatherHelper.analysis("");
-        SqlGather result2 = SqlGatherHelper.analysis(null);
-        SqlGather result3 = SqlGatherHelper.analysis("   ");
-
-
-        assertTrue(result1.getTables().isEmpty());
-        assertTrue(result2.getTables().isEmpty());
-        assertTrue(result3.getTables().isEmpty());
     }
 
     @Test
