@@ -6,6 +6,6 @@ public class JoinDataScopeStrategy extends EmptyDataScopeStrategy {
 
     @Override
     public String join() {
-        return "LEFT JOIN t_user u ON u.id = post.user_id";
+        return "LEFT JOIN post p ON user.id = p.user_id";
     }
 }

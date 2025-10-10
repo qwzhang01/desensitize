@@ -32,12 +32,9 @@ import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.kit.StringUtil;
 import io.github.qwzhang01.desensitize.scope.DataScopeHelper;
 import io.github.qwzhang01.desensitize.scope.DataScopeStrategy;
+import io.github.qwzhang01.sql.tool.helper.JsqlParserHelper;
 import io.github.qwzhang01.sql.tool.helper.SqlGatherHelper;
-import io.github.qwzhang01.sql.tool.helper.SqlParseHelper;
-import io.github.qwzhang01.sql.tool.model.SqlCondition;
-import io.github.qwzhang01.sql.tool.model.SqlField;
 import io.github.qwzhang01.sql.tool.model.SqlGather;
-import io.github.qwzhang01.sql.tool.model.SqlJoin;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.plugin.*;
@@ -49,9 +46,7 @@ import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 /**
  * 拦截器执行顺序
@@ -175,64 +170,22 @@ public class SqlRewriteInterceptor implements Interceptor {
 
         // 获取原始 SQL
         String originalSql = boundSql.getSql();
-        String modifiedSql = dataScope(originalSql, strategy);
-        // 使用反射修改 BoundSql 的 sql 字段
-        Field field = BoundSql.class.getDeclaredField("sql");
-        field.setAccessible(true);
-        field.set(boundSql, modifiedSql);
-    }
-
-    /*** 数据权限真正处理位置 */
-    private String dataScope(String originalSql, Class<? extends DataScopeStrategy> strategy) {
         DataScopeStrategyContainer container = SpringContextUtil.getBean(DataScopeStrategyContainer.class);
         DataScopeStrategy obj = container.getStrategy(strategy);
         String join = obj.join();
         String where = obj.where();
-
-        if (StringUtil.isEmpty(join) && StringUtil.isEmpty(where)) {
-            return originalSql;
+        if (!StringUtil.isEmpty(join) && !StringUtil.isEmpty(where)) {
+            originalSql = JsqlParserHelper.addJoinAndWhere(originalSql, join, where);
         }
-
-        // 1. 解析 SQL 获取所有涉及的表信息
-        SqlGather sqlAnalysis = null;
-        try {
-            sqlAnalysis = SqlGatherHelper.analysis(originalSql);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            return originalSql;
-        }
-
         if (!StringUtil.isEmpty(join)) {
-            List<SqlGather.Table> tables = sqlAnalysis.getTables();
-            Map<String, String> map = tables.stream()
-                    .filter(s -> !StringUtil.isEmpty(s.tableName()))
-                    .filter(s -> !StringUtil.isEmpty(s.alias()))
-                    .collect(Collectors.toMap(SqlGather.Table::tableName, SqlGather.Table::alias, (v1, v2) -> v1));
-            List<SqlJoin> joins = SqlParseHelper.parseJoin(join);
-            for (SqlJoin joinPart : joins) {
-                List<SqlCondition> conditions = joinPart.getJoinConditions();
-                for (SqlCondition condition : conditions) {
-                    String alias = joinPart.getAlias();
-                    SqlField rightFieldInfo = condition.getRightFieldInfo();
-                    if (!StringUtil.isEmpty(rightFieldInfo.getTableAlias()) && !alias.equals(rightFieldInfo.getTableAlias())) {
-                        rightFieldInfo.setTableName(rightFieldInfo.getTableAlias());
-                        rightFieldInfo.setTableAlias(map.get(rightFieldInfo.getTableAlias()));
-                    }
-                    SqlField leftFieldInfo = condition.getFieldInfo();
-                    if (!StringUtil.isEmpty(leftFieldInfo.getTableAlias()) && !alias.equals(leftFieldInfo.getTableAlias())) {
-                        leftFieldInfo.setTableName(leftFieldInfo.getTableAlias());
-                        leftFieldInfo.setTableAlias(map.get(leftFieldInfo.getTableAlias()));
-                    }
-                }
-            }
-            join = SqlParseHelper.toSQL(joins);
+            originalSql = JsqlParserHelper.addJoin(originalSql, join);
         }
         if (!StringUtil.isEmpty(where)) {
-            List<SqlCondition> sqlConditions = SqlParseHelper.parseWhere(where);
-            // todo 待处理
+            originalSql = JsqlParserHelper.addWhere(originalSql, where);
         }
-        originalSql = SqlGatherHelper.joint(originalSql, join, where);
-        return originalSql;
+        Field field = BoundSql.class.getDeclaredField("sql");
+        field.setAccessible(true);
+        field.set(boundSql, originalSql);
     }
 
     @Override

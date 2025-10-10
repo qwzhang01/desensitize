@@ -4,14 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>io.github.qwzhang01</groupId>
-        <artifactId>desensitize-pom</artifactId>
-        <version>1.0.0</version>
-    </parent>
-
+    <groupId>io.github.qwzhang01</groupId>
     <artifactId>desensitize</artifactId>
+    <version>1.0.0</version>
+
     <url>https://github.com/qwzhang01/desensitize</url>
+
     <name>desensitize</name>
     <description>A Spring Boot library for MyBatis data encryption, desensitization, and data scope control. Provides
         automatic field encryption/decryption, sensitive data masking, and fine-grained data access control for
@@ -58,7 +56,8 @@
         <spring-boot.version>3.1.5</spring-boot.version>
         <mysql-connector-java.version>8.0.29</mysql-connector-java.version>
         <mybatis-plus.version>3.5.11</mybatis-plus.version>
-        <sql-tool.version>1.0.0</sql-tool.version>
+        <reactor.version>3.7.11</reactor.version>
+        <sql-tool.version>1.0.1</sql-tool.version>
         <junit.jupiter.version>5.10.3</junit.jupiter.version>
     </properties>
 
@@ -117,7 +116,7 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
-            <version>3.7.11</version>
+            <version>${reactor.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

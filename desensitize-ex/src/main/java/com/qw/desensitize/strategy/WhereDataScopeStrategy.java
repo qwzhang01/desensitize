@@ -7,7 +7,6 @@ public class WhereDataScopeStrategy extends EmptyDataScopeStrategy {
 
     @Override
     public String where() {
-
-        return "u.idAvin = 100";
+        return "user.idAvin = 100 and exists(select 1 from post where user.id = post.user_id)";
     }
 }
