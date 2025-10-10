@@ -165,6 +165,9 @@ public class SqlRewriteInterceptor implements Interceptor {
             return;
         }
 
+        // 清理数据权限信息，避免影响其他 SQL
+        DataScopeHelper.clear();
+
         StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
         BoundSql boundSql = statementHandler.getBoundSql();
 
@@ -175,13 +178,13 @@ public class SqlRewriteInterceptor implements Interceptor {
         String join = obj.join();
         String where = obj.where();
         if (!StringUtil.isEmpty(join) && !StringUtil.isEmpty(where)) {
-            originalSql = JsqlParserHelper.addJoinAndWhere(originalSql, join, where);
+            originalSql = JsqlParserHelper.addJoinAndWhere(originalSql.trim(), join.trim(), where.trim());
         }
         if (!StringUtil.isEmpty(join)) {
-            originalSql = JsqlParserHelper.addJoin(originalSql, join);
+            originalSql = JsqlParserHelper.addJoin(originalSql.trim(), join.trim());
         }
         if (!StringUtil.isEmpty(where)) {
-            originalSql = JsqlParserHelper.addWhere(originalSql, where);
+            originalSql = JsqlParserHelper.addWhere(originalSql.trim(), where.trim());
         }
         Field field = BoundSql.class.getDeclaredField("sql");
         field.setAccessible(true);
