@@ -71,6 +71,7 @@ public class MyBatisInterceptorAutoConfig {
             for (SqlSessionFactory sqlSessionFactory : sqlSessionFactories) {
                 org.apache.ibatis.session.Configuration configuration = sqlSessionFactory.getConfiguration();
 
+
                 // Add interceptors in the correct order
                 // DecryptInterceptor should be first to decrypt data when reading
                 configuration.addInterceptor(new DecryptInterceptor());

@@ -59,6 +59,8 @@ import java.util.Properties;
  * <p>
  * StatementHandler 拦截器 - 纯 MyBatis 版本
  * 负责处理 SQL 语句的预编译和执行，实现查询参数的自动加密
+ *
+ * @author avinzhang
  */
 @Intercepts({
         @Signature(
@@ -107,7 +109,6 @@ public class SqlRewriteInterceptor implements Interceptor {
                 return invocation.proceed();
             } finally {
                 SqlRewriteContext.restore();
-                DataScopeHelper.clear();
             }
         }
         return invocation.proceed();
@@ -174,7 +175,7 @@ public class SqlRewriteInterceptor implements Interceptor {
         }
 
         // 清理数据权限信息，避免影响其他 SQL
-        DataScopeHelper.clear();
+        DataScopeHelper.cache();
 
         StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
         BoundSql boundSql = statementHandler.getBoundSql();
@@ -183,8 +184,10 @@ public class SqlRewriteInterceptor implements Interceptor {
         String originalSql = boundSql.getSql();
         DataScopeStrategyContainer container = SpringContextUtil.getBean(DataScopeStrategyContainer.class);
         DataScopeStrategy obj = container.getStrategy(strategy);
+
         String join = obj.join();
         String where = obj.where();
+
         if (!StringUtil.isEmpty(join) && !StringUtil.isEmpty(where)) {
             originalSql = ParserHelper.addJoinAndWhere(originalSql.trim(), join.trim(), where.trim());
         } else if (!StringUtil.isEmpty(join)) {
@@ -196,6 +199,8 @@ public class SqlRewriteInterceptor implements Interceptor {
         Field field = BoundSql.class.getDeclaredField("sql");
         field.setAccessible(true);
         field.set(boundSql, originalSql);
+
+        DataScopeHelper.restore();
     }
 
     @Override

@@ -13,6 +13,7 @@ import java.util.concurrent.Callable;
  */
 public class DataScopeHelper {
     private static final ThreadLocal<Context<?>> CONTEXT = new ThreadLocal<>();
+    private static final ThreadLocal<Context<?>> CONTEXT_CACHE = new ThreadLocal<>();
 
     /**
      * 判断数据权限是否开启
@@ -98,6 +99,7 @@ public class DataScopeHelper {
      */
     public static void clear() {
         CONTEXT.remove();
+        CONTEXT_CACHE.remove();
     }
 
     /**
@@ -115,6 +117,22 @@ public class DataScopeHelper {
             CONTEXT.set(context);
         }
         return context.query(function);
+    }
+
+    public static void cache() {
+        Context<?> context = CONTEXT.get();
+        if (context != null) {
+            CONTEXT_CACHE.set(context);
+            CONTEXT.remove();
+        }
+    }
+
+    public static void restore() {
+        Context<?> context = CONTEXT_CACHE.get();
+        if (context != null) {
+            CONTEXT.set(context);
+            CONTEXT_CACHE.remove();
+        }
     }
 
     /**
