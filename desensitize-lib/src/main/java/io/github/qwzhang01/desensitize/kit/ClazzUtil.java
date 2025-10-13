@@ -67,6 +67,10 @@ public final class ClazzUtil {
             throw new IllegalArgumentException("对象和属性名不能为空");
         }
 
+        if (isPrimitiveOrCommonType(obj.getClass())) {
+            return obj;
+        }
+
         String capitalizedName = StringUtils.capitalize(propertyName);
 
         // 尝试 getter 方法
