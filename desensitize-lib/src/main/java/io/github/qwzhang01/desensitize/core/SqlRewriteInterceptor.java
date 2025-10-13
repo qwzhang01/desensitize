@@ -25,6 +25,7 @@
 package io.github.qwzhang01.desensitize.core;
 
 import io.github.qwzhang01.desensitize.container.DataScopeStrategyContainer;
+import io.github.qwzhang01.desensitize.container.EncryptFieldTableContainer;
 import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
 import io.github.qwzhang01.desensitize.kit.ParamUtil;
@@ -118,6 +119,11 @@ public class SqlRewriteInterceptor implements Interceptor {
      */
     private void encrypt(Invocation invocation) {
         try {
+            EncryptFieldTableContainer container = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
+            if (!container.hasEncrypt()) {
+                // 没有注解加密字段无需走这个拦截器
+                return;
+            }
             StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
             // 获取 ParameterHandler 中的参数对象
             Object parameterObject = statementHandler.getParameterHandler().getParameterObject();
