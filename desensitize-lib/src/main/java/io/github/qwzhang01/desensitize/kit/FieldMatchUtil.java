@@ -3,9 +3,12 @@ package io.github.qwzhang01.desensitize.kit;
 import io.github.qwzhang01.desensitize.container.EncryptFieldTableContainer;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
-import io.github.qwzhang01.sql.tool.model.SqlGather;
+import io.github.qwzhang01.sql.tool.model.SqlParam;
+import io.github.qwzhang01.sql.tool.model.SqlTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
  * 字段匹配工具类
@@ -78,13 +81,13 @@ public final class FieldMatchUtil {
      * @return 加密信息对象，如果不匹配则返回null
      */
     public static ParameterEncryptInfo matchParameterToTableField(String paramName, String paramValue,
-                                                                  SqlGather sqlAnalysis) {
+                                                                  List<SqlParam> sqlAnalysis, List<SqlTable> tables) {
         // 清理参数名
         String cleanParamName = StringUtil.cleanParameterName(paramName);
 
         // 遍历所有表，检查是否有匹配的加密字段
-        for (SqlGather.Table tableInfo : sqlAnalysis.getTables()) {
-            String tableName = tableInfo.tableName();
+        for (SqlTable tableInfo : tables) {
+            String tableName = tableInfo.getName();
 
             ParameterEncryptInfo encryptInfo = createEncryptInfo(tableName, cleanParamName, paramValue);
             if (encryptInfo != null) {
@@ -94,13 +97,13 @@ public final class FieldMatchUtil {
         }
 
         // 从 SQL 条件中匹配
-        for (SqlGather.Field condition : sqlAnalysis.getConditions()) {
-            String columnName = condition.columnName();
+        for (SqlParam condition : sqlAnalysis) {
+            String columnName = condition.getColumn();
 
             if (isFieldNameMatch(cleanParamName, columnName)) {
                 // 找到匹配的字段，检查哪个表包含这个加密字段
-                for (SqlGather.Table tableInfo : sqlAnalysis.getTables()) {
-                    String tableName = tableInfo.tableName();
+                for (SqlTable tableInfo : tables) {
+                    String tableName = tableInfo.getName();
                     ParameterEncryptInfo encryptInfo = createEncryptInfo(tableName, columnName, paramValue);
                     if (encryptInfo != null) {
                         log.debug("通过SQL条件匹配到加密字段: 表[{}] 字段[{}]", tableName, columnName);

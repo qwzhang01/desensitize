@@ -33,9 +33,9 @@ import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.kit.StringUtil;
 import io.github.qwzhang01.desensitize.scope.DataScopeHelper;
 import io.github.qwzhang01.desensitize.scope.DataScopeStrategy;
-import io.github.qwzhang01.sql.tool.helper.JsqlParserHelper;
-import io.github.qwzhang01.sql.tool.helper.SqlGatherHelper;
-import io.github.qwzhang01.sql.tool.model.SqlGather;
+import io.github.qwzhang01.sql.tool.helper.ParserHelper;
+import io.github.qwzhang01.sql.tool.model.SqlParam;
+import io.github.qwzhang01.sql.tool.model.SqlTable;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.plugin.*;
@@ -122,7 +122,7 @@ public class SqlRewriteInterceptor implements Interceptor {
             EncryptFieldTableContainer container = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
             if (!container.hasEncrypt()) {
                 // 没有注解加密字段无需走这个拦截器
-                return;
+                // return;
             }
             StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
             // 获取 ParameterHandler 中的参数对象
@@ -138,20 +138,22 @@ public class SqlRewriteInterceptor implements Interceptor {
             }
 
             // 1. 解析 SQL 获取所有涉及的表信息
-            SqlGather sqlAnalysis = null;
+            List<SqlTable> tables = null;
+            List<SqlParam> param = null;
             try {
-                sqlAnalysis = SqlGatherHelper.analysis(originalSql);
+                tables = ParserHelper.getTables(originalSql);
+                param = ParserHelper.getParam(originalSql);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
-            if (sqlAnalysis == null || sqlAnalysis.getTables() == null || sqlAnalysis.getTables().isEmpty()) {
-                log.warn("未找到表信息，跳过加密处理");
+            if (param == null || param.isEmpty() || tables.isEmpty()) {
+                log.debug("未找到表信息，跳过加密处理");
                 return;
             }
 
             // 2. 解析参数对象，获取需要加密的参数
             List<ParameterEncryptInfo> encryptInfos = ParamUtil.analyzeParameters(
-                    boundSql, sqlAnalysis, parameterObject);
+                    boundSql.getParameterMappings(), param, tables, parameterObject);
 
             // 3. 执行参数加密
             if (!encryptInfos.isEmpty()) {
@@ -184,13 +186,13 @@ public class SqlRewriteInterceptor implements Interceptor {
         String join = obj.join();
         String where = obj.where();
         if (!StringUtil.isEmpty(join) && !StringUtil.isEmpty(where)) {
-            originalSql = JsqlParserHelper.addJoinAndWhere(originalSql.trim(), join.trim(), where.trim());
+            originalSql = ParserHelper.addJoinAndWhere(originalSql.trim(), join.trim(), where.trim());
         }
         if (!StringUtil.isEmpty(join)) {
-            originalSql = JsqlParserHelper.addJoin(originalSql.trim(), join.trim());
+            originalSql = ParserHelper.addJoin(originalSql.trim(), join.trim());
         }
         if (!StringUtil.isEmpty(where)) {
-            originalSql = JsqlParserHelper.addWhere(originalSql.trim(), where.trim());
+            originalSql = ParserHelper.addWhere(originalSql.trim(), where.trim());
         }
         Field field = BoundSql.class.getDeclaredField("sql");
         field.setAccessible(true);

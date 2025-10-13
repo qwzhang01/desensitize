@@ -67,12 +67,14 @@ public class EncryptFieldTableContainer {
         }
         return ENCRYPT_COLUMNS.containsKey(tableName + ":" + columnName);
     }
+
     public boolean hasEncrypt() {
         if (!init) {
             init();
         }
         return !ENCRYPT_COLUMNS.isEmpty();
     }
+
     public Class<? extends EncryptionAlgo> getAlgo(String tableName, String columnName) {
         if (!init) {
             init();

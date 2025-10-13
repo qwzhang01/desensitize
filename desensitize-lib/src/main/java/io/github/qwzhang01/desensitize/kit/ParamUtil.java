@@ -6,8 +6,8 @@ import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
 import io.github.qwzhang01.desensitize.domain.ParameterRestoreInfo;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
-import io.github.qwzhang01.sql.tool.model.SqlGather;
-import org.apache.ibatis.mapping.BoundSql;
+import io.github.qwzhang01.sql.tool.model.SqlParam;
+import io.github.qwzhang01.sql.tool.model.SqlTable;
 import org.apache.ibatis.mapping.ParameterMapping;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
@@ -52,39 +52,40 @@ public final class ParamUtil {
     /**
      * 分析参数对象，确定需要加密的参数
      *
-     * @param boundSql        SQL绑定对象
-     * @param sqlAnalysis     SQL分析信息
-     * @param parameterObject 参数对象
+     * @param parameterMappings SQL绑定对象
+     * @param params            SQL分析信息
+     * @param parameterObject   参数对象
      * @return 需要加密的参数列表
      */
-    public static List<ParameterEncryptInfo> analyzeParameters(BoundSql boundSql,
-                                                               SqlGather sqlAnalysis,
+    public static List<ParameterEncryptInfo> analyzeParameters(List<ParameterMapping> parameterMappings,
+                                                               List<SqlParam> params,
+                                                               List<SqlTable> tables,
                                                                Object parameterObject) {
         if (parameterObject == null) {
             return Collections.emptyList();
         }
 
         log.debug("参数对象类型: {}, 参数映射数量: {}",
-                parameterObject.getClass().getSimpleName(), boundSql.getParameterMappings().size());
+                parameterObject.getClass().getSimpleName(), parameterMappings.size());
 
         if (parameterObject instanceof Map paramMap) {
             // 检查是否为 QueryWrapper 参数
             if (isQueryWrapperParameter(parameterObject)) {
                 log.debug("检测到 QueryWrapper 参数，使用专门的解析逻辑");
-                return analyzeQueryWrapperParameters(paramMap, sqlAnalysis);
+                return analyzeQueryWrapperParameters(paramMap, params, tables);
             }
             // 处理普通 Map 参数（MyBatis 常见场景）
-            return analyzeMapParameters(paramMap, boundSql.getParameterMappings(), sqlAnalysis);
+            return analyzeMapParameters(paramMap, parameterMappings, params, tables);
         }
         // 处理实体对象参数
-        return analyzeObjectParameters(parameterObject, boundSql.getParameterMappings(), sqlAnalysis);
+        return analyzeObjectParameters(parameterObject, parameterMappings, params, tables);
     }
 
     /**
      * 分析 QueryWrapper 类型的参数
      */
     private static List<ParameterEncryptInfo> analyzeQueryWrapperParameters(Map<String, Object> paramMap,
-                                                                            SqlGather sqlAnalysis) {
+                                                                            List<SqlParam> sqlAnalysis, List<SqlTable> tables) {
         log.debug("分析 QueryWrapper 参数: {}", paramMap.keySet());
 
         // 获取 QueryWrapper 对象
@@ -125,7 +126,7 @@ public final class ParamUtil {
                 if (paramValue instanceof String) {
                     log.debug("检查 QueryWrapper 字段: {} -> 参数: {} = {}", fieldName, paramName, paramValue);
 
-                    ParameterEncryptInfo encryptInfo = FieldMatchUtil.matchParameterToTableField(fieldName, (String) paramValue, sqlAnalysis);
+                    ParameterEncryptInfo encryptInfo = FieldMatchUtil.matchParameterToTableField(fieldName, (String) paramValue, sqlAnalysis, tables);
                     if (encryptInfo != null) {
                         // 设置 QueryWrapper 特有的参数路径
                         String parameterKey = "ew.paramNameValuePairs." + paramName;
@@ -150,7 +151,7 @@ public final class ParamUtil {
      */
     private static List<ParameterEncryptInfo> analyzeMapParameters(Map<String, Object> paramMap,
                                                                    List<ParameterMapping> parameterMappings,
-                                                                   SqlGather sqlAnalysis) {
+                                                                   List<SqlParam> sqlAnalysis, List<SqlTable> tables) {
         List<ParameterEncryptInfo> encryptInfos = new ArrayList<>();
         log.debug("分析 Map 参数: {}", paramMap.keySet());
 
@@ -176,7 +177,7 @@ public final class ParamUtil {
 
                     // 尝试将参数映射到SQL字段
                     ParameterEncryptInfo encryptInfo = matchParameterToSqlField(
-                            property, (String) value, sqlAnalysis, parameterMappings);
+                            property, (String) value, sqlAnalysis, tables, parameterMappings);
                     if (encryptInfo != null) {
                         encryptInfo.setParameterKey(property);
                         encryptInfo.setParameterMap(paramMap);
@@ -202,7 +203,7 @@ public final class ParamUtil {
 
                 if (!alreadyProcessed) {
                     ParameterEncryptInfo encryptInfo = FieldMatchUtil.matchParameterToTableField(
-                            paramName, (String) paramValue, sqlAnalysis);
+                            paramName, (String) paramValue, sqlAnalysis, tables);
                     if (encryptInfo != null) {
                         encryptInfo.setParameterKey(paramName);
                         encryptInfo.setParameterMap(paramMap);
@@ -222,7 +223,7 @@ public final class ParamUtil {
      */
     private static List<ParameterEncryptInfo> analyzeObjectParameters(Object parameterObject,
                                                                       List<ParameterMapping> parameterMappings,
-                                                                      SqlGather sqlAnalysis) {
+                                                                      List<SqlParam> sqlAnalysis, List<SqlTable> tables) {
         log.debug("分析对象参数: {}", parameterObject.getClass().getSimpleName());
 
         List<ParameterEncryptInfo> encryptInfos = new ArrayList<>();
@@ -233,7 +234,7 @@ public final class ParamUtil {
                 Object value = ClazzUtil.getPropertyValue(parameterObject, property);
                 if (value instanceof String) {
                     log.debug("检查对象属性: {} = {}", property, value);
-                    ParameterEncryptInfo encryptInfo = matchParameterToSqlField(property, (String) value, sqlAnalysis, parameterMappings);
+                    ParameterEncryptInfo encryptInfo = matchParameterToSqlField(property, (String) value, sqlAnalysis, tables, parameterMappings);
                     if (encryptInfo != null) {
                         encryptInfo.setTargetObject(parameterObject);
                         encryptInfo.setPropertyName(property);
@@ -252,20 +253,19 @@ public final class ParamUtil {
      * 将参数映射到SQL字段（考虑参数在SQL中的实际位置）
      */
     private static ParameterEncryptInfo matchParameterToSqlField(String paramProperty, String paramValue,
-                                                                 SqlGather sqlAnalysis,
+                                                                 List<SqlParam> allFields, List<SqlTable> tables,
                                                                  List<ParameterMapping> parameterMappings) {
         // 1. 首先尝试通过参数在SQL中的位置来确定对应的字段
         int paramIndex = findParameterIndex(paramProperty, parameterMappings);
-        List<SqlGather.Field> allFields = sqlAnalysis.getAllFields();
 
         if (paramIndex >= 0 && paramIndex < allFields.size()) {
             // 根据参数在SQL中的位置，找到对应的字段条件
-            SqlGather.Field condition = allFields.get(paramIndex);
-            String sqlFieldName = condition.columnName();
+            SqlParam condition = allFields.get(paramIndex);
+            String sqlFieldName = condition.getColumn();
 
             // 检查这个字段是否需要加密
-            for (SqlGather.Table tableInfo : sqlAnalysis.getTables()) {
-                String tableName = tableInfo.tableName();
+            for (SqlTable tableInfo : tables) {
+                String tableName = tableInfo.getName();
                 ParameterEncryptInfo encryptInfo = FieldMatchUtil.createEncryptInfo(tableName, sqlFieldName, paramValue);
                 if (encryptInfo != null) {
                     log.debug("通过位置映射找到加密字段: 参数[{}] -> SQL字段[{}] -> 表[{}] (索引:{})",
@@ -277,7 +277,7 @@ public final class ParamUtil {
 
         // 2. 如果位置映射失败，回退到原有的名称匹配逻辑
         String fieldName = StringUtil.extractFieldName(paramProperty);
-        return FieldMatchUtil.matchParameterToTableField(fieldName, paramValue, sqlAnalysis);
+        return FieldMatchUtil.matchParameterToTableField(fieldName, paramValue, allFields, tables);
     }
 
     /**
