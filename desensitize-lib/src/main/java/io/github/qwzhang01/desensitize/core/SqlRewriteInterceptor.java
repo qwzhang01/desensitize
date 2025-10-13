@@ -187,13 +187,12 @@ public class SqlRewriteInterceptor implements Interceptor {
         String where = obj.where();
         if (!StringUtil.isEmpty(join) && !StringUtil.isEmpty(where)) {
             originalSql = ParserHelper.addJoinAndWhere(originalSql.trim(), join.trim(), where.trim());
-        }
-        if (!StringUtil.isEmpty(join)) {
+        } else if (!StringUtil.isEmpty(join)) {
             originalSql = ParserHelper.addJoin(originalSql.trim(), join.trim());
-        }
-        if (!StringUtil.isEmpty(where)) {
+        } else if (!StringUtil.isEmpty(where)) {
             originalSql = ParserHelper.addWhere(originalSql.trim(), where.trim());
         }
+
         Field field = BoundSql.class.getDeclaredField("sql");
         field.setAccessible(true);
         field.set(boundSql, originalSql);
