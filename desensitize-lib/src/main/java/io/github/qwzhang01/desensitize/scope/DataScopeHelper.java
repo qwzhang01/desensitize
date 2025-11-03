@@ -2,7 +2,10 @@ package io.github.qwzhang01.desensitize.scope;
 
 
 import com.baomidou.mybatisplus.core.exceptions.MybatisPlusException;
+import io.github.qwzhang01.desensitize.container.DataScopeStrategyContainer;
+import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -57,7 +60,7 @@ public class DataScopeHelper {
         return context;
     }
 
-    public static Context topTight(List right) {
+    public static Context<?> topTight(List right) {
         Context<?> context = CONTEXT.get();
         if (context == null) {
             context = new Context<>();
@@ -73,11 +76,11 @@ public class DataScopeHelper {
         Context context = CONTEXT.get();
         if (context == null) {
             context = new Context<>();
-            context.setInTight(right);
+            context.setInRight(right);
             CONTEXT.set(context);
         }
 
-        context.setInTight(right);
+        context.setInRight(right);
         return context;
     }
 
@@ -109,14 +112,14 @@ public class DataScopeHelper {
      * @param <R>
      * @return
      */
-    public static <R> R query(Callable<R> function) {
+    public static <R> R execute(Callable<R> function) {
         Context<?> context = CONTEXT.get();
         if (context == null) {
             context = new Context<>();
             context.setDataScopeFlag(false);
             CONTEXT.set(context);
         }
-        return context.query(function);
+        return context.execute(function);
     }
 
     public static void cache() {
@@ -154,42 +157,68 @@ public class DataScopeHelper {
         /**
          * 内部查询条件，即在权限的基础上，查询存在 inTight 的数据
          */
-        private List<T> inTight;
+        private List<T> inRight;
+
+        private List<T> validRights;
         /**
          * 数据权限查询策略
          */
         private Class<? extends DataScopeStrategy> strategy;
 
+        public List<T> getValidRights() {
+            return validRights;
+        }
+
+        public Context<T> setValidRights(T validRight) {
+            if (validRights == null) {
+                validRights = new ArrayList<>();
+            }
+            validRights.add(validRight);
+            return this;
+        }
+
+        public Context<T> setValidRights(List<T> validRights) {
+            if (this.validRights == null) {
+                this.validRights = new ArrayList<>();
+            }
+            this.validRights.addAll(validRights);
+            return this;
+        }
+
         public Boolean getDataScopeFlag() {
             return dataScopeFlag;
         }
 
-        public void setDataScopeFlag(Boolean dataScopeFlag) {
+        public Context<T> setDataScopeFlag(Boolean dataScopeFlag) {
             this.dataScopeFlag = dataScopeFlag;
+            return this;
         }
 
         public List<T> getAllRight() {
             return allRight;
         }
 
-        public void setAllRight(List<T> allRight) {
+        public Context<T> setAllRight(List<T> allRight) {
             this.allRight = allRight;
+            return this;
         }
 
         public List<T> getTopRight() {
             return topRight;
         }
 
-        public void setTopRight(List<T> topRight) {
+        public Context<T> setTopRight(List<T> topRight) {
             this.topRight = topRight;
+            return this;
         }
 
-        public List<T> getInTight() {
-            return inTight;
+        public List<T> getInRight() {
+            return inRight;
         }
 
-        public void setInTight(List<T> inTight) {
-            this.inTight = inTight;
+        public Context<T> setInRight(List<T> inRight) {
+            this.inRight = inRight;
+            return this;
         }
 
         public Class<? extends DataScopeStrategy> getStrategy() {
@@ -201,7 +230,11 @@ public class DataScopeHelper {
             return this;
         }
 
-        public <R> R query(Callable<R> function) {
+        public <R> R execute(Callable<R> function) {
+            DataScopeStrategyContainer container = SpringContextUtil.getBean(DataScopeStrategyContainer.class);
+            DataScopeStrategy obj = container.getStrategy(strategy);
+            obj.validDs(this.validRights);
+
             try {
                 return function.call();
             } catch (Exception e) {

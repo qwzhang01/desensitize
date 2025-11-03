@@ -1,5 +1,7 @@
 package io.github.qwzhang01.desensitize.scope;
 
+import java.util.List;
+
 /**
  * 数据权限策略
  *
@@ -18,4 +20,6 @@ public interface DataScopeStrategy {
      * 重要，子查询或exists条件，如果存在表不在脚本中，需要用表全名
      */
     String where();
+
+    <T> void validDs(List<T> validRights);
 }

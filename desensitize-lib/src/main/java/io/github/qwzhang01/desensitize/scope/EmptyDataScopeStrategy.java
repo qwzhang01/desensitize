@@ -1,5 +1,7 @@
 package io.github.qwzhang01.desensitize.scope;
 
+import java.util.List;
+
 /**
  * Default data scope strategy implementation.
  * This is a no-operation strategy that performs no data scope filtering.
@@ -17,5 +19,10 @@ public class EmptyDataScopeStrategy implements DataScopeStrategy {
     @Override
     public String where() {
         return "";
+    }
+
+    @Override
+    public <T> void validDs(List<T> validRights) {
+        // No-op
     }
 }
