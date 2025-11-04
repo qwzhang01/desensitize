@@ -31,5 +31,5 @@ logging:
   file:
     path: ./logs
   level:
-    com.tencent.hr.quizplatform.tenant: debug
+    com.qw.desensitize: debug
     root: info
