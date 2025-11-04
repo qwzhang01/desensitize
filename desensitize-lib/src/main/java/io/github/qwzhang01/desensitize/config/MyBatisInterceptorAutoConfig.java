@@ -28,6 +28,7 @@ package io.github.qwzhang01.desensitize.config;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import io.github.qwzhang01.desensitize.core.DecryptInterceptor;
 import io.github.qwzhang01.desensitize.core.EncryptTypeHandler;
+import io.github.qwzhang01.desensitize.core.SqlPrintInterceptor;
 import io.github.qwzhang01.desensitize.core.SqlRewriteInterceptor;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
 import jakarta.annotation.PostConstruct;
@@ -36,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 import java.util.List;
 
@@ -59,6 +61,8 @@ public class MyBatisInterceptorAutoConfig {
 
     @Autowired(required = false)
     private List<SqlSessionFactory> sqlSessionFactories;
+    @Autowired
+    private Environment environment;
 
     /**
      * Adds desensitization interceptors to all available SqlSessionFactory instances.
@@ -81,6 +85,8 @@ public class MyBatisInterceptorAutoConfig {
 
                 // Register Encrypt type handler
                 configuration.getTypeHandlerRegistry().register(Encrypt.class, EncryptTypeHandler.class);
+
+                configuration.addInterceptor(new SqlPrintInterceptor(environment));
             }
         }
     }
