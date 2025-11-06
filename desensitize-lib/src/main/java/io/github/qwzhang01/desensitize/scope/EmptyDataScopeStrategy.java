@@ -9,7 +9,7 @@ import java.util.List;
  *
  * @author avinzhang
  */
-public class EmptyDataScopeStrategy implements DataScopeStrategy {
+public class EmptyDataScopeStrategy<T> implements DataScopeStrategy<T> {
 
     @Override
     public String join() {
@@ -22,7 +22,7 @@ public class EmptyDataScopeStrategy implements DataScopeStrategy {
     }
 
     @Override
-    public <T> void validDs(List<T> validRights) {
+    public void validDs(List<T> validRights) {
         // No-op
     }
 }

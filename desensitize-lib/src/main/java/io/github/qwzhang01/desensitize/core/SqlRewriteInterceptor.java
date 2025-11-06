@@ -169,7 +169,7 @@ public class SqlRewriteInterceptor implements Interceptor {
     /*** 数据权限逻辑 */
     private void dataScope(Invocation invocation) throws NoSuchFieldException, IllegalAccessException {
         boolean started = DataScopeHelper.isStarted();
-        Class<? extends DataScopeStrategy> strategy = DataScopeHelper.getStrategy();
+        Class<? extends DataScopeStrategy<?>> strategy = DataScopeHelper.getStrategy();
         if (!started && strategy != null) {
             return;
         }
@@ -183,7 +183,7 @@ public class SqlRewriteInterceptor implements Interceptor {
         // 获取原始 SQL
         String originalSql = boundSql.getSql();
         DataScopeStrategyContainer container = SpringContextUtil.getBean(DataScopeStrategyContainer.class);
-        DataScopeStrategy obj = container.getStrategy(strategy);
+        DataScopeStrategy<?> obj = container.getStrategy(strategy);
 
         String join = obj.join();
         String where = obj.where();
