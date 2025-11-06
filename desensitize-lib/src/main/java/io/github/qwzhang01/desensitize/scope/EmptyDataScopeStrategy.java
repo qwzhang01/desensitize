@@ -25,4 +25,9 @@ public class EmptyDataScopeStrategy<T> implements DataScopeStrategy<T> {
     public void validDs(List<T> validRights) {
         // No-op
     }
+
+    @Override
+    public void validDs(List<T> validRights, List<T> withoutRights) {
+        // No-op
+    }
 }

@@ -35,7 +35,7 @@ public class DataScopeHelper {
      * 设置线程共享变量 数据权限策略
      *
      * @param strategy 数据权限策略类
-     * @param <T> 权限数据类型
+     * @param <T>      权限数据类型
      * @return 上下文对象
      */
     public static <T> Context<T> strategy(Class<? extends DataScopeStrategy<T>> strategy) {
@@ -55,7 +55,7 @@ public class DataScopeHelper {
      * 设置全部权限数据
      *
      * @param right 权限数据列表
-     * @param <T> 权限数据类型
+     * @param <T>   权限数据类型
      * @return 上下文对象
      */
     public static <T> Context<T> right(List<T> right) {
@@ -75,7 +75,7 @@ public class DataScopeHelper {
      * 设置顶部权限数据
      *
      * @param right 权限数据列表
-     * @param <T> 权限数据类型
+     * @param <T>   权限数据类型
      * @return 上下文对象
      */
     public static <T> Context<T> topTight(List<T> right) {
@@ -95,7 +95,7 @@ public class DataScopeHelper {
      * 设置内部权限数据
      *
      * @param right 权限数据列表
-     * @param <T> 权限数据类型
+     * @param <T>   权限数据类型
      * @return 上下文对象
      */
     public static <T> Context<T> inTight(List<T> right) {
@@ -188,12 +188,20 @@ public class DataScopeHelper {
 
         private List<T> validRights;
         /**
+         * 排除权限校验数据
+         */
+        private List<T> withoutRights;
+        /**
          * 数据权限查询策略
          */
         private Class<? extends DataScopeStrategy<T>> strategy;
 
         public List<T> getValidRights() {
             return validRights;
+        }
+
+        public List<T> getWithoutRights() {
+            return withoutRights;
         }
 
         public Context<T> setValidRights(T validRight) {
@@ -209,6 +217,22 @@ public class DataScopeHelper {
                 this.validRights = new ArrayList<>();
             }
             this.validRights.addAll(validRights);
+            return this;
+        }
+
+        public Context<T> setWithoutRights(T withoutRight) {
+            if (validRights == null) {
+                validRights = new ArrayList<>();
+            }
+            this.withoutRights.add(withoutRight);
+            return this;
+        }
+
+        public Context<T> setWithoutRights(List<T> withoutRights) {
+            if (validRights == null) {
+                validRights = new ArrayList<>();
+            }
+            this.withoutRights.addAll(withoutRights);
             return this;
         }
 
@@ -264,6 +288,7 @@ public class DataScopeHelper {
             @SuppressWarnings("unchecked")
             DataScopeStrategy<T> typedObj = (DataScopeStrategy<T>) obj;
             typedObj.validDs(this.validRights);
+            typedObj.validDs(this.validRights, this.withoutRights);
 
             try {
                 return function.call();

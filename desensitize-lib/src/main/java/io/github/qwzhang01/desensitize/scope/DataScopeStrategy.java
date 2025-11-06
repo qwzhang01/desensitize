@@ -37,4 +37,16 @@ public interface DataScopeStrategy<T> {
      * @param validRights 有效的权限数据列表
      */
     void validDs(List<T> validRights);
+
+    /**
+     * 验证和设置有效的权限数据
+     * <p>
+     * 在执行SQL查询前调用，用于处理和验证权限数据
+     * <p>
+     * validRights  withoutRights 是或的关系，只要有一个校验通过，则通过
+     *
+     * @param validRights   有效的权限数据列表
+     * @param withoutRights 白名单，无需按照权限校验
+     */
+    void validDs(List<T> validRights, List<T> withoutRights);
 }
