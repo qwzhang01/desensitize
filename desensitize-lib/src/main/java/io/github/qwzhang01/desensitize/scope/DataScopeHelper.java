@@ -200,10 +200,6 @@ public class DataScopeHelper {
             return validRights;
         }
 
-        public List<T> getWithoutRights() {
-            return withoutRights;
-        }
-
         public Context<T> setValidRights(T validRight) {
             if (validRights == null) {
                 validRights = new ArrayList<>();
@@ -218,6 +214,10 @@ public class DataScopeHelper {
             }
             this.validRights.addAll(validRights);
             return this;
+        }
+
+        public List<T> getWithoutRights() {
+            return withoutRights;
         }
 
         public Context<T> setWithoutRights(T withoutRight) {

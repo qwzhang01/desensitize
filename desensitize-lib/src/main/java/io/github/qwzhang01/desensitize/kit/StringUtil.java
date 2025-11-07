@@ -1,53 +1,88 @@
 package io.github.qwzhang01.desensitize.kit;
 
 /**
- * 字符串工具类
+ * Utility class for string operations commonly used in desensitization.
+ *
+ * <p>This class provides static utility methods for:</p>
+ * <ul>
+ *   <li>String validation (empty checks)</li>
+ *   <li>Naming convention conversions (camelCase ↔ snake_case)</li>
+ *   <li>Parameter name extraction and cleanup</li>
+ * </ul>
+ *
+ * <p><strong>Thread Safety:</strong> All methods are static and stateless, making this class thread-safe.</p>
+ *
+ * <p><strong>Design Pattern:</strong> Utility class pattern with private constructor to prevent instantiation.</p>
  *
  * @author avinzhang
  */
 public final class StringUtil {
 
+    /**
+     * Private constructor to prevent instantiation of utility class.
+     */
     private StringUtil() {
-        // 工具类不允许实例化
+        throw new UnsupportedOperationException("StringUtil is a utility class and cannot be instantiated");
     }
 
     /**
-     * 驼峰转下划线
+     * Converts camelCase string to snake_case (underscore separated).
      *
-     * @param camelCase 驼峰命名字符串
-     * @return 下划线命名字符串
+     * <p>This method converts uppercase letters to lowercase and inserts underscores
+     * before them using a regex pattern for efficiency.</p>
+     *
+     * <p><strong>Examples:</strong></p>
+     * <pre>
+     * StringUtil.camelToUnderscore("userName")     = "user_name"
+     * StringUtil.camelToUnderscore("phoneNumber")  = "phone_number"
+     * StringUtil.camelToUnderscore("ID")           = "id"
+     * StringUtil.camelToUnderscore(null)           = null
+     * StringUtil.camelToUnderscore("")             = ""
+     * </pre>
+     *
+     * @param camelCase the camelCase string to convert
+     * @return the snake_case string, or null/empty if input is null/empty
      */
     public static String camelToUnderscore(String camelCase) {
         if (camelCase == null || camelCase.isEmpty()) {
             return camelCase;
         }
+        // Regex pattern: match lowercase followed by uppercase, insert underscore between them
         return camelCase.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
     }
 
     /**
-     * 下划线转驼峰
+     * Converts snake_case string to camelCase.
      *
-     * @param underscore 下划线命名字符串
-     * @return 驼峰命名字符串
+     * <p>This method removes underscores and capitalizes the character
+     * following each underscore. The first character is lowercased.</p>
+     *
+     * <p><strong>Examples:</strong></p>
+     * <pre>
+     * StringUtil.underscoreToCamel("user_name")     = "userName"
+     * StringUtil.underscoreToCamel("phone_number")  = "phoneNumber"
+     * StringUtil.underscoreToCamel("_id")           = "id"
+     * StringUtil.underscoreToCamel(null)            = null
+     * StringUtil.underscoreToCamel("")              = ""
+     * </pre>
+     *
+     * @param underscore the snake_case string to convert
+     * @return the camelCase string, or null/empty if input is null/empty
      */
     public static String underscoreToCamel(String underscore) {
         if (underscore == null || underscore.isEmpty()) {
             return underscore;
         }
 
-        StringBuilder result = new StringBuilder();
-        boolean nextUpperCase = false;
+        StringBuilder result = new StringBuilder(underscore.length());
+        boolean capitalizeNext = false;
 
         for (char c : underscore.toCharArray()) {
             if (c == '_') {
-                nextUpperCase = true;
+                capitalizeNext = true;
             } else {
-                if (nextUpperCase) {
-                    result.append(Character.toUpperCase(c));
-                    nextUpperCase = false;
-                } else {
-                    result.append(Character.toLowerCase(c));
-                }
+                result.append(capitalizeNext ? Character.toUpperCase(c) : Character.toLowerCase(c));
+                capitalizeNext = false;
             }
         }
 
@@ -55,10 +90,21 @@ public final class StringUtil {
     }
 
     /**
-     * 清理参数名，移除常见的前缀
+     * Cleans a parameter name by removing common MyBatis parameter prefixes.
      *
-     * @param paramName 参数名
-     * @return 清理后的参数名
+     * <p>MyBatis often adds prefixes like "param." or "arg." to parameter names.
+     * This method removes these prefixes to get the actual field name.</p>
+     *
+     * <p><strong>Examples:</strong></p>
+     * <pre>
+     * StringUtil.cleanParameterName("param.userId")  = "userId"
+     * StringUtil.cleanParameterName("arg.phoneNo")   = "phoneNo"
+     * StringUtil.cleanParameterName("fieldName")     = "fieldName"
+     * StringUtil.cleanParameterName(null)            = null
+     * </pre>
+     *
+     * @param paramName the parameter name to clean
+     * @return the cleaned parameter name without prefixes
      */
     public static String cleanParameterName(String paramName) {
         if (paramName == null) {
@@ -66,10 +112,11 @@ public final class StringUtil {
         }
 
         String cleaned = paramName;
+
+        // Remove MyBatis parameter prefixes
         if (cleaned.startsWith("param.")) {
             cleaned = cleaned.substring(6);
-        }
-        if (cleaned.startsWith("arg.")) {
+        } else if (cleaned.startsWith("arg.")) {
             cleaned = cleaned.substring(4);
         }
 
@@ -77,18 +124,29 @@ public final class StringUtil {
     }
 
     /**
-     * 从嵌套属性路径中提取字段名
-     * 例如：userParam.phoneNo -> phoneNo
+     * Extracts the field name from a potentially nested property path.
      *
-     * @param propertyPath 属性路径
-     * @return 字段名
+     * <p>This method extracts the portion after the last dot, which typically
+     * represents the actual field name in nested objects.</p>
+     *
+     * <p><strong>Examples:</strong></p>
+     * <pre>
+     * StringUtil.extractFieldName("user.address.city")  = "city"
+     * StringUtil.extractFieldName("userParam.phoneNo")  = "phoneNo"
+     * StringUtil.extractFieldName("fieldName")          = "fieldName"
+     * StringUtil.extractFieldName("field.")             = "field."
+     * StringUtil.extractFieldName(null)                 = null
+     * </pre>
+     *
+     * @param propertyPath the property path to extract from (may contain dots for nested properties)
+     * @return the extracted field name, or the original string if no dot is found
      */
     public static String extractFieldName(String propertyPath) {
         if (propertyPath == null || propertyPath.isEmpty()) {
             return propertyPath;
         }
 
-        // 如果包含点号，取最后一部分作为字段名
+        // Find the last dot and extract the field name after it
         int lastDotIndex = propertyPath.lastIndexOf('.');
         if (lastDotIndex >= 0 && lastDotIndex < propertyPath.length() - 1) {
             return propertyPath.substring(lastDotIndex + 1);
@@ -98,12 +156,33 @@ public final class StringUtil {
     }
 
     /**
-     * 检查字符串是否为空或null
+     * Checks if a string is null, empty, or contains only whitespace.
      *
-     * @param str 字符串
-     * @return 是否为空
+     * <p><strong>Examples:</strong></p>
+     * <pre>
+     * StringUtil.isEmpty(null)      = true
+     * StringUtil.isEmpty("")        = true
+     * StringUtil.isEmpty(" ")       = true
+     * StringUtil.isEmpty("  ")      = true
+     * StringUtil.isEmpty("hello")   = false
+     * StringUtil.isEmpty(" hi ")    = false
+     * </pre>
+     *
+     * @param str the string to check
+     * @return {@code true} if the string is null, empty, or whitespace only; {@code false} otherwise
      */
     public static boolean isEmpty(String str) {
         return str == null || str.trim().isEmpty();
+    }
+
+    /**
+     * Checks if a string is not null, not empty, and contains non-whitespace characters.
+     * This is the negation of {@link #isEmpty(String)}.
+     *
+     * @param str the string to check
+     * @return {@code true} if the string is not empty; {@code false} otherwise
+     */
+    public static boolean isNotEmpty(String str) {
+        return !isEmpty(str);
     }
 }

@@ -32,133 +32,256 @@ import io.github.qwzhang01.desensitize.kit.ClazzUtil;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Container for managing masking algorithm instances and providing data masking functionality.
- * Provides lazy initialization and caching to avoid circular dependency issues.
+ * Uses Factory Pattern combined with Strategy Pattern to provide flexible masking capabilities.
+ *
+ * <p>This container provides:</p>
+ * <ul>
+ *   <li>Thread-safe lazy instantiation with caching</li>
+ *   <li>Spring context integration for dependency injection</li>
+ *   <li>Automatic fallback to default algorithm on failures</li>
+ *   <li>Recursive masking for complex object structures</li>
+ * </ul>
  *
  * @author avinzhang
  * @since 1.0.0
  */
 public final class MaskAlgoContainer {
 
-    /**
-     * Cache for algorithm instances to avoid repeated creation
-     */
-    private static final ConcurrentHashMap<Class<? extends CoverAlgo>, CoverAlgo> ALGO_CACHE = new ConcurrentHashMap<>();
+    private static final Logger log = LoggerFactory.getLogger(MaskAlgoContainer.class);
 
     /**
-     * Clears the algorithm cache. Useful for testing or when algorithms need to be reloaded.
+     * Cache for algorithm instances to avoid repeated creation.
+     * Uses ConcurrentHashMap for thread-safe operations.
+     */
+    private static final ConcurrentHashMap<Class<? extends CoverAlgo>, CoverAlgo> ALGO_CACHE
+            = new ConcurrentHashMap<>();
+
+    /**
+     * Clears the algorithm cache.
+     * Useful for testing scenarios or when algorithms need to be reloaded at runtime.
      */
     public static void clearCache() {
+        log.debug("Clearing masking algorithm cache");
         ALGO_CACHE.clear();
     }
 
     /**
-     * Gets a masking algorithm instance by class type.
-     * First tries to get from Spring context, then falls back to direct instantiation.
+     * Gets a masking algorithm instance by class type using Factory Pattern.
+     *
+     * <p>The algorithm retrieval follows this priority:</p>
+     * <ol>
+     *   <li>Return cached instance if available</li>
+     *   <li>Try to get bean from Spring context (supports dependency injection)</li>
+     *   <li>Create new instance via reflection</li>
+     *   <li>Fallback to default algorithm on failure</li>
+     * </ol>
      *
      * @param clazz the masking algorithm class
-     * @return the masking algorithm instance
+     * @return the masking algorithm instance, never null
+     * @throws DesensitizeException if algorithm cannot be created and no fallback is available
      */
     private CoverAlgo getAlgo(Class<? extends CoverAlgo> clazz) {
-        return ALGO_CACHE.computeIfAbsent(clazz, key -> {
-            // First try to get from Spring context if available
-            if (SpringContextUtil.isInitialized()) {
-                CoverAlgo algo = SpringContextUtil.getBeanSafely(key);
-                if (algo != null) {
-                    return algo;
-                }
-            }
+        if (clazz == null) {
+            log.warn("Null algorithm class provided, using default algorithm");
+            return new DefaultCoverAlgo();
+        }
 
-            // Fallback to direct instantiation
-            try {
-                return key.getDeclaredConstructor().newInstance();
-            } catch (Exception e) {
-                // If the requested class fails, try default algorithm
-                if (!key.equals(DefaultCoverAlgo.class)) {
-                    try {
-                        return new DefaultCoverAlgo();
-                    } catch (Exception ex) {
-                        throw new DesensitizeException("Failed to create masking algorithm instance", ex);
-                    }
-                }
-                throw new DesensitizeException("Failed to create masking algorithm instance", e);
+        return ALGO_CACHE.computeIfAbsent(clazz, this::createAlgorithmInstance);
+    }
+
+    /**
+     * Creates a new algorithm instance with fallback mechanism.
+     *
+     * @param clazz the algorithm class to instantiate
+     * @return the created algorithm instance
+     * @throws DesensitizeException if creation fails and no fallback is available
+     */
+    private CoverAlgo createAlgorithmInstance(Class<? extends CoverAlgo> clazz) {
+        log.debug("Creating new instance of masking algorithm: {}", clazz.getName());
+
+        // Strategy 1: Try to get from Spring context (supports dependency injection)
+        if (SpringContextUtil.isInitialized()) {
+            CoverAlgo algo = SpringContextUtil.getBeanSafely(clazz);
+            if (algo != null) {
+                log.debug("Retrieved masking algorithm from Spring context: {}", clazz.getName());
+                return algo;
             }
-        });
+        }
+
+        // Strategy 2: Try direct instantiation via reflection
+        try {
+            CoverAlgo instance = clazz.getDeclaredConstructor().newInstance();
+            log.debug("Successfully created masking algorithm instance: {}", clazz.getName());
+            return instance;
+        } catch (Exception e) {
+            log.error("Failed to instantiate masking algorithm: {}", clazz.getName(), e);
+            return handleInstantiationFailure(clazz, e);
+        }
+    }
+
+    /**
+     * Handles algorithm instantiation failure with fallback mechanism.
+     *
+     * @param clazz the algorithm class that failed to instantiate
+     * @param cause the exception that caused the failure
+     * @return the fallback algorithm instance
+     * @throws DesensitizeException if fallback also fails
+     */
+    private CoverAlgo handleInstantiationFailure(Class<? extends CoverAlgo> clazz, Exception cause) {
+        // If not already trying the default algorithm, fall back to it
+        if (!clazz.equals(DefaultCoverAlgo.class)) {
+            log.warn("Falling back to default masking algorithm due to instantiation failure");
+            try {
+                return new DefaultCoverAlgo();
+            } catch (Exception ex) {
+                throw new DesensitizeException(
+                        "Failed to create masking algorithm instance and fallback also failed", ex);
+            }
+        }
+
+        // If default algorithm itself fails, throw exception
+        throw new DesensitizeException(
+                "Failed to create default masking algorithm instance", cause);
     }
 
     /**
      * Masks sensitive data in the given object recursively.
-     * Processes both single objects and lists of objects.
      *
-     * @param data the data object to mask
-     * @return the masked data object
+     * <p>This method processes data objects and applies masking algorithms to fields
+     * annotated with {@link Mask} or meta-annotations containing {@link Mask}.</p>
+     *
+     * <p><strong>Supported Data Types:</strong></p>
+     * <ul>
+     *   <li>Single objects with @Mask annotated fields</li>
+     *   <li>Lists of objects (each element is processed recursively)</li>
+     *   <li>Nested objects (automatically traversed)</li>
+     * </ul>
+     *
+     * @param data the data object to mask, can be null
+     * @return the same object instance with masked fields, or null if input is null
+     * @throws DesensitizeException if masking fails due to reflection or algorithm errors
      */
     public Object mask(Object data) {
+        if (data == null) {
+            return null;
+        }
+
         try {
             if (data instanceof List<?> list) {
-                // Process list
-                for (Object o : list) {
-                    mask(o);
+                // Process each element in the list
+                log.debug("Masking list with {} elements", list.size());
+                for (Object element : list) {
+                    maskSingleObject(element);
                 }
             } else {
                 // Process single object
-                maskParam(data);
+                maskSingleObject(data);
             }
-        } catch (IllegalAccessException | InstantiationException | NoSuchMethodException |
-                 InvocationTargetException e) {
+            return data;
+        } catch (IllegalAccessException e) {
+            throw new DesensitizeException("Failed to mask data due to field access error", e);
+        } catch (Exception e) {
             throw new DesensitizeException("Failed to mask data", e);
         }
-        return data;
     }
 
     /**
      * Masks fields in a single object based on @Mask annotations.
-     * Recursively processes nested objects and collections.
      *
-     * @param data the object to process for masking
-     * @throws IllegalAccessException    if field access fails
-     * @throws InstantiationException    if algorithm instantiation fails
-     * @throws NoSuchMethodException     if constructor is not found
-     * @throws InvocationTargetException if constructor invocation fails
+     * <p>This method uses reflection to find and mask annotated fields.
+     * It supports both direct @Mask annotations and meta-annotations.</p>
+     *
+     * @param data the object to process for masking, can be null
+     * @throws IllegalAccessException if field access fails
      */
-    private void maskParam(Object data) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+    private void maskSingleObject(Object data) throws IllegalAccessException {
         if (data == null) {
             return;
         }
 
-        List<ClazzUtil.AnnotatedFieldResult<Mask>> maskFields = ClazzUtil.getAnnotatedFieldsWithMetaAnnotation(data, Mask.class);
+        // Find all fields with @Mask annotation (including meta-annotations)
+        List<ClazzUtil.AnnotatedFieldResult<Mask>> maskFields =
+                ClazzUtil.getAnnotatedFieldsWithMetaAnnotation(data, Mask.class);
+
         if (CollectionUtils.isEmpty(maskFields)) {
+            log.debug("No fields to mask in object of type: {}", data.getClass().getName());
             return;
         }
 
-        for (ClazzUtil.AnnotatedFieldResult<Mask> maskField : maskFields) {
-            Mask annotation = maskField.annotation();
-            Object object = maskField.containingObject();
-            Object fieldValue = maskField.getFieldValue();
-            Field field = maskField.field();
+        log.debug("Masking {} fields in object of type: {}", maskFields.size(), data.getClass().getName());
 
-            Class<? extends CoverAlgo> clazz = annotation.value();
-            CoverAlgo coverAlgo = getAlgo(clazz);
-            if (fieldValue != null) {
-                Class<?> type = field.getType();
-                if (String.class.equals(type)) {
-                    field.set(object, coverAlgo.mask(String.valueOf(fieldValue)));
-                } else if (Encrypt.class.equals(type)) {
-                    Encrypt encrypt = (Encrypt) fieldValue;
-                    encrypt.setValue(coverAlgo.mask(encrypt.getValue()));
-                    field.set(object, encrypt);
-                } else {
-                    // todo 处理集合等其他情况
-                }
-            }
+        for (ClazzUtil.AnnotatedFieldResult<Mask> maskField : maskFields) {
+            maskSingleField(maskField);
         }
+    }
+
+    /**
+     * Masks a single field based on its @Mask annotation configuration.
+     *
+     * <p>Supported field types:</p>
+     * <ul>
+     *   <li>{@link String} - directly masked</li>
+     *   <li>{@link Encrypt} - value inside Encrypt object is masked</li>
+     *   <li>Other types - currently logged and skipped (can be extended)</li>
+     * </ul>
+     *
+     * @param maskField the annotated field result containing field, object, and annotation
+     * @throws IllegalAccessException if field access fails
+     */
+    private void maskSingleField(ClazzUtil.AnnotatedFieldResult<Mask> maskField) throws IllegalAccessException {
+        Mask annotation = maskField.annotation();
+        Object containingObject = maskField.containingObject();
+        Object fieldValue = maskField.getFieldValue();
+        Field field = maskField.field();
+
+        if (fieldValue == null) {
+            log.debug("Skipping null field: {}", field.getName());
+            return;
+        }
+
+        // Get the appropriate masking algorithm
+        Class<? extends CoverAlgo> algoClass = annotation.value();
+        CoverAlgo coverAlgo = getAlgo(algoClass);
+
+        Class<?> fieldType = field.getType();
+
+        // Apply masking based on field type
+        if (String.class.equals(fieldType)) {
+            String maskedValue = coverAlgo.mask(String.valueOf(fieldValue));
+            field.set(containingObject, maskedValue);
+            log.debug("Masked String field: {}", field.getName());
+
+        } else if (Encrypt.class.equals(fieldType)) {
+            Encrypt encrypt = (Encrypt) fieldValue;
+            String maskedValue = coverAlgo.mask(encrypt.getValue());
+            encrypt.setValue(maskedValue);
+            field.set(containingObject, encrypt);
+            log.debug("Masked Encrypt field: {}", field.getName());
+
+        } else {
+            // TODO: Support for collections and other complex types
+            log.debug("Unsupported field type for masking: {} (field: {})",
+                    fieldType.getName(), field.getName());
+        }
+    }
+
+    /**
+     * Gets the current size of the algorithm cache.
+     * Useful for monitoring and debugging purposes.
+     *
+     * @return the number of cached algorithm instances
+     */
+    public int getCacheSize() {
+        return ALGO_CACHE.size();
     }
 }

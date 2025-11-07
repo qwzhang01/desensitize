@@ -20,7 +20,7 @@ public final class FieldMatchUtil {
     private static final Logger log = LoggerFactory.getLogger(FieldMatchUtil.class);
 
     private FieldMatchUtil() {
-        // 工具类不允许实例化
+        throw new UnsupportedOperationException("ParamUtil is a utility class and cannot be instantiated");
     }
 
     /**

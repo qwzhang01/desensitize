@@ -39,7 +39,7 @@ public class UserController {
         userParam.setPhone("13900139002");
         Page<UserDto> userPage = DataScopeHelper
                 .strategy(JoinDataScopeStrategy.class)
-                .query(() -> mapper.listObj(new Page<>(1, 10), userParam));
+                .execute(() -> mapper.listObj(new Page<>(1, 10), userParam));
 
         MaskContext.start();
         return R.ok(userPage);
@@ -49,7 +49,7 @@ public class UserController {
     public R<Page<?>> pageMapperParam() {
         Page<UserDto> userPage = DataScopeHelper
                 .strategy(WhereDataScopeStrategy.class)
-                .query(() -> mapper.listParam(new Page<>(1, 10), "13900139002"));
+                .execute(() -> mapper.listParam(new Page<>(1, 10), "13900139002"));
         MaskContext.start();
         return R.ok(userPage);
     }

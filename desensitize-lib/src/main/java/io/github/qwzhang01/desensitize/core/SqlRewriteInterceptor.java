@@ -24,6 +24,7 @@
 
 package io.github.qwzhang01.desensitize.core;
 
+import io.github.qwzhang01.desensitize.annotation.EncryptField;
 import io.github.qwzhang01.desensitize.container.DataScopeStrategyContainer;
 import io.github.qwzhang01.desensitize.container.EncryptFieldTableContainer;
 import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
@@ -50,17 +51,42 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * 拦截器执行顺序
- * Executor：首先执行，负责整体执行逻辑（如update、query）。
- * StatementHandler（prepare阶段）：其次执行，准备SQL语句。
- * ParameterHandler：然后执行，处理参数绑定。
- * StatementHandler（execute阶段）：再次执行，实际执行SQL。
- * ResultSetHandler：最后执行，处理结果集
- * <p>
- * StatementHandler 拦截器 - 纯 MyBatis 版本
- * 负责处理 SQL 语句的预编译和执行，实现查询参数的自动加密
+ * MyBatis interceptor for SQL rewriting and parameter encryption.
+ *
+ * <p>This interceptor handles two main responsibilities:</p>
+ * <ol>
+ *   <li><strong>Parameter Encryption:</strong> Automatically encrypts query parameters for encrypted fields</li>
+ *   <li><strong>Data Scope Control:</strong> Injects WHERE clauses and JOINs for data permission control</li>
+ * </ol>
+ *
+ * <p><strong>MyBatis Interceptor Execution Order:</strong></p>
+ * <pre>
+ * 1. Executor          - Overall execution logic (update, query)
+ * 2. StatementHandler  - SQL preparation (this interceptor intercepts here)
+ * 3. ParameterHandler  - Parameter binding
+ * 4. StatementHandler  - SQL execution
+ * 5. ResultSetHandler  - Result set processing
+ * </pre>
+ *
+ * <p><strong>Intercepted Methods:</strong></p>
+ * <ul>
+ *   <li>{@code prepare} - Encrypts parameters and applies data scope BEFORE execution</li>
+ *   <li>{@code update/query/queryCursor} - Restores original parameters AFTER execution</li>
+ * </ul>
+ *
+ * <p><strong>Thread Safety:</strong> Uses {@link SqlRewriteContext} with ThreadLocal
+ * to maintain parameter state across method calls.</p>
+ *
+ * <p><strong>Design Patterns:</strong></p>
+ * <ul>
+ *   <li>Strategy Pattern: Different encryption algorithms per field</li>
+ *   <li>Template Method: Common encryption flow with pluggable algorithms</li>
+ *   <li>Context Pattern: ThreadLocal context for parameter restoration</li>
+ * </ul>
  *
  * @author avinzhang
+ * @see EncryptField
+ * @see DataScopeHelper
  */
 @Intercepts({
         @Signature(
@@ -86,39 +112,103 @@ import java.util.Properties;
 public class SqlRewriteInterceptor implements Interceptor {
 
     private static final Logger log = LoggerFactory.getLogger(SqlRewriteInterceptor.class);
+    // Method name constants for better maintainability
+    private static final String METHOD_PREPARE = "prepare";
+    private static final String METHOD_UPDATE = "update";
+    private static final String METHOD_QUERY = "query";
+    private static final String METHOD_QUERY_CURSOR = "queryCursor";
 
+    /**
+     * Intercepts StatementHandler methods to apply SQL rewriting and parameter encryption.
+     *
+     * <p>This method implements a two-phase approach:</p>
+     * <ol>
+     *   <li><strong>Prepare Phase:</strong> Encrypt parameters and apply data scope</li>
+     *   <li><strong>Execute Phase:</strong> Restore original parameters after execution</li>
+     * </ol>
+     *
+     * @param invocation the method invocation details
+     * @return the result of the method execution
+     * @throws Throwable if the underlying operation fails
+     */
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         String methodName = invocation.getMethod().getName();
-        if ("prepare".equals(methodName)) {
-            // 清理之前的还原信息
-            SqlRewriteContext.clear();
 
-            // 处理加密解密逻辑
-            encrypt(invocation);
-
-            boolean started = DataScopeHelper.isStarted();
-            if (!Boolean.TRUE.equals(started)) {
-                return invocation.proceed();
-            }
-            // 处理加密解密逻辑
-            dataScope(invocation);
-            return invocation.proceed();
-        } else if ("update".equalsIgnoreCase(methodName) || "query".equals(methodName) || "queryCursor".equals(methodName)) {
-            try {
-                return invocation.proceed();
-            } finally {
-                SqlRewriteContext.restore();
-            }
+        if (METHOD_PREPARE.equals(methodName)) {
+            return handlePreparePhase(invocation);
+        } else if (isExecutionMethod(methodName)) {
+            return handleExecutionPhase(invocation);
         }
+
+        // For other methods, just proceed without intervention
         return invocation.proceed();
     }
 
     /**
-     * 查询参数加密处理（纯 MyBatis 版本）
-     * 加密完成后会保存还原信息，在 SQL 执行完成后自动还原明文
+     * Handles the prepare phase where SQL is prepared and parameters are encrypted.
+     *
+     * @param invocation the method invocation
+     * @return the result of proceeding with the invocation
+     * @throws Throwable if the operation fails
      */
-    private void encrypt(Invocation invocation) {
+    private Object handlePreparePhase(Invocation invocation) throws Throwable {
+        // Clear any previous restoration context
+        SqlRewriteContext.clear();
+
+        // Apply parameter encryption
+        encryptParameters(invocation);
+
+        // Apply data scope if enabled
+        if (Boolean.TRUE.equals(DataScopeHelper.isStarted())) {
+            applyDataScope(invocation);
+        }
+
+        return invocation.proceed();
+    }
+
+    /**
+     * Handles the execution phase where SQL is executed and parameters are restored.
+     *
+     * @param invocation the method invocation
+     * @return the result of the execution
+     * @throws Throwable if the operation fails
+     */
+    private Object handleExecutionPhase(Invocation invocation) throws Throwable {
+        try {
+            return invocation.proceed();
+        } finally {
+            // Always restore parameters to their original state
+            SqlRewriteContext.restore();
+        }
+    }
+
+    /**
+     * Checks if the method name is an execution method (update/query/queryCursor).
+     *
+     * @param methodName the method name to check
+     * @return true if it's an execution method
+     */
+    private boolean isExecutionMethod(String methodName) {
+        return METHOD_UPDATE.equalsIgnoreCase(methodName)
+                || METHOD_QUERY.equals(methodName)
+                || METHOD_QUERY_CURSOR.equals(methodName);
+    }
+
+    /**
+     * Encrypts query parameters for encrypted fields.
+     *
+     * <p>This method:</p>
+     * <ol>
+     *   <li>Parses the SQL to identify tables and parameters</li>
+     *   <li>Analyzes parameter objects to find encrypted fields</li>
+     *   <li>Encrypts the parameters using configured algorithms</li>
+     *   <li>Saves restoration info to ThreadLocal for later recovery</li>
+     * </ol>
+     *
+     * @param invocation the method invocation containing SQL and parameters
+     */
+    private void encryptParameters(Invocation invocation) {
         try {
             EncryptFieldTableContainer container = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
             if (!container.hasEncrypt()) {
@@ -166,8 +256,18 @@ public class SqlRewriteInterceptor implements Interceptor {
         }
     }
 
-    /*** 数据权限逻辑 */
-    private void dataScope(Invocation invocation) throws NoSuchFieldException, IllegalAccessException {
+    /**
+     * Applies data scope (permission control) by modifying the SQL.
+     *
+     * <p>This method injects additional WHERE clauses and JOINs into the SQL
+     * based on the configured data scope strategy. It's used to implement
+     * fine-grained data access control.</p>
+     *
+     * @param invocation the method invocation containing SQL to modify
+     * @throws NoSuchFieldException   if the SQL field cannot be accessed
+     * @throws IllegalAccessException if field access is denied
+     */
+    private void applyDataScope(Invocation invocation) throws NoSuchFieldException, IllegalAccessException {
         boolean started = DataScopeHelper.isStarted();
         Class<? extends DataScopeStrategy<?>> strategy = DataScopeHelper.getStrategy();
         if (!started && strategy != null) {

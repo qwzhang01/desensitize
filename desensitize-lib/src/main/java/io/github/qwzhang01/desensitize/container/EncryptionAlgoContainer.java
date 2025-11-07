@@ -28,19 +28,54 @@ package io.github.qwzhang01.desensitize.container;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
 
 /**
- * Container for managing encryption algorithm instances.
- * Provides lazy initialization and caching to avoid circular dependency issues.
+ * Concrete implementation of encryption algorithm container.
+ *
+ * <p>This container manages encryption algorithm instances using the Factory Pattern
+ * combined with Strategy Pattern. It provides:</p>
+ * <ul>
+ *   <li>Dependency injection support for the default algorithm</li>
+ *   <li>Thread-safe lazy instantiation with caching</li>
+ *   <li>Automatic fallback mechanism on instantiation failures</li>
+ * </ul>
+ *
+ * <p><strong>Thread Safety:</strong> This class is thread-safe. The default algorithm
+ * is immutable after construction, and the cache operations are handled by the parent
+ * class using ConcurrentHashMap.</p>
  *
  * @author avinzhang
  * @since 1.0.0
  */
 public final class EncryptionAlgoContainer extends AbstractEncryptAlgoContainer {
+
+    /**
+     * The default encryption algorithm instance.
+     * This field is effectively immutable after construction.
+     */
     private final EncryptionAlgo defaultEncryptionAlgo;
 
+    /**
+     * Constructs an EncryptionAlgoContainer with a specified default algorithm.
+     *
+     * <p>The default algorithm should be a fully configured, ready-to-use instance
+     * that will be returned when no specific algorithm is requested or when
+     * instantiation of other algorithms fails.</p>
+     *
+     * @param defaultEncryptionAlgo the default encryption algorithm to use
+     * @throws IllegalArgumentException if defaultEncryptionAlgo is null
+     */
     public EncryptionAlgoContainer(EncryptionAlgo defaultEncryptionAlgo) {
+        if (defaultEncryptionAlgo == null) {
+            throw new IllegalArgumentException("Default encryption algorithm cannot be null");
+        }
         this.defaultEncryptionAlgo = defaultEncryptionAlgo;
     }
 
+    /**
+     * Returns the default encryption algorithm for this container.
+     * This implementation returns the algorithm instance provided during construction.
+     *
+     * @return the default encryption algorithm instance, never null
+     */
     @Override
     public EncryptionAlgo defaultEncryptAlgo() {
         return defaultEncryptionAlgo;

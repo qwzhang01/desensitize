@@ -31,86 +31,207 @@ import io.github.qwzhang01.desensitize.container.AbstractEncryptAlgoContainer;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.kit.ClazzUtil;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
+import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
 import org.apache.ibatis.executor.resultset.ResultSetHandler;
 import org.apache.ibatis.plugin.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
- * ParameterHandler 拦截
- * ParameterHandler 负责将 SQL 参数绑定到预编译语句（PreparedStatement）中。拦截 ParameterHandler 可以控制参数的设置过程。
- * <p>
- * 这里是对找出来的字符串结果集进行解密所以是ResultSetHandler
- * args是指定预编译语句
+ * MyBatis interceptor for automatic decryption of query results.
+ *
+ * <p>This interceptor intercepts {@link ResultSetHandler#handleResultSets} to automatically
+ * decrypt encrypted fields in query results. It processes both single objects and lists,
+ * finding fields annotated with {@link EncryptField} and applying the configured decryption
+ * algorithm.</p>
+ *
+ * <p><strong>Features:</strong></p>
+ * <ul>
+ *   <li>Automatic detection of encrypted fields via @EncryptField annotation</li>
+ *   <li>Support for both selectOne and selectList operations</li>
+ *   <li>Multiple encryption algorithm support through Strategy Pattern</li>
+ *   <li>Thread-safe operation</li>
+ * </ul>
+ *
+ * <p><strong>Execution Flow:</strong></p>
+ * <pre>
+ * 1. Query executes and returns encrypted results
+ * 2. Interceptor captures the result set
+ * 3. Scans for @EncryptField annotated fields
+ * 4. Applies appropriate decryption algorithm
+ * 5. Returns decrypted data to caller
+ * </pre>
+ *
+ * <p><strong>Performance Considerations:</strong></p>
+ * <ul>
+ *   <li>Uses reflection caching to minimize overhead</li>
+ *   <li>Only processes fields with encryption annotations</li>
+ *   <li>Skips processing if no encrypted fields are found</li>
+ * </ul>
  *
  * @author avinzhang
+ * @see EncryptField
+ * @see AbstractEncryptAlgoContainer
  */
-@Intercepts({@Signature(type = ResultSetHandler.class, method = "handleResultSets", args = {Statement.class})})
+@Intercepts({
+        @Signature(
+                type = ResultSetHandler.class,
+                method = "handleResultSets",
+                args = {Statement.class}
+        )
+})
 public class DecryptInterceptor implements Interceptor {
 
+    private static final Logger log = LoggerFactory.getLogger(DecryptInterceptor.class);
+
+    /**
+     * Intercepts query result handling to decrypt encrypted fields.
+     *
+     * <p>This method is called after a query executes but before results are returned
+     * to the application. It processes both single results (selectOne) and lists (selectList).</p>
+     *
+     * @param invocation the method invocation details
+     * @return the result object with decrypted fields
+     * @throws Throwable if the underlying operation fails
+     */
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        // 取出查询的结果
+        // Execute the original query
         Object resultObject = invocation.proceed();
-        if (Objects.isNull(resultObject)) {
+
+        if (resultObject == null) {
+            log.debug("Query returned null, skipping decryption");
             return null;
         }
-        // 基于selectList
-        if (resultObject instanceof ArrayList) {
-            List<?> resultList = (ArrayList<?>) resultObject;
-            if (!CollectionUtils.isEmpty(resultList)) {
-                for (Object result : resultList) {
-                    List<ClazzUtil.AnnotatedFieldResult<EncryptField>> fields =
-                            ClazzUtil.getAnnotatedFields(result, EncryptField.class);
-                    // 逐一解密
-                    decryptObj(fields);
-                }
-            }
-            // 基于selectOne
+
+        // Process results based on type
+        if (resultObject instanceof List<?> resultList) {
+            decryptListResults(resultList);
         } else {
-            List<ClazzUtil.AnnotatedFieldResult<EncryptField>> fields =
-                    ClazzUtil.getAnnotatedFields(resultObject, EncryptField.class);
-            decryptObj(fields);
+            decryptSingleResult(resultObject);
         }
+
         return resultObject;
     }
 
+    /**
+     * Decrypts encrypted fields in a list of results (selectList scenario).
+     *
+     * @param resultList the list of query results
+     */
+    private void decryptListResults(List<?> resultList) {
+        if (CollectionUtils.isEmpty(resultList)) {
+            log.debug("Empty result list, skipping decryption");
+            return;
+        }
+
+        log.debug("Decrypting {} results from list query", resultList.size());
+
+        for (Object result : resultList) {
+            if (result != null) {
+                List<ClazzUtil.AnnotatedFieldResult<EncryptField>> encryptedFields =
+                        ClazzUtil.getAnnotatedFields(result, EncryptField.class);
+                decryptFields(encryptedFields);
+            }
+        }
+    }
 
     /**
-     * 将此过滤器加入到过滤器链当中
+     * Decrypts encrypted fields in a single result (selectOne scenario).
      *
-     * @param target
-     * @return
+     * @param resultObject the query result object
+     */
+    private void decryptSingleResult(Object resultObject) {
+        log.debug("Decrypting single result of type: {}", resultObject.getClass().getName());
+
+        List<ClazzUtil.AnnotatedFieldResult<EncryptField>> encryptedFields =
+                ClazzUtil.getAnnotatedFields(resultObject, EncryptField.class);
+        decryptFields(encryptedFields);
+    }
+
+    /**
+     * Decrypts a collection of encrypted fields using their configured algorithms.
+     *
+     * <p>This method retrieves the encryption container from Spring context and applies
+     * the appropriate decryption algorithm to each field based on its annotation.</p>
+     *
+     * @param fields the list of annotated field results to decrypt
+     * @throws DesensitizeException if decryption fails
+     */
+    private void decryptFields(List<ClazzUtil.AnnotatedFieldResult<EncryptField>> fields) {
+        if (fields.isEmpty()) {
+            log.debug("No encrypted fields found, skipping decryption");
+            return;
+        }
+
+        AbstractEncryptAlgoContainer container = SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
+        if (container == null) {
+            log.error("Encryption algorithm container not found in Spring context");
+            throw new DesensitizeException("Encryption algorithm container not available");
+        }
+
+        log.debug("Decrypting {} encrypted fields", fields.size());
+
+        try {
+            for (ClazzUtil.AnnotatedFieldResult<EncryptField> fieldResult : fields) {
+                decryptSingleField(fieldResult, container);
+            }
+        } catch (IllegalAccessException e) {
+            throw new DesensitizeException("Failed to decrypt fields due to access error", e);
+        } catch (Exception e) {
+            throw new DesensitizeException("Failed to decrypt fields", e);
+        }
+    }
+
+    /**
+     * Decrypts a single field value using the configured encryption algorithm.
+     *
+     * @param fieldResult the annotated field result containing field metadata
+     * @param container   the encryption algorithm container
+     * @throws IllegalAccessException if field access fails
+     */
+    private void decryptSingleField(ClazzUtil.AnnotatedFieldResult<EncryptField> fieldResult,
+                                    AbstractEncryptAlgoContainer container) throws IllegalAccessException {
+        EncryptField annotation = fieldResult.annotation();
+        Field field = fieldResult.field();
+        Object containingObject = fieldResult.containingObject();
+        Object value = fieldResult.getFieldValue();
+
+        // Only decrypt String values
+        if (!(value instanceof String strValue)) {
+            log.debug("Skipping non-String field: {}", field.getName());
+            return;
+        }
+
+        // Apply decryption using the configured algorithm
+        Class<? extends EncryptionAlgo> algoClass = annotation.value();
+        String decryptedValue = container.getAlgo(algoClass).decrypt(strValue);
+
+        // Update the field with decrypted value
+        field.setAccessible(true);
+        field.set(containingObject, decryptedValue);
+
+        log.debug("Decrypted field: {} in object: {}",
+                field.getName(), containingObject.getClass().getSimpleName());
+    }
+
+    /**
+     * Wraps the target object with this interceptor.
+     * Only wraps if the target is a ResultSetHandler.
+     *
+     * @param target the target object to potentially wrap
+     * @return the wrapped target or the original target
      */
     @Override
     public Object plugin(Object target) {
-        return Plugin.wrap(target, this);
-    }
-
-    private void decryptObj(List<ClazzUtil.AnnotatedFieldResult<EncryptField>> fields) {
-        AbstractEncryptAlgoContainer container = SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
-
-        try {
-            for (ClazzUtil.AnnotatedFieldResult<EncryptField> fieldObj : fields) {
-                EncryptField annotation = fieldObj.annotation();
-                Field field = fieldObj.field();
-                Object object = fieldObj.containingObject();
-                Object value = fieldObj.getFieldValue();
-
-                field.setAccessible(true);
-                if (value instanceof String strValue) {
-                    strValue = container.getAlgo(annotation.value()).decrypt(strValue);
-                    //对注解在这段进行逐一解密
-                    field.set(object, strValue);
-                }
-            }
-        } catch (Exception e) {
-            throw new DesensitizeException(e);
+        if (target instanceof ResultSetHandler) {
+            return Plugin.wrap(target, this);
         }
+        return target;
     }
 }
 

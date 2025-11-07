@@ -2,7 +2,7 @@ package com.qw.desensitize.strategy;
 
 import io.github.qwzhang01.desensitize.scope.EmptyDataScopeStrategy;
 
-public class WhereDataScopeStrategy extends EmptyDataScopeStrategy {
+public class WhereDataScopeStrategy extends EmptyDataScopeStrategy<Long> {
 
 
     @Override
