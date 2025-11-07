@@ -18,11 +18,7 @@ public class DataScopeHelper {
     private static final ThreadLocal<Context<?>> CONTEXT = new ThreadLocal<>();
     private static final ThreadLocal<Context<?>> CONTEXT_CACHE = new ThreadLocal<>();
 
-    /**
-     * 判断数据权限是否开启
-     *
-     * @return
-     */
+    /*** 判断数据权限是否开启 */
     public static boolean isStarted() {
         Context<?> context = CONTEXT.get();
         if (context == null) {
@@ -51,64 +47,16 @@ public class DataScopeHelper {
         return context;
     }
 
-    /**
-     * 设置全部权限数据
-     *
-     * @param right 权限数据列表
-     * @param <T>   权限数据类型
-     * @return 上下文对象
-     */
-    public static <T> Context<T> right(List<T> right) {
+    public static <T> List<T> getTopRight() {
         @SuppressWarnings("unchecked")
         Context<T> context = (Context<T>) CONTEXT.get();
         if (context == null) {
-            context = new Context<>();
-            context.setAllRight(right);
-            CONTEXT.set(context);
+            context = (Context<T>) CONTEXT_CACHE.get();
+            if (context == null) {
+                return null;
+            }
         }
-
-        context.setAllRight(right);
-        return context;
-    }
-
-    /**
-     * 设置顶部权限数据
-     *
-     * @param right 权限数据列表
-     * @param <T>   权限数据类型
-     * @return 上下文对象
-     */
-    public static <T> Context<T> topTight(List<T> right) {
-        @SuppressWarnings("unchecked")
-        Context<T> context = (Context<T>) CONTEXT.get();
-        if (context == null) {
-            context = new Context<>();
-            context.setTopRight(right);
-            CONTEXT.set(context);
-        }
-
-        context.setTopRight(right);
-        return context;
-    }
-
-    /**
-     * 设置内部权限数据
-     *
-     * @param right 权限数据列表
-     * @param <T>   权限数据类型
-     * @return 上下文对象
-     */
-    public static <T> Context<T> inTight(List<T> right) {
-        @SuppressWarnings("unchecked")
-        Context<T> context = (Context<T>) CONTEXT.get();
-        if (context == null) {
-            context = new Context<>();
-            context.setInRight(right);
-            CONTEXT.set(context);
-        }
-
-        context.setInRight(right);
-        return context;
+        return context.getTopRight();
     }
 
     /**
@@ -174,21 +122,15 @@ public class DataScopeHelper {
          */
         private Boolean dataScopeFlag;
         /**
-         * 全部权限数据
-         */
-        private List<T> allRight;
-        /**
          * 顶部查询条件，即以 topRight 为最大的查询条件
          */
         private List<T> topRight;
         /**
-         * 内部查询条件，即在权限的基础上，查询存在 inTight 的数据
+         * 权限校验数据，在INSERT update delete 的时候使用
          */
-        private List<T> inRight;
-
         private List<T> validRights;
         /**
-         * 排除权限校验数据
+         * 排除权限校验数据，在INSERT update delete 的时候使用
          */
         private List<T> withoutRights;
         /**
@@ -196,15 +138,35 @@ public class DataScopeHelper {
          */
         private Class<? extends DataScopeStrategy<T>> strategy;
 
+        public List<T> getTopRight() {
+            return topRight;
+        }
+
+        public Context<T> setTopRight(T topRight) {
+            if (this.topRight == null) {
+                this.topRight = new ArrayList<>();
+            }
+            this.topRight.add(topRight);
+            return this;
+        }
+
+        public Context<T> setTopRight(List<T> topRight) {
+            if (this.topRight == null) {
+                this.topRight = new ArrayList<>();
+            }
+            this.topRight.addAll(topRight);
+            return this;
+        }
+
         public List<T> getValidRights() {
             return validRights;
         }
 
         public Context<T> setValidRights(T validRight) {
-            if (validRights == null) {
-                validRights = new ArrayList<>();
+            if (this.validRights == null) {
+                this.validRights = new ArrayList<>();
             }
-            validRights.add(validRight);
+            this.validRights.add(validRight);
             return this;
         }
 
@@ -242,33 +204,6 @@ public class DataScopeHelper {
 
         public Context<T> setDataScopeFlag(Boolean dataScopeFlag) {
             this.dataScopeFlag = dataScopeFlag;
-            return this;
-        }
-
-        public List<T> getAllRight() {
-            return allRight;
-        }
-
-        public Context<T> setAllRight(List<T> allRight) {
-            this.allRight = allRight;
-            return this;
-        }
-
-        public List<T> getTopRight() {
-            return topRight;
-        }
-
-        public Context<T> setTopRight(List<T> topRight) {
-            this.topRight = topRight;
-            return this;
-        }
-
-        public List<T> getInRight() {
-            return inRight;
-        }
-
-        public Context<T> setInRight(List<T> inRight) {
-            this.inRight = inRight;
             return this;
         }
 
