@@ -221,16 +221,16 @@ public class DataScopeHelper {
         }
 
         public Context<T> setWithoutRights(T withoutRight) {
-            if (validRights == null) {
-                validRights = new ArrayList<>();
+            if (this.withoutRights == null) {
+                this.withoutRights = new ArrayList<>();
             }
             this.withoutRights.add(withoutRight);
             return this;
         }
 
         public Context<T> setWithoutRights(List<T> withoutRights) {
-            if (validRights == null) {
-                validRights = new ArrayList<>();
+            if (this.withoutRights == null) {
+                this.withoutRights = new ArrayList<>();
             }
             this.withoutRights.addAll(withoutRights);
             return this;
