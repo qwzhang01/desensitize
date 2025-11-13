@@ -1,6 +1,6 @@
 package io.github.qwzhang01.desensitize.domain;
 
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 import org.apache.ibatis.reflection.MetaObject;
 
 import java.util.Map;

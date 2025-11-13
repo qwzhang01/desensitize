@@ -23,9 +23,9 @@
  */
 
 
-package io.github.qwzhang01.desensitize.container;
+package io.github.qwzhang01.desensitize.encrypt.container;
 
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 
 /**
  * Concrete implementation of encryption algorithm container.

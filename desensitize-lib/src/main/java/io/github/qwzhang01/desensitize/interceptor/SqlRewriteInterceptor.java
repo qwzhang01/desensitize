@@ -22,32 +22,21 @@
  * SOFTWARE.
  */
 
-package io.github.qwzhang01.desensitize.core;
+package io.github.qwzhang01.desensitize.interceptor;
 
-import io.github.qwzhang01.desensitize.annotation.EncryptField;
-import io.github.qwzhang01.desensitize.container.DataScopeStrategyContainer;
-import io.github.qwzhang01.desensitize.container.EncryptFieldTableContainer;
-import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
-import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
-import io.github.qwzhang01.desensitize.kit.ParamUtil;
-import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
-import io.github.qwzhang01.desensitize.kit.StringUtil;
+import io.github.qwzhang01.desensitize.encrypt.annotation.EncryptField;
+import io.github.qwzhang01.desensitize.encrypt.context.SqlRewriteContext;
+import io.github.qwzhang01.desensitize.encrypt.processor.EncryptProcessor;
 import io.github.qwzhang01.desensitize.scope.DataScopeHelper;
-import io.github.qwzhang01.desensitize.scope.DataScopeStrategy;
-import io.github.qwzhang01.sql.tool.helper.ParserHelper;
-import io.github.qwzhang01.sql.tool.model.SqlParam;
-import io.github.qwzhang01.sql.tool.model.SqlTable;
+import io.github.qwzhang01.desensitize.scope.processor.DataScopeProcessor;
 import org.apache.ibatis.executor.statement.StatementHandler;
-import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.plugin.*;
 import org.apache.ibatis.session.ResultHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.List;
 import java.util.Properties;
 
 /**
@@ -157,12 +146,9 @@ public class SqlRewriteInterceptor implements Interceptor {
         SqlRewriteContext.clear();
 
         // Apply parameter encryption
-        encryptParameters(invocation);
+        EncryptProcessor.getInstance().encryptParameters(invocation);
 
-        // Apply data scope if enabled
-        if (Boolean.TRUE.equals(DataScopeHelper.isStarted())) {
-            applyDataScope(invocation);
-        }
+        DataScopeProcessor.getInstance().apply(invocation);
 
         return invocation.proceed();
     }
@@ -193,114 +179,6 @@ public class SqlRewriteInterceptor implements Interceptor {
         return METHOD_UPDATE.equalsIgnoreCase(methodName)
                 || METHOD_QUERY.equals(methodName)
                 || METHOD_QUERY_CURSOR.equals(methodName);
-    }
-
-    /**
-     * Encrypts query parameters for encrypted fields.
-     *
-     * <p>This method:</p>
-     * <ol>
-     *   <li>Parses the SQL to identify tables and parameters</li>
-     *   <li>Analyzes parameter objects to find encrypted fields</li>
-     *   <li>Encrypts the parameters using configured algorithms</li>
-     *   <li>Saves restoration info to ThreadLocal for later recovery</li>
-     * </ol>
-     *
-     * @param invocation the method invocation containing SQL and parameters
-     */
-    private void encryptParameters(Invocation invocation) {
-        try {
-            EncryptFieldTableContainer container = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
-            if (!container.hasEncrypt()) {
-                // 没有注解加密字段无需走这个拦截器
-                // return;
-            }
-            StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
-            // 获取 ParameterHandler 中的参数对象
-            Object parameterObject = statementHandler.getParameterHandler().getParameterObject();
-            BoundSql boundSql = statementHandler.getBoundSql();
-
-            String originalSql = boundSql.getSql();
-            log.debug("开始处理查询加密，SQL: {}", originalSql);
-
-            if (boundSql.getParameterObject() == null) {
-                log.debug("参数对象为空，跳过加密处理");
-                return;
-            }
-
-            // 1. 解析 SQL 获取所有涉及的表信息
-            List<SqlTable> tables = null;
-            List<SqlParam> param = null;
-            try {
-                tables = ParserHelper.getTables(originalSql);
-                param = ParserHelper.getParam(originalSql);
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-            }
-            if (param == null || param.isEmpty() || tables.isEmpty()) {
-                log.debug("未找到表信息，跳过加密处理");
-                return;
-            }
-
-            // 2. 解析参数对象，获取需要加密的参数
-            List<ParameterEncryptInfo> encryptInfos = ParamUtil.analyzeParameters(
-                    boundSql.getParameterMappings(), param, tables, parameterObject);
-
-            // 3. 执行参数加密
-            if (!encryptInfos.isEmpty()) {
-                ParamUtil.encryptParameters(encryptInfos);
-                log.debug("完成参数加密，共处理 {} 个参数", encryptInfos.size());
-            }
-        } catch (Exception e) {
-            log.error("查询参数加密处理失败", e);
-        }
-    }
-
-    /**
-     * Applies data scope (permission control) by modifying the SQL.
-     *
-     * <p>This method injects additional WHERE clauses and JOINs into the SQL
-     * based on the configured data scope strategy. It's used to implement
-     * fine-grained data access control.</p>
-     *
-     * @param invocation the method invocation containing SQL to modify
-     * @throws NoSuchFieldException   if the SQL field cannot be accessed
-     * @throws IllegalAccessException if field access is denied
-     */
-    private void applyDataScope(Invocation invocation) throws NoSuchFieldException, IllegalAccessException {
-        boolean started = DataScopeHelper.isStarted();
-        Class<? extends DataScopeStrategy<?>> strategy = DataScopeHelper.getStrategy();
-        if (!started && strategy != null) {
-            return;
-        }
-
-        // 清理数据权限信息，避免影响其他 SQL
-        DataScopeHelper.cache();
-
-        StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
-        BoundSql boundSql = statementHandler.getBoundSql();
-
-        // 获取原始 SQL
-        String originalSql = boundSql.getSql();
-        DataScopeStrategyContainer container = SpringContextUtil.getBean(DataScopeStrategyContainer.class);
-        DataScopeStrategy<?> obj = container.getStrategy(strategy);
-
-        String join = obj.join();
-        String where = obj.where();
-
-        if (!StringUtil.isEmpty(join) && !StringUtil.isEmpty(where)) {
-            originalSql = ParserHelper.addJoinAndWhere(originalSql.trim(), join.trim(), where.trim());
-        } else if (!StringUtil.isEmpty(join)) {
-            originalSql = ParserHelper.addJoin(originalSql.trim(), join.trim());
-        } else if (!StringUtil.isEmpty(where)) {
-            originalSql = ParserHelper.addWhere(originalSql.trim(), where.trim());
-        }
-
-        Field field = BoundSql.class.getDeclaredField("sql");
-        field.setAccessible(true);
-        field.set(boundSql, originalSql);
-
-        DataScopeHelper.restore();
     }
 
     @Override

@@ -1,11 +1,11 @@
 package io.github.qwzhang01.desensitize.kit;
 
-import io.github.qwzhang01.desensitize.container.AbstractEncryptAlgoContainer;
-import io.github.qwzhang01.desensitize.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
 import io.github.qwzhang01.desensitize.domain.ParameterRestoreInfo;
+import io.github.qwzhang01.desensitize.encrypt.container.AbstractEncryptAlgoContainer;
+import io.github.qwzhang01.desensitize.encrypt.context.SqlRewriteContext;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
 import io.github.qwzhang01.sql.tool.model.SqlParam;
 import io.github.qwzhang01.sql.tool.model.SqlTable;
 import org.apache.ibatis.mapping.ParameterMapping;

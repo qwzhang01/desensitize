@@ -23,10 +23,10 @@
  */
 
 
-package io.github.qwzhang01.desensitize.annotation;
+package io.github.qwzhang01.desensitize.encrypt.annotation;
 
-import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.shield.DefaultEncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 
 import java.lang.annotation.*;
 

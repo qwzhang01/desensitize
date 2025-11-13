@@ -25,8 +25,8 @@
 
 package io.github.qwzhang01.desensitize.mask.advice;
 
-import io.github.qwzhang01.desensitize.context.MaskContext;
 import io.github.qwzhang01.desensitize.mask.MaskAlgoContainer;
+import io.github.qwzhang01.desensitize.mask.context.MaskContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;

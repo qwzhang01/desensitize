@@ -25,14 +25,17 @@
 
 package io.github.qwzhang01.desensitize.config;
 
-import io.github.qwzhang01.desensitize.mask.advice.MaskAdvice;
-import io.github.qwzhang01.desensitize.container.*;
+import io.github.qwzhang01.desensitize.encrypt.container.AbstractEncryptAlgoContainer;
+import io.github.qwzhang01.desensitize.encrypt.container.EncryptFieldTableContainer;
+import io.github.qwzhang01.desensitize.encrypt.container.EncryptionAlgoContainer;
+import io.github.qwzhang01.desensitize.encrypt.shield.DefaultEncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.mask.MaskAlgoContainer;
+import io.github.qwzhang01.desensitize.mask.advice.MaskAdvice;
 import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.mask.shield.DefaultCoverAlgo;
-import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.scope.container.DataScopeStrategyContainer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

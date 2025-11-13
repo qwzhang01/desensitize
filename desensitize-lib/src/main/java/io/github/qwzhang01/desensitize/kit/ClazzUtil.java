@@ -289,16 +289,33 @@ public final class ClazzUtil {
                     // Check if field has target annotation
                     T annotation = findAnnotation(field, annotationClass, searchMetaAnnotation);
                     if (annotation != null) {
-                        String currentPath = buildFieldPath(fieldPath, field.getName());
-                        results.add(new AnnotatedField<>(field, obj, annotation, currentPath));
+                        if (searchMetaAnnotation) {
+                            Class<?> type = field.getType();
+                            if (isComplexObject(type)) {
+                                Object fieldValue = field.get(obj);
+                                String currentPath = buildFieldPath(fieldPath, field.getName());
+                                if (fieldValue != null) {
+                                    processComplexFieldValue(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+                                }
+                            } else {
+                                String currentPath = buildFieldPath(fieldPath, field.getName());
+                                results.add(new AnnotatedField<>(field, obj, annotation, currentPath));
+                            }
+                        } else {
+                            String currentPath = buildFieldPath(fieldPath, field.getName());
+                            results.add(new AnnotatedField<>(field, obj, annotation, currentPath));
+                        }
                     }
 
-                    // Process field value recursively
-                    Object fieldValue = field.get(obj);
-                    if (fieldValue != null && isComplexObject(fieldValue.getClass())) {
-                        String currentPath = buildFieldPath(fieldPath, field.getName());
-                        processComplexFieldValue(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+                    if (!searchMetaAnnotation) {
+                        // Process field value recursively
+                        Object fieldValue = field.get(obj);
+                        if (fieldValue != null && isComplexObject(fieldValue.getClass())) {
+                            String currentPath = buildFieldPath(fieldPath, field.getName());
+                            processComplexFieldValue(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+                        }
                     }
+
                 } catch (IllegalAccessException e) {
                     // Ignore inaccessible fields
                 }

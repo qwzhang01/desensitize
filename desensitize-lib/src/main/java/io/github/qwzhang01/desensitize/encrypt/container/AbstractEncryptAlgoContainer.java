@@ -1,9 +1,9 @@
-package io.github.qwzhang01.desensitize.container;
+package io.github.qwzhang01.desensitize.encrypt.container;
 
+import io.github.qwzhang01.desensitize.encrypt.shield.DefaultEncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
-import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

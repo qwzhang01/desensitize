@@ -1,8 +1,8 @@
 package io.github.qwzhang01.desensitize.kit;
 
-import io.github.qwzhang01.desensitize.container.EncryptFieldTableContainer;
 import io.github.qwzhang01.desensitize.domain.ParameterEncryptInfo;
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.container.EncryptFieldTableContainer;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 import io.github.qwzhang01.sql.tool.model.SqlParam;
 import io.github.qwzhang01.sql.tool.model.SqlTable;
 import org.slf4j.Logger;

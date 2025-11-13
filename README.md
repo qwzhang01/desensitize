@@ -60,8 +60,8 @@ String maskedEnglishName = coverAlgo.maskEnglishName("John");
 #### Using Encryption
 
 ```java
-import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.shield.DefaultEncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 
 // Create an instance of the default encryption algorithm
 EncryptionAlgo encryptionAlgo = new DefaultEncryptionAlgo();
@@ -157,7 +157,7 @@ public class CustomCoverAlgo implements CoverAlgo {
 ### Custom Encryption Algorithm
 
 ```java
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 
 @Component
 public class CustomEncryptionAlgo implements EncryptionAlgo {

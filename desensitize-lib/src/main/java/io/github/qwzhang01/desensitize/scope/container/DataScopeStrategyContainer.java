@@ -1,4 +1,4 @@
-package io.github.qwzhang01.desensitize.container;
+package io.github.qwzhang01.desensitize.scope.container;
 
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;

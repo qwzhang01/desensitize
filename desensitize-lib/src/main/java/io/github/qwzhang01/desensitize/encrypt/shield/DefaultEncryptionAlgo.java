@@ -23,9 +23,11 @@
  */
 
 
-package io.github.qwzhang01.desensitize.shield;
+package io.github.qwzhang01.desensitize.encrypt.shield;
 
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKeyFactory;
@@ -51,6 +53,7 @@ import java.util.Base64;
  */
 public class DefaultEncryptionAlgo implements EncryptionAlgo {
     private static final String ENCRYPT_PREFIX = "_sensitive_start_";
+    private static final Logger log = LoggerFactory.getLogger(DefaultEncryptionAlgo.class);
 
     /**
      * Encrypts the given value using the default DES encryption algorithm.
@@ -163,7 +166,7 @@ public class DefaultEncryptionAlgo implements EncryptionAlgo {
                 return new String(encodedBytes);
 
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("encrypt error", e);
                 return data; // Return original data if encryption fails
             }
         }
@@ -199,7 +202,7 @@ public class DefaultEncryptionAlgo implements EncryptionAlgo {
 
                 return new String(decryptedBytes, CHARSET);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("decrypt error", e);
                 return data; // Return original data if decryption fails
             }
         }

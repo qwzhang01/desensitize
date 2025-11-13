@@ -1,12 +1,12 @@
-package io.github.qwzhang01.desensitize.container;
+package io.github.qwzhang01.desensitize.encrypt.container;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
-import io.github.qwzhang01.desensitize.annotation.EncryptField;
-import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.annotation.EncryptField;
+import io.github.qwzhang01.desensitize.encrypt.shield.DefaultEncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 
 import java.util.List;
 import java.util.Map;

@@ -23,10 +23,10 @@
  */
 
 
-package io.github.qwzhang01.desensitize.core;
+package io.github.qwzhang01.desensitize.encrypt.type.handler;
 
-import io.github.qwzhang01.desensitize.container.AbstractEncryptAlgoContainer;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
+import io.github.qwzhang01.desensitize.encrypt.container.AbstractEncryptAlgoContainer;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;

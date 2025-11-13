@@ -8,10 +8,10 @@ import java.lang.reflect.Field;
 /**
  * Annotated field result record containing field, containing object, annotation, and field path
  *
- * @param field            the annotated field
- * @param obj the object containing this field
- * @param annotation       the annotation instance
- * @param fieldPath        the field path for debugging and tracking
+ * @param field      the annotated field
+ * @param obj        the object containing this field
+ * @param annotation the annotation instance
+ * @param fieldPath  the field path for debugging and tracking
  */
 public record AnnotatedField<T extends Annotation>(
         Field field,

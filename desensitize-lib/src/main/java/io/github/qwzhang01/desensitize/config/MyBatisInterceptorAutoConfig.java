@@ -26,11 +26,11 @@
 package io.github.qwzhang01.desensitize.config;
 
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
-import io.github.qwzhang01.desensitize.core.DecryptInterceptor;
-import io.github.qwzhang01.desensitize.core.EncryptTypeHandler;
-import io.github.qwzhang01.desensitize.core.SqlPrintInterceptor;
-import io.github.qwzhang01.desensitize.core.SqlRewriteInterceptor;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
+import io.github.qwzhang01.desensitize.encrypt.type.handler.EncryptTypeHandler;
+import io.github.qwzhang01.desensitize.interceptor.DecryptInterceptor;
+import io.github.qwzhang01.desensitize.interceptor.SqlPrintInterceptor;
+import io.github.qwzhang01.desensitize.interceptor.SqlRewriteInterceptor;
 import jakarta.annotation.PostConstruct;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;

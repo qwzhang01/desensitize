@@ -1,21 +1,13 @@
-package io.github.qwzhang01.desensitize.core;
+package io.github.qwzhang01.desensitize.kit;
 
-import io.github.qwzhang01.desensitize.kit.StringUtil;
-import org.apache.ibatis.cache.CacheKey;
-import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
-import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ParameterMapping;
 import org.apache.ibatis.mapping.ParameterMode;
-import org.apache.ibatis.plugin.*;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.session.Configuration;
-import org.apache.ibatis.session.ResultHandler;
-import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.env.Environment;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -24,73 +16,22 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-/**
- * 非生产环境打印SQL执行真实脚本
- *
- * @author avinzhang
- */
-@Intercepts({
-        @Signature(
-                type = Executor.class,
-                method = "query",
-                args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}
-        ),
-        @Signature(
-                type = Executor.class,
-                method = "query",
-                args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}
-        ),
-        @Signature(
-                type = Executor.class,
-                method = "update",
-                args = {MappedStatement.class, Object.class}
-        )
-})
-public class SqlPrintInterceptor implements Interceptor {
+public class SqlPrint {
+    private static final Logger log = LoggerFactory.getLogger(SqlPrint.class);
     private final static String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
-    private final static Logger log = LoggerFactory.getLogger(SqlPrintInterceptor.class);
-    private final Environment environment;
 
-    public SqlPrintInterceptor(Environment environment) {
-        this.environment = environment;
+    private SqlPrint() {
     }
 
-    @Override
-    public Object intercept(Invocation invocation) throws Throwable {
-        Object result = null;
-        // 捕获掉异常，不要影响业务
-        MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[0];
-        Object parameter = null;
-        if (invocation.getArgs().length > 1) {
-            parameter = invocation.getArgs()[1];
-        }
-        String sqlId = mappedStatement.getId();
-        BoundSql boundSql = mappedStatement.getBoundSql(parameter);
-        Configuration configuration = mappedStatement.getConfiguration();
-        long startTime = System.currentTimeMillis();
-        try {
-            result = invocation.proceed();
-        } finally {
-            String[] activeProfiles = environment.getActiveProfiles();
-            if (activeProfiles != null && activeProfiles.length > 0) {
-                String activeProfile = activeProfiles[0];
-                if (!activeProfile.contains("prod")) {
-                    // 获取完整执行的SQL
-                    String sql = getSql(configuration, boundSql);
-                    // 打印SQL，执行时间，执行结果
-                    printSql(sqlId, sql, System.currentTimeMillis() - startTime, result);
-                }
-            }
-        }
-        return result;
+    public static SqlPrint getInstance() {
+        return SqlPrint.Holder.INSTANCE;
     }
 
-    @Override
-    public Object plugin(Object target) {
-        if (target instanceof Executor) {
-            return Plugin.wrap(target, this);
-        }
-        return target;
+    public void print(Configuration configuration, BoundSql boundSql, String sqlId, long startTime, Object result) {
+        // 获取完整执行的SQL
+        String sql = getSql(configuration, boundSql);
+        // 打印SQL，执行时间，执行结果
+        printSql(sqlId, sql, System.currentTimeMillis() - startTime, result);
     }
 
     /*** 获取完整的SQL语句 */
@@ -159,5 +100,9 @@ public class SqlPrintInterceptor implements Interceptor {
         if (result instanceof Number row) {
             log.info("=== 执行SQL ===\n方法：{}\n执行SQL：{}\n耗时：{} ms\n影响：{} 行数据", sqlId, sql, costTime, row);
         }
+    }
+
+    private static final class Holder {
+        private static final SqlPrint INSTANCE = new SqlPrint();
     }
 }

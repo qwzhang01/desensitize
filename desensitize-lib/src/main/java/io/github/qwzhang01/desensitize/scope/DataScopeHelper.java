@@ -2,8 +2,8 @@ package io.github.qwzhang01.desensitize.scope;
 
 
 import com.baomidou.mybatisplus.core.exceptions.MybatisPlusException;
-import io.github.qwzhang01.desensitize.container.DataScopeStrategyContainer;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
+import io.github.qwzhang01.desensitize.scope.container.DataScopeStrategyContainer;
 
 import java.util.ArrayList;
 import java.util.List;

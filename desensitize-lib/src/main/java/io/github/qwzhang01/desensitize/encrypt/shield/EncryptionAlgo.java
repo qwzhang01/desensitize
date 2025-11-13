@@ -23,7 +23,7 @@
  */
 
 
-package io.github.qwzhang01.desensitize.shield;
+package io.github.qwzhang01.desensitize.encrypt.shield;
 
 /**
  * Encryption algorithm interface.
