@@ -23,10 +23,10 @@
  */
 
 
-package io.github.qwzhang01.desensitize.annotation;
+package io.github.qwzhang01.desensitize.mask.annotation;
 
-import io.github.qwzhang01.desensitize.shield.CoverAlgo;
-import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.DefaultCoverAlgo;
 
 import java.lang.annotation.*;
 

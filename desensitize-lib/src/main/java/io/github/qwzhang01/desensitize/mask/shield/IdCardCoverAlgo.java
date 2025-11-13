@@ -23,37 +23,16 @@
  */
 
 
-package io.github.qwzhang01.desensitize.annotation;
-
-import io.github.qwzhang01.desensitize.shield.CoverAlgo;
-import io.github.qwzhang01.desensitize.shield.PhoneCoverAlgo;
-
-import java.lang.annotation.*;
+package io.github.qwzhang01.desensitize.mask.shield;
 
 /**
- * Annotation for marking phone number fields that require masking.
- *
- * <p>This annotation specifically targets phone number fields and applies
- * phone number masking algorithm by default. The phone number masking
- * typically keeps the first 3 and last 4 digits while masking the middle digits.</p>
- *
- * <p>Usage example:</p>
- * <pre>
- * public class User {
- *     {@code @MaskPhone}
- *     private String phoneNumber; // Will be masked as 138****5678
- * }
- * </pre>
+ * 默认脱敏算法实现
  *
  * @author avinzhang
- * @see CoverAlgo
- * @see PhoneCoverAlgo
- * @since 1.0.0
  */
-@Inherited
-@Target({ElementType.FIELD})
-@Retention(RetentionPolicy.RUNTIME)
-@Documented
-@Mask(value = PhoneCoverAlgo.class)
-public @interface MaskPhone {
+public class IdCardCoverAlgo extends RoutineCoverAlgo {
+    @Override
+    public String mask(String content) {
+        return super.maskIdCard(content);
+    }
 }

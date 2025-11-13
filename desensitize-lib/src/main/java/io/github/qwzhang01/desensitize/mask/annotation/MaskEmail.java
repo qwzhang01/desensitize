@@ -23,15 +23,42 @@
  */
 
 
-package io.github.qwzhang01.desensitize.annotation;
+package io.github.qwzhang01.desensitize.mask.annotation;
 
-import io.github.qwzhang01.desensitize.shield.NameCoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.EmailCoverAlgo;
 
 import java.lang.annotation.*;
 
+/**
+ * Annotation for marking email address fields that require masking.
+ *
+ * <p>This annotation specifically targets email address fields and applies
+ * email masking algorithm. The email masking typically keeps the first and
+ * last characters of the username while masking the middle part, leaving
+ * the domain unchanged.</p>
+ *
+ * <p>This annotation is a specialized version of {@link Mask} annotation
+ * with EmailCoverAlgo as the default masking algorithm.</p>
+ *
+ * <p>Usage example:</p>
+ * <pre>
+ * public class User {
+ *     {@code @MaskEmail}
+ *     private String email; // Will be masked as u***r@example.com
+ * }
+ * </pre>
+ *
+ * @author avinzhang
+ * @see Mask
+ * @see EmailCoverAlgo
+ * @since 1.0.0
+ */
 @Inherited
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-@Mask(value = NameCoverAlgo.class)
-public @interface MaskName {
+@Documented
+@Mask(value = EmailCoverAlgo.class)
+public @interface MaskEmail {
+    // This annotation uses the @Mask meta-annotation with EmailCoverAlgo
+    // No additional attributes are needed as the behavior is defined by the meta-annotation
 }

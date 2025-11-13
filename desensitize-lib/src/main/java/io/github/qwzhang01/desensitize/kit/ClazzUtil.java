@@ -25,6 +25,7 @@
 
 package io.github.qwzhang01.desensitize.kit;
 
+import io.github.qwzhang01.desensitize.domain.AnnotatedField;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import org.springframework.util.StringUtils;
 
@@ -194,7 +195,7 @@ public final class ClazzUtil {
      * @param annotationClass the annotation class to search for
      * @return list of results containing fields and their corresponding objects
      */
-    public static <T extends Annotation> List<AnnotatedFieldResult<T>> getAnnotatedFieldsWithMetaAnnotation(
+    public static <T extends Annotation> List<AnnotatedField<T>> getMetaAnnotatedFields(
             Object obj, Class<T> annotationClass) {
         return getAnnotatedFieldsInternal(obj, annotationClass, true);
     }
@@ -207,7 +208,7 @@ public final class ClazzUtil {
      * @param annotationClass the annotation class to search for
      * @return list of results containing fields and their corresponding objects
      */
-    public static <T extends Annotation> List<AnnotatedFieldResult<T>> getAnnotatedFields(
+    public static <T extends Annotation> List<AnnotatedField<T>> getAnnotatedFields(
             Object obj, Class<T> annotationClass) {
         return getAnnotatedFieldsInternal(obj, annotationClass, false);
     }
@@ -220,7 +221,7 @@ public final class ClazzUtil {
      * @param searchMetaAnnotation whether to search for meta-annotations
      * @return list of results containing fields and their corresponding objects
      */
-    private static <T extends Annotation> List<AnnotatedFieldResult<T>> getAnnotatedFieldsInternal(
+    private static <T extends Annotation> List<AnnotatedField<T>> getAnnotatedFieldsInternal(
             Object obj, Class<T> annotationClass, boolean searchMetaAnnotation) {
         if (obj == null || annotationClass == null) {
             return Collections.emptyList();
@@ -230,7 +231,7 @@ public final class ClazzUtil {
             return Collections.emptyList();
         }
 
-        List<AnnotatedFieldResult<T>> results = new ArrayList<>();
+        List<AnnotatedField<T>> results = new ArrayList<>();
         Set<Object> visited = new HashSet<>();
 
         collectAnnotatedFields(obj, annotationClass, results, visited, "", searchMetaAnnotation);
@@ -255,7 +256,7 @@ public final class ClazzUtil {
     private static <T extends Annotation> void collectAnnotatedFields(
             Object obj,
             Class<T> annotationClass,
-            List<AnnotatedFieldResult<T>> results,
+            List<AnnotatedField<T>> results,
             Set<Object> visited,
             String fieldPath,
             boolean searchMetaAnnotation) {
@@ -289,7 +290,7 @@ public final class ClazzUtil {
                     T annotation = findAnnotation(field, annotationClass, searchMetaAnnotation);
                     if (annotation != null) {
                         String currentPath = buildFieldPath(fieldPath, field.getName());
-                        results.add(new AnnotatedFieldResult<>(field, obj, annotation, currentPath));
+                        results.add(new AnnotatedField<>(field, obj, annotation, currentPath));
                     }
 
                     // Process field value recursively
@@ -338,7 +339,7 @@ public final class ClazzUtil {
     private static <T extends Annotation> void processComplexFieldValue(
             Object fieldValue,
             Class<T> annotationClass,
-            List<AnnotatedFieldResult<T>> results,
+            List<AnnotatedField<T>> results,
             Set<Object> visited,
             String currentPath,
             boolean searchMetaAnnotation) {
@@ -367,7 +368,7 @@ public final class ClazzUtil {
     private static <T extends Annotation> void processCollection(
             Collection<?> collection,
             Class<T> annotationClass,
-            List<AnnotatedFieldResult<T>> results,
+            List<AnnotatedField<T>> results,
             Set<Object> visited,
             String currentPath,
             boolean searchMetaAnnotation) {
@@ -388,7 +389,7 @@ public final class ClazzUtil {
     private static <T extends Annotation> void processArray(
             Object[] array,
             Class<T> annotationClass,
-            List<AnnotatedFieldResult<T>> results,
+            List<AnnotatedField<T>> results,
             Set<Object> visited,
             String currentPath,
             boolean searchMetaAnnotation) {
@@ -408,7 +409,7 @@ public final class ClazzUtil {
     private static <T extends Annotation> void processMap(
             Map<?, ?> map,
             Class<T> annotationClass,
-            List<AnnotatedFieldResult<T>> results,
+            List<AnnotatedField<T>> results,
             Set<Object> visited,
             String currentPath,
             boolean searchMetaAnnotation) {
@@ -489,50 +490,5 @@ public final class ClazzUtil {
     private static boolean isGenerics(Class<?> clazz) {
         TypeVariable<?>[] typeParameters = clazz.getTypeParameters();
         return typeParameters.length > 0;
-    }
-
-    /**
-     * Annotated field result record containing field, containing object, annotation, and field path
-     *
-     * @param field            the annotated field
-     * @param containingObject the object containing this field
-     * @param annotation       the annotation instance
-     * @param fieldPath        the field path for debugging and tracking
-     */
-    public record AnnotatedFieldResult<T extends Annotation>(
-            Field field,
-            Object containingObject,
-            T annotation,
-            String fieldPath) {
-
-        /**
-         * Get the field value safely
-         */
-        public Object getFieldValue() {
-            try {
-                field.setAccessible(true);
-                return field.get(containingObject);
-            } catch (IllegalAccessException e) {
-                throw new DesensitizeException("Cannot access field value: " + field.getName(), e);
-            }
-        }
-
-        /**
-         * Set the field value safely
-         */
-        public void setFieldValue(Object value) {
-            try {
-                field.setAccessible(true);
-                field.set(containingObject, value);
-            } catch (IllegalAccessException e) {
-                throw new DesensitizeException("Cannot set field value: " + field.getName(), e);
-            }
-        }
-
-        @Override
-        public String toString() {
-            return String.format("AnnotatedFieldResult{field=%s, path=%s, annotation=%s}",
-                    field.getName(), fieldPath, annotation.annotationType().getSimpleName());
-        }
     }
 }

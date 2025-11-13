@@ -28,6 +28,7 @@ package io.github.qwzhang01.desensitize.core;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import io.github.qwzhang01.desensitize.annotation.EncryptField;
 import io.github.qwzhang01.desensitize.container.AbstractEncryptAlgoContainer;
+import io.github.qwzhang01.desensitize.domain.AnnotatedField;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.kit.ClazzUtil;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
@@ -133,7 +134,7 @@ public class DecryptInterceptor implements Interceptor {
 
         for (Object result : resultList) {
             if (result != null) {
-                List<ClazzUtil.AnnotatedFieldResult<EncryptField>> encryptedFields =
+                List<AnnotatedField<EncryptField>> encryptedFields =
                         ClazzUtil.getAnnotatedFields(result, EncryptField.class);
                 decryptFields(encryptedFields);
             }
@@ -148,7 +149,7 @@ public class DecryptInterceptor implements Interceptor {
     private void decryptSingleResult(Object resultObject) {
         log.debug("Decrypting single result of type: {}", resultObject.getClass().getName());
 
-        List<ClazzUtil.AnnotatedFieldResult<EncryptField>> encryptedFields =
+        List<AnnotatedField<EncryptField>> encryptedFields =
                 ClazzUtil.getAnnotatedFields(resultObject, EncryptField.class);
         decryptFields(encryptedFields);
     }
@@ -162,7 +163,7 @@ public class DecryptInterceptor implements Interceptor {
      * @param fields the list of annotated field results to decrypt
      * @throws DesensitizeException if decryption fails
      */
-    private void decryptFields(List<ClazzUtil.AnnotatedFieldResult<EncryptField>> fields) {
+    private void decryptFields(List<AnnotatedField<EncryptField>> fields) {
         if (fields.isEmpty()) {
             log.debug("No encrypted fields found, skipping decryption");
             return;
@@ -177,7 +178,7 @@ public class DecryptInterceptor implements Interceptor {
         log.debug("Decrypting {} encrypted fields", fields.size());
 
         try {
-            for (ClazzUtil.AnnotatedFieldResult<EncryptField> fieldResult : fields) {
+            for (AnnotatedField<EncryptField> fieldResult : fields) {
                 decryptSingleField(fieldResult, container);
             }
         } catch (IllegalAccessException e) {
@@ -194,11 +195,11 @@ public class DecryptInterceptor implements Interceptor {
      * @param container   the encryption algorithm container
      * @throws IllegalAccessException if field access fails
      */
-    private void decryptSingleField(ClazzUtil.AnnotatedFieldResult<EncryptField> fieldResult,
+    private void decryptSingleField(AnnotatedField<EncryptField> fieldResult,
                                     AbstractEncryptAlgoContainer container) throws IllegalAccessException {
         EncryptField annotation = fieldResult.annotation();
         Field field = fieldResult.field();
-        Object containingObject = fieldResult.containingObject();
+        Object containingObject = fieldResult.obj();
         Object value = fieldResult.getFieldValue();
 
         // Only decrypt String values

@@ -23,18 +23,19 @@
  */
 
 
-package io.github.qwzhang01.desensitize.annotation;
+package io.github.qwzhang01.desensitize.mask.annotation;
 
-import io.github.qwzhang01.desensitize.shield.NameEnCoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.IdCardCoverAlgo;
 
 import java.lang.annotation.*;
 
 /**
- * @author avinzhang
+ * 自定义注解处理器例子
+ * 自定义的注解处理器本身是被  Mask 注解注释
  */
 @Inherited
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-@Mask(value = NameEnCoverAlgo.class)
-public @interface MaskNameEn {
+@Mask(value = IdCardCoverAlgo.class)
+public @interface MaskId {
 }

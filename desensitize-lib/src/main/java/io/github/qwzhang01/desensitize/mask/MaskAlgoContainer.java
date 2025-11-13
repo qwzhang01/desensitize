@@ -23,15 +23,16 @@
  */
 
 
-package io.github.qwzhang01.desensitize.container;
+package io.github.qwzhang01.desensitize.mask;
 
-import io.github.qwzhang01.desensitize.annotation.Mask;
+import io.github.qwzhang01.desensitize.domain.AnnotatedField;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.kit.ClazzUtil;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
-import io.github.qwzhang01.desensitize.shield.CoverAlgo;
-import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
+import io.github.qwzhang01.desensitize.mask.annotation.Mask;
+import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.DefaultCoverAlgo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -178,20 +179,27 @@ public final class MaskAlgoContainer {
 
         try {
             if (data instanceof List<?> list) {
-                // Process each element in the list
-                log.debug("Masking list with {} elements", list.size());
-                for (Object element : list) {
-                    maskSingleObject(element);
-                }
+                maskList(list);
             } else {
-                // Process single object
                 maskSingleObject(data);
             }
+
             return data;
         } catch (IllegalAccessException e) {
             throw new DesensitizeException("Failed to mask data due to field access error", e);
         } catch (Exception e) {
             throw new DesensitizeException("Failed to mask data", e);
+        }
+    }
+
+    private void maskList(List<?> list) throws IllegalAccessException {
+        log.debug("Masking list with {} elements", list.size());
+        for (Object data : list) {
+            if (data instanceof List<?> listInner) {
+                maskList(listInner);
+            } else {
+                maskSingleObject(data);
+            }
         }
     }
 
@@ -210,8 +218,8 @@ public final class MaskAlgoContainer {
         }
 
         // Find all fields with @Mask annotation (including meta-annotations)
-        List<ClazzUtil.AnnotatedFieldResult<Mask>> maskFields =
-                ClazzUtil.getAnnotatedFieldsWithMetaAnnotation(data, Mask.class);
+        List<AnnotatedField<Mask>> maskFields =
+                ClazzUtil.getMetaAnnotatedFields(data, Mask.class);
 
         if (CollectionUtils.isEmpty(maskFields)) {
             log.debug("No fields to mask in object of type: {}", data.getClass().getName());
@@ -220,7 +228,7 @@ public final class MaskAlgoContainer {
 
         log.debug("Masking {} fields in object of type: {}", maskFields.size(), data.getClass().getName());
 
-        for (ClazzUtil.AnnotatedFieldResult<Mask> maskField : maskFields) {
+        for (AnnotatedField<Mask> maskField : maskFields) {
             maskSingleField(maskField);
         }
     }
@@ -238,9 +246,9 @@ public final class MaskAlgoContainer {
      * @param maskField the annotated field result containing field, object, and annotation
      * @throws IllegalAccessException if field access fails
      */
-    private void maskSingleField(ClazzUtil.AnnotatedFieldResult<Mask> maskField) throws IllegalAccessException {
+    private void maskSingleField(AnnotatedField<Mask> maskField) throws IllegalAccessException {
         Mask annotation = maskField.annotation();
-        Object containingObject = maskField.containingObject();
+        Object containingObject = maskField.obj();
         Object fieldValue = maskField.getFieldValue();
         Field field = maskField.field();
 

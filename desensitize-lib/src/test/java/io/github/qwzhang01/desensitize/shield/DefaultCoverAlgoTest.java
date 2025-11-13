@@ -1,5 +1,6 @@
 package io.github.qwzhang01.desensitize.shield;
 
+import io.github.qwzhang01.desensitize.mask.shield.RoutineCoverAlgo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

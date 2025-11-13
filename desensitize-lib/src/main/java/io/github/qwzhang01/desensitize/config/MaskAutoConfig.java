@@ -25,11 +25,12 @@
 
 package io.github.qwzhang01.desensitize.config;
 
-import io.github.qwzhang01.desensitize.advice.MaskAdvice;
+import io.github.qwzhang01.desensitize.mask.advice.MaskAdvice;
 import io.github.qwzhang01.desensitize.container.*;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
-import io.github.qwzhang01.desensitize.shield.CoverAlgo;
-import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
+import io.github.qwzhang01.desensitize.mask.MaskAlgoContainer;
+import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.DefaultCoverAlgo;
 import io.github.qwzhang01.desensitize.shield.DefaultEncryptionAlgo;
 import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

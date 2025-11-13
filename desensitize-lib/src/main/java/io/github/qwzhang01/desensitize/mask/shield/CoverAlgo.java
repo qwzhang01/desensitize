@@ -22,43 +22,24 @@
  * SOFTWARE.
  */
 
-
-package io.github.qwzhang01.desensitize.annotation;
-
-import io.github.qwzhang01.desensitize.shield.EmailCoverAlgo;
-
-import java.lang.annotation.*;
+package io.github.qwzhang01.desensitize.mask.shield;
 
 /**
- * Annotation for marking email address fields that require masking.
- *
- * <p>This annotation specifically targets email address fields and applies
- * email masking algorithm. The email masking typically keeps the first and
- * last characters of the username while masking the middle part, leaving
- * the domain unchanged.</p>
- *
- * <p>This annotation is a specialized version of {@link Mask} annotation
- * with EmailCoverAlgo as the default masking algorithm.</p>
- *
- * <p>Usage example:</p>
- * <pre>
- * public class User {
- *     {@code @MaskEmail}
- *     private String email; // Will be masked as u***r@example.com
- * }
- * </pre>
+ * Data masking algorithm interface.
+ * Provides contract for implementing various data masking strategies
+ * to protect sensitive information.
  *
  * @author avinzhang
- * @see Mask
- * @see EmailCoverAlgo
  * @since 1.0.0
  */
-@Inherited
-@Target({ElementType.FIELD})
-@Retention(RetentionPolicy.RUNTIME)
-@Documented
-@Mask(value = EmailCoverAlgo.class)
-public @interface MaskEmail {
-    // This annotation uses the @Mask meta-annotation with EmailCoverAlgo
-    // No additional attributes are needed as the behavior is defined by the meta-annotation
+public interface CoverAlgo {
+
+    /**
+     * Masks sensitive data content according to the specific algorithm implementation.
+     * This is the main entry point for data masking operations.
+     *
+     * @param content the sensitive data content to be masked, can be null or empty
+     * @return the masked data content, or original content if masking is not applicable
+     */
+    String mask(String content);
 }

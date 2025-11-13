@@ -23,16 +23,15 @@
  */
 
 
-package io.github.qwzhang01.desensitize.shield;
+package io.github.qwzhang01.desensitize.mask.annotation;
 
-/**
- * 默认脱敏算法实现
- *
- * @author avinzhang
- */
-public class IdCardCoverAlgo extends RoutineCoverAlgo {
-    @Override
-    public String mask(String content) {
-        return super.maskIdCard(content);
-    }
+import io.github.qwzhang01.desensitize.mask.shield.NameCoverAlgo;
+
+import java.lang.annotation.*;
+
+@Inherited
+@Target({ElementType.FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+@Mask(value = NameCoverAlgo.class)
+public @interface MaskName {
 }

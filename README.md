@@ -30,8 +30,8 @@ phone numbers, ID cards, emails, and personal names.
 #### Using Default Masking Algorithms
 
 ```java
-import io.github.qwzhang01.desensitize.shield.DefaultCoverAlgo;
-import io.github.qwzhang01.desensitize.shield.CoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.DefaultCoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
 
 // Create an instance of the default masking algorithm
 CoverAlgo coverAlgo = new DefaultCoverAlgo();
@@ -82,7 +82,7 @@ automatically configured.
 
 ```java
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
-import io.github.qwzhang01.desensitize.shield.CoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
 
 // Get masking algorithm from Spring context
 CoverAlgo coverAlgo = SpringContextUtil.getBean(CoverAlgo.class);
@@ -140,7 +140,7 @@ String encrypted = DesensitizeUtil.encrypt("sensitive data");
 ### Custom Masking Algorithm
 
 ```java
-import io.github.qwzhang01.desensitize.shield.CoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
 
 @Component
 public class CustomCoverAlgo implements CoverAlgo {

@@ -23,16 +23,16 @@
  */
 
 
-package io.github.qwzhang01.desensitize.shield;
+package io.github.qwzhang01.desensitize.mask.shield;
 
 /**
  * 默认脱敏算法实现
  *
  * @author avinzhang
  */
-public class EmailCoverAlgo extends RoutineCoverAlgo {
+public class NameCoverAlgo extends RoutineCoverAlgo {
     @Override
     public String mask(String content) {
-        return super.maskEmail(content);
+        return super.maskChineseName(content);
     }
 }

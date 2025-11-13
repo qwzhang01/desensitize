@@ -22,28 +22,17 @@
  * SOFTWARE.
  */
 
-package io.github.qwzhang01.desensitize.shield;
+
+package io.github.qwzhang01.desensitize.mask.shield;
 
 /**
- * Default data masking algorithm implementation.
- * Extends RoutineCoverAlgo to provide a comprehensive set of masking strategies
- * for various types of sensitive data including phone numbers, ID cards, emails, and names.
- *
- * <p>This class serves as the primary implementation for data masking operations
- * and can be easily extended or customized for specific business requirements.</p>
+ * 默认脱敏算法实现
  *
  * @author avinzhang
- * @see RoutineCoverAlgo
- * @see CoverAlgo
- * @since 1.0.0
  */
-public class DefaultCoverAlgo extends RoutineCoverAlgo {
-
-    /**
-     * Default constructor.
-     * Creates a new instance with all inherited masking capabilities from RoutineCoverAlgo.
-     */
-    public DefaultCoverAlgo() {
-        super();
+public class NameEnCoverAlgo extends RoutineCoverAlgo {
+    @Override
+    public String mask(String content) {
+        return super.maskEnglishName(content);
     }
 }

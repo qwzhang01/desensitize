@@ -22,24 +22,19 @@
  * SOFTWARE.
  */
 
-package io.github.qwzhang01.desensitize.shield;
+
+package io.github.qwzhang01.desensitize.mask.annotation;
+
+import io.github.qwzhang01.desensitize.mask.shield.NameEnCoverAlgo;
+
+import java.lang.annotation.*;
 
 /**
- * Data masking algorithm interface.
- * Provides contract for implementing various data masking strategies
- * to protect sensitive information.
- *
  * @author avinzhang
- * @since 1.0.0
  */
-public interface CoverAlgo {
-
-    /**
-     * Masks sensitive data content according to the specific algorithm implementation.
-     * This is the main entry point for data masking operations.
-     *
-     * @param content the sensitive data content to be masked, can be null or empty
-     * @return the masked data content, or original content if masking is not applicable
-     */
-    String mask(String content);
+@Inherited
+@Target({ElementType.FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+@Mask(value = NameEnCoverAlgo.class)
+public @interface MaskNameEn {
 }
