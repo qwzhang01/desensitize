@@ -31,6 +31,7 @@ import io.github.qwzhang01.desensitize.exception.DesensitizeException;
 import io.github.qwzhang01.desensitize.kit.ClazzUtil;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.mask.annotation.Mask;
+import io.github.qwzhang01.desensitize.mask.domain.MaskVo;
 import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.mask.shield.DefaultCoverAlgo;
 import org.slf4j.Logger;
@@ -38,7 +39,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -217,6 +220,17 @@ public final class MaskAlgoContainer {
             return;
         }
 
+        Set<String> maskFieldSet = null;
+        if (data instanceof MaskVo maskVo) {
+            if (!Boolean.TRUE.equals(maskVo.getMaskFlag())) {
+                return;
+            }
+            List<String> maskFieldName = maskVo.getMaskFields();
+            if (maskFieldName != null && !maskFieldName.isEmpty()) {
+                maskFieldSet = new HashSet<>(maskFieldName);
+            }
+        }
+
         // Find all fields with @Mask annotation (including meta-annotations)
         List<AnnotatedField<Mask>> maskFields =
                 ClazzUtil.getMetaAnnotatedFields(data, Mask.class);
@@ -229,7 +243,14 @@ public final class MaskAlgoContainer {
         log.debug("Masking {} fields in object of type: {}", maskFields.size(), data.getClass().getName());
 
         for (AnnotatedField<Mask> maskField : maskFields) {
-            maskSingleField(maskField);
+            if (maskFieldSet == null) {
+                maskSingleField(maskField);
+            } else {
+                if (maskFieldSet.contains(maskField.fieldPath())) {
+                    maskSingleField(maskField);
+                }
+            }
+
         }
     }
 
