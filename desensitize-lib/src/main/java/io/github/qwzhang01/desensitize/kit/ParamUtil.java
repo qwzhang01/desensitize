@@ -6,6 +6,8 @@ import io.github.qwzhang01.desensitize.encrypt.container.AbstractEncryptAlgoCont
 import io.github.qwzhang01.desensitize.encrypt.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
+import io.github.qwzhang01.sql.tool.helper.ParserHelper;
+import io.github.qwzhang01.sql.tool.jsqlparser.param.ParamExtractor;
 import io.github.qwzhang01.sql.tool.model.SqlParam;
 import io.github.qwzhang01.sql.tool.model.SqlTable;
 import org.apache.ibatis.mapping.ParameterMapping;
@@ -17,10 +19,8 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.regex.Matcher;
 
 import static io.github.qwzhang01.desensitize.kit.ClazzUtil.setPropertyValue;
-import static io.github.qwzhang01.desensitize.kit.RegexPatterns.*;
 
 /**
  * 参数解析工具
@@ -113,14 +113,13 @@ public final class ParamUtil {
             log.debug("QueryWrapper SQL 片段: {}", sqlSegment);
             log.debug("QueryWrapper 参数: {}", paramNameValuePairs);
 
-            // 解析字段与参数的映射关系
             Map<String, String> fieldParamMapping = parseFieldParamMapping(sqlSegment);
 
             // 处理每个参数
             List<ParameterEncryptInfo> encryptInfos = new ArrayList<>();
             for (Map.Entry<String, String> entry : fieldParamMapping.entrySet()) {
-                String fieldName = entry.getKey();
-                String paramName = entry.getValue();
+                String fieldName = entry.getValue();
+                String paramName = entry.getKey();
                 Object paramValue = paramNameValuePairs.get(paramName);
 
                 if (paramValue instanceof String) {
@@ -324,35 +323,22 @@ public final class ParamUtil {
      * 解析字段与参数的映射关系
      */
     private static Map<String, String> parseFieldParamMapping(String sqlSegment) {
-        Map<String, String> mapping = new HashMap<>();
 
         if (StringUtil.isEmpty(sqlSegment)) {
-            return mapping;
+            return Collections.emptyMap();
         }
 
         try {
-            // 使用统一的正则表达式模式
-            parseFieldMapping(sqlSegment, QW_EQUAL_PATTERN, mapping, "等值");
-            parseFieldMapping(sqlSegment, QW_LIKE_PATTERN, mapping, "LIKE");
-            parseFieldMapping(sqlSegment, QW_IN_PATTERN, mapping, "IN");
-
+            String sql = ParamExtractor.preProcessSql("select * from a where " + sqlSegment);
+            Map<String, String> mapping = new HashMap<>();
+            List<SqlParam> params = ParserHelper.getParam(sql);
+            for (SqlParam param : params) {
+                // `examVenueId` = #{ew.paramNameValuePairs.MPGENVAL1}
+                mapping.put("MPGENVAL" + param.getIndex(), param.getColumn());
+            }
+            return mapping;
         } catch (Exception e) {
             throw new DesensitizeException("解析字段参数映射失败", e);
-        }
-        return mapping;
-    }
-
-    /**
-     * 解析特定模式的字段映射
-     */
-    private static void parseFieldMapping(String sqlSegment, java.util.regex.Pattern pattern,
-                                          Map<String, String> mapping, String patternType) {
-        Matcher matcher = pattern.matcher(sqlSegment);
-        while (matcher.find()) {
-            String fieldName = matcher.group(1);
-            String paramName = matcher.group(2);
-            mapping.put(fieldName, paramName);
-            log.debug("解析到 {} 字段映射: {} -> {}", patternType, fieldName, paramName);
         }
     }
 

@@ -44,16 +44,21 @@ public class EncryptProcessor {
      * @param invocation the method invocation containing SQL and parameters
      */
     public void encryptParameters(Invocation invocation) {
+        StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
+        // 获取 ParameterHandler 中的参数对象
+        Object parameterObject = statementHandler.getParameterHandler().getParameterObject();
+        BoundSql boundSql = statementHandler.getBoundSql();
+
+        encryptParameters(boundSql, parameterObject);
+    }
+
+    private void encryptParameters(BoundSql boundSql, Object parameterObject) {
         try {
             EncryptFieldTableContainer container = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
             if (!container.hasEncrypt()) {
                 // 没有注解加密字段无需走这个拦截器
                 // return;
             }
-            StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
-            // 获取 ParameterHandler 中的参数对象
-            Object parameterObject = statementHandler.getParameterHandler().getParameterObject();
-            BoundSql boundSql = statementHandler.getBoundSql();
 
             String originalSql = boundSql.getSql();
             log.debug("开始处理查询加密，SQL: {}", originalSql);

@@ -1,7 +1,7 @@
 package com.qw.desensitize.config;
 
-import io.github.qwzhang01.desensitize.container.AbstractEncryptAlgoContainer;
-import io.github.qwzhang01.desensitize.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.encrypt.container.AbstractEncryptAlgoContainer;
+import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;

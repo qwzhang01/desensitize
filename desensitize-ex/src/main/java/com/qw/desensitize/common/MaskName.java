@@ -1,6 +1,6 @@
 package com.qw.desensitize.common;
 
-import io.github.qwzhang01.desensitize.annotation.Mask;
+import io.github.qwzhang01.desensitize.mask.annotation.Mask;
 
 import java.lang.annotation.*;
 

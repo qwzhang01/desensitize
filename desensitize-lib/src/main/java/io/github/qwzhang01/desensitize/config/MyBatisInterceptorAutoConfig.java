@@ -26,6 +26,8 @@
 package io.github.qwzhang01.desensitize.config;
 
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
 import io.github.qwzhang01.desensitize.encrypt.type.handler.EncryptTypeHandler;
 import io.github.qwzhang01.desensitize.interceptor.DecryptInterceptor;
@@ -36,6 +38,8 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
@@ -63,6 +67,12 @@ public class MyBatisInterceptorAutoConfig {
     private List<SqlSessionFactory> sqlSessionFactories;
     @Autowired
     private Environment environment;
+
+    @Bean
+    @ConditionalOnMissingBean(ObjectMapper.class)
+    public MybatisPlusInterceptor paginationInterceptor() {
+        return new MybatisPlusInterceptor();
+    }
 
     /**
      * Adds desensitization interceptors to all available SqlSessionFactory instances.

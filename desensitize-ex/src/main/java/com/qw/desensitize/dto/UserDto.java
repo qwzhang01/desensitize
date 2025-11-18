@@ -1,12 +1,12 @@
 package com.qw.desensitize.dto;
 
 import com.qw.desensitize.common.MaskName;
-import io.github.qwzhang01.desensitize.annotation.EncryptField;
-import io.github.qwzhang01.desensitize.annotation.Mask;
-import io.github.qwzhang01.desensitize.annotation.MaskId;
-import io.github.qwzhang01.desensitize.annotation.MaskPhone;
+import com.qw.desensitize.common.NameCoverAlgo;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
-import io.github.qwzhang01.desensitize.shield.NameCoverAlgo;
+import io.github.qwzhang01.desensitize.encrypt.annotation.EncryptField;
+import io.github.qwzhang01.desensitize.mask.annotation.Mask;
+import io.github.qwzhang01.desensitize.mask.annotation.MaskId;
+import io.github.qwzhang01.desensitize.mask.annotation.MaskPhone;
 import lombok.Data;
 
 /**

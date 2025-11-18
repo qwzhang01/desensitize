@@ -1,6 +1,6 @@
 package com.qw.desensitize.common;
 
-import io.github.qwzhang01.desensitize.shield.CoverAlgo;
+import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
 import org.springframework.stereotype.Component;
 
 /**
