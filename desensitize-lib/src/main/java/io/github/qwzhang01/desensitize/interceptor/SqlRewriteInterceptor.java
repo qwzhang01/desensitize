@@ -24,10 +24,8 @@
 
 package io.github.qwzhang01.desensitize.interceptor;
 
-import io.github.qwzhang01.desensitize.encrypt.annotation.EncryptField;
 import io.github.qwzhang01.desensitize.encrypt.context.SqlRewriteContext;
 import io.github.qwzhang01.desensitize.encrypt.processor.EncryptProcessor;
-import io.github.qwzhang01.desensitize.scope.DataScopeHelper;
 import io.github.qwzhang01.desensitize.scope.processor.DataScopeProcessor;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.plugin.*;
@@ -76,8 +74,6 @@ public class SqlRewriteInterceptor implements Interceptor {
 
     /**
      * Intercepts StatementHandler methods to apply SQL rewriting and parameter encryption.
-     *
-
      */
     @Override
     public Object intercept(Invocation invocation) throws Throwable {

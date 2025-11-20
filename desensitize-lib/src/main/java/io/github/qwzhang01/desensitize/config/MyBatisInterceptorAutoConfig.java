@@ -31,7 +31,6 @@ import io.github.qwzhang01.desensitize.domain.Encrypt;
 import io.github.qwzhang01.desensitize.encrypt.type.handler.EncryptTypeHandler;
 import io.github.qwzhang01.desensitize.interceptor.DecryptInterceptor;
 import io.github.qwzhang01.desensitize.interceptor.SqlPrintInterceptor;
-import io.github.qwzhang01.desensitize.interceptor.SqlRewriteInterceptor;
 import jakarta.annotation.PostConstruct;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +39,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 
 import java.util.List;
@@ -68,6 +68,7 @@ public class MyBatisInterceptorAutoConfig {
 
     @Bean
     @ConditionalOnMissingBean(MybatisPlusInterceptor.class)
+    @Order(20)
     public MybatisPlusInterceptor paginationInterceptor() {
         return new MybatisPlusInterceptor();
     }
@@ -83,8 +84,6 @@ public class MyBatisInterceptorAutoConfig {
             for (SqlSessionFactory sqlSessionFactory : sqlSessionFactories) {
                 org.apache.ibatis.session.Configuration configuration = sqlSessionFactory.getConfiguration();
                 configuration.addInterceptor(new DecryptInterceptor());
-                configuration.addInterceptor(new SqlRewriteInterceptor());
-                // Register Encrypt type handler
                 configuration.getTypeHandlerRegistry().register(Encrypt.class, EncryptTypeHandler.class);
                 configuration.addInterceptor(new SqlPrintInterceptor(environment));
             }

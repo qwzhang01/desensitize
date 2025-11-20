@@ -25,11 +25,13 @@
 
 package io.github.qwzhang01.desensitize.config;
 
+import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
 import io.github.qwzhang01.desensitize.encrypt.container.AbstractEncryptAlgoContainer;
 import io.github.qwzhang01.desensitize.encrypt.container.EncryptFieldTableContainer;
 import io.github.qwzhang01.desensitize.encrypt.container.EncryptionAlgoContainer;
 import io.github.qwzhang01.desensitize.encrypt.shield.DefaultEncryptionAlgo;
 import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
+import io.github.qwzhang01.desensitize.interceptor.SqlRewriteInterceptor;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.mask.MaskAlgoContainer;
 import io.github.qwzhang01.desensitize.mask.advice.MaskAdvice;
@@ -39,6 +41,7 @@ import io.github.qwzhang01.desensitize.scope.container.DataScopeStrategyContaine
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
 /**
  * Auto-configuration class for data masking and encryption functionality.
@@ -67,6 +70,13 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class MaskAutoConfig {
+    @Bean
+    @Order(-100)
+    public ConfigurationCustomizer myFirstCustomizer() {
+        return configuration -> {
+            configuration.addInterceptor(new SqlRewriteInterceptor());
+        };
+    }
 
     @Bean
     @ConditionalOnMissingBean(MaskAdvice.class)
