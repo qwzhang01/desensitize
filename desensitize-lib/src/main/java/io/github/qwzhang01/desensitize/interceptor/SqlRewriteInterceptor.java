@@ -42,40 +42,7 @@ import java.util.Properties;
 /**
  * MyBatis interceptor for SQL rewriting and parameter encryption.
  *
- * <p>This interceptor handles two main responsibilities:</p>
- * <ol>
- *   <li><strong>Parameter Encryption:</strong> Automatically encrypts query parameters for encrypted fields</li>
- *   <li><strong>Data Scope Control:</strong> Injects WHERE clauses and JOINs for data permission control</li>
- * </ol>
- *
- * <p><strong>MyBatis Interceptor Execution Order:</strong></p>
- * <pre>
- * 1. Executor          - Overall execution logic (update, query)
- * 2. StatementHandler  - SQL preparation (this interceptor intercepts here)
- * 3. ParameterHandler  - Parameter binding
- * 4. StatementHandler  - SQL execution
- * 5. ResultSetHandler  - Result set processing
- * </pre>
- *
- * <p><strong>Intercepted Methods:</strong></p>
- * <ul>
- *   <li>{@code prepare} - Encrypts parameters and applies data scope BEFORE execution</li>
- *   <li>{@code update/query/queryCursor} - Restores original parameters AFTER execution</li>
- * </ul>
- *
- * <p><strong>Thread Safety:</strong> Uses {@link SqlRewriteContext} with ThreadLocal
- * to maintain parameter state across method calls.</p>
- *
- * <p><strong>Design Patterns:</strong></p>
- * <ul>
- *   <li>Strategy Pattern: Different encryption algorithms per field</li>
- *   <li>Template Method: Common encryption flow with pluggable algorithms</li>
- *   <li>Context Pattern: ThreadLocal context for parameter restoration</li>
- * </ul>
- *
  * @author avinzhang
- * @see EncryptField
- * @see DataScopeHelper
  */
 @Intercepts({
         @Signature(
@@ -110,15 +77,7 @@ public class SqlRewriteInterceptor implements Interceptor {
     /**
      * Intercepts StatementHandler methods to apply SQL rewriting and parameter encryption.
      *
-     * <p>This method implements a two-phase approach:</p>
-     * <ol>
-     *   <li><strong>Prepare Phase:</strong> Encrypt parameters and apply data scope</li>
-     *   <li><strong>Execute Phase:</strong> Restore original parameters after execution</li>
-     * </ol>
-     *
-     * @param invocation the method invocation details
-     * @return the result of the method execution
-     * @throws Throwable if the underlying operation fails
+
      */
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -130,7 +89,6 @@ public class SqlRewriteInterceptor implements Interceptor {
             return handleExecutionPhase(invocation);
         }
 
-        // For other methods, just proceed without intervention
         return invocation.proceed();
     }
 

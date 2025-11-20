@@ -27,7 +27,6 @@ package io.github.qwzhang01.desensitize.config;
 
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
 import io.github.qwzhang01.desensitize.encrypt.type.handler.EncryptTypeHandler;
 import io.github.qwzhang01.desensitize.interceptor.DecryptInterceptor;
@@ -62,14 +61,13 @@ import java.util.List;
 @ConditionalOnClass({SqlSessionFactory.class})
 @AutoConfigureAfter(MybatisPlusAutoConfiguration.class)
 public class MyBatisInterceptorAutoConfig {
-
     @Autowired(required = false)
     private List<SqlSessionFactory> sqlSessionFactories;
     @Autowired
     private Environment environment;
 
     @Bean
-    @ConditionalOnMissingBean(ObjectMapper.class)
+    @ConditionalOnMissingBean(MybatisPlusInterceptor.class)
     public MybatisPlusInterceptor paginationInterceptor() {
         return new MybatisPlusInterceptor();
     }
@@ -84,18 +82,10 @@ public class MyBatisInterceptorAutoConfig {
         if (sqlSessionFactories != null && !sqlSessionFactories.isEmpty()) {
             for (SqlSessionFactory sqlSessionFactory : sqlSessionFactories) {
                 org.apache.ibatis.session.Configuration configuration = sqlSessionFactory.getConfiguration();
-
-
-                // Add interceptors in the correct order
-                // DecryptInterceptor should be first to decrypt data when reading
                 configuration.addInterceptor(new DecryptInterceptor());
-
-                // SqlRewriteInterceptor for SQL modification if needed
                 configuration.addInterceptor(new SqlRewriteInterceptor());
-
                 // Register Encrypt type handler
                 configuration.getTypeHandlerRegistry().register(Encrypt.class, EncryptTypeHandler.class);
-
                 configuration.addInterceptor(new SqlPrintInterceptor(environment));
             }
         }

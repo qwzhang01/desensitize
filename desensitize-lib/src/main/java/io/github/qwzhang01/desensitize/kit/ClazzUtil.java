@@ -39,20 +39,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
- * Class operation utility.
- * Provides utility methods for class reflection, field analysis, and annotation processing.
+ * Class operation utility for reflection operations.
  *
  * @author avinzhang
  */
 public final class ClazzUtil {
     private final static Set<Class<?>> NO_CLASS = new CopyOnWriteArraySet<>();
-    /**
-     * Cache for processed classes to avoid repeated reflection operations
-     */
     private static final Map<Class<?>, List<Field>> FIELD_CACHE = new ConcurrentHashMap<>();
-    /**
-     * Cache for checked types to avoid infinite recursion
-     */
     private static final Set<Class<?>> PRIMITIVE_TYPES = Set.of(
             String.class, Integer.class, Long.class, Double.class, Float.class,
             Boolean.class, Byte.class, Short.class, Character.class,
@@ -61,11 +54,11 @@ public final class ClazzUtil {
     );
 
     /**
-     * 获取对象的属性值
+     * Get object property value
      */
     public static Object getPropertyValue(Object obj, String propertyName) throws Exception {
         if (obj == null || propertyName == null || propertyName.trim().isEmpty()) {
-            throw new IllegalArgumentException("对象和属性名不能为空");
+            throw new IllegalArgumentException("Object and property name cannot be null");
         }
 
         if (isPrimitiveOrCommonType(obj.getClass())) {
@@ -74,43 +67,38 @@ public final class ClazzUtil {
 
         String capitalizedName = StringUtils.capitalize(propertyName);
 
-        // 尝试 getter 方法
         Object result = tryGetterMethod(obj, "get" + capitalizedName);
         if (result != null) {
             return result;
         }
 
-        // 尝试 boolean 类型的 is 方法
         result = tryGetterMethod(obj, "is" + capitalizedName);
         if (result != null) {
             return result;
         }
 
-        // 直接通过字段访问
         return getFieldValue(obj, propertyName);
     }
 
     /**
-     * 设置对象的属性值
+     * Set object property value
      */
     public static void setPropertyValue(Object obj, String propertyName, Object value) throws Exception {
         if (obj == null || propertyName == null || propertyName.trim().isEmpty()) {
-            throw new IllegalArgumentException("对象和属性名不能为空");
+            throw new IllegalArgumentException("Object and property name cannot be null");
         }
 
         String setterName = "set" + StringUtils.capitalize(propertyName);
 
-        // 尝试通过 setter 方法设置
         if (trySetterMethod(obj, setterName, value)) {
             return;
         }
 
-        // 直接通过字段设置
         setFieldValue(obj, propertyName, value);
     }
 
     /**
-     * 尝试调用 getter 方法
+     * Try getter method
      */
     private static Object tryGetterMethod(Object obj, String methodName) {
         try {
@@ -122,7 +110,7 @@ public final class ClazzUtil {
     }
 
     /**
-     * 尝试调用 setter 方法
+     * Try setter method
      */
     private static boolean trySetterMethod(Object obj, String methodName, Object value) {
         try {
@@ -135,31 +123,31 @@ public final class ClazzUtil {
     }
 
     /**
-     * 通过字段获取值
+     * Get value via field
      */
     private static Object getFieldValue(Object obj, String fieldName) throws Exception {
         Field field = findField(obj.getClass(), fieldName);
         if (field == null) {
-            throw new DesensitizeException("无法获取属性: " + fieldName);
+            throw new DesensitizeException("Cannot get property: " + fieldName);
         }
         field.setAccessible(true);
         return field.get(obj);
     }
 
     /**
-     * 通过字段设置值
+     * Set value via field
      */
     private static void setFieldValue(Object obj, String fieldName, Object value) throws Exception {
         Field field = findField(obj.getClass(), fieldName);
         if (field == null) {
-            throw new DesensitizeException("无法设置属性: " + fieldName);
+            throw new DesensitizeException("Cannot set property: " + fieldName);
         }
         field.setAccessible(true);
         field.set(obj, value);
     }
 
     /**
-     * 在类层次结构中查找方法
+     * Find method in class hierarchy
      */
     public static Method findMethod(Class<?> clazz, String methodName) {
         while (clazz != null && clazz != Object.class) {
@@ -173,8 +161,7 @@ public final class ClazzUtil {
     }
 
     /**
-     * 递归查找字段（包括父类）
-     * 在类层次结构中查找字段
+     * Find field in class hierarchy
      */
     public static Field findField(Class<?> clazz, String fieldName) {
         while (clazz != null && clazz != Object.class) {
@@ -188,12 +175,7 @@ public final class ClazzUtil {
     }
 
     /**
-     * Recursively retrieves all fields with specified annotation from object and its complex properties
-     * This method searches for meta-annotations (annotations on annotations)
-     *
-     * @param obj             the object to inspect
-     * @param annotationClass the annotation class to search for
-     * @return list of results containing fields and their corresponding objects
+     * Get fields with meta-annotations
      */
     public static <T extends Annotation> List<AnnotatedField<T>> getMetaAnnotatedFields(
             Object obj, Class<T> annotationClass) {
@@ -201,12 +183,7 @@ public final class ClazzUtil {
     }
 
     /**
-     * Recursively retrieves all fields with specified annotation from object and its complex properties
-     * This method searches for direct annotations only
-     *
-     * @param obj             the object to inspect
-     * @param annotationClass the annotation class to search for
-     * @return list of results containing fields and their corresponding objects
+     * Get fields with direct annotations
      */
     public static <T extends Annotation> List<AnnotatedField<T>> getAnnotatedFields(
             Object obj, Class<T> annotationClass) {
@@ -215,11 +192,6 @@ public final class ClazzUtil {
 
     /**
      * Internal method for retrieving annotated fields
-     *
-     * @param obj                  the object to inspect
-     * @param annotationClass      the annotation class to search for
-     * @param searchMetaAnnotation whether to search for meta-annotations
-     * @return list of results containing fields and their corresponding objects
      */
     private static <T extends Annotation> List<AnnotatedField<T>> getAnnotatedFieldsInternal(
             Object obj, Class<T> annotationClass, boolean searchMetaAnnotation) {
@@ -244,14 +216,7 @@ public final class ClazzUtil {
     }
 
     /**
-     * Recursively collects fields with specified annotation
-     *
-     * @param obj                  the current object being inspected
-     * @param annotationClass      the annotation class to search for
-     * @param results              result collector
-     * @param visited              set of visited objects to prevent circular references
-     * @param fieldPath            field path for debugging and tracking
-     * @param searchMetaAnnotation whether to search for meta-annotations
+     * Collect annotated fields recursively
      */
     private static <T extends Annotation> void collectAnnotatedFields(
             Object obj,
@@ -267,7 +232,6 @@ public final class ClazzUtil {
 
         Class<?> objClass = obj.getClass();
 
-        // Skip primitive types and common Java types
         if (isPrimitiveOrCommonType(objClass)) {
             return;
         }
@@ -275,7 +239,6 @@ public final class ClazzUtil {
         visited.add(obj);
 
         try {
-            // Get all fields from current class and its parent classes
             List<Field> fields = getAllFields(objClass);
 
             for (Field field : fields) {
@@ -286,7 +249,6 @@ public final class ClazzUtil {
                 field.setAccessible(true);
 
                 try {
-                    // Check if field has target annotation
                     T annotation = findAnnotation(field, annotationClass, searchMetaAnnotation);
                     if (annotation != null) {
                         if (searchMetaAnnotation) {
@@ -308,7 +270,6 @@ public final class ClazzUtil {
                     }
 
                     if (!searchMetaAnnotation) {
-                        // Process field value recursively
                         Object fieldValue = field.get(obj);
                         if (fieldValue != null && isComplexObject(fieldValue.getClass())) {
                             String currentPath = buildFieldPath(fieldPath, field.getName());
@@ -317,7 +278,7 @@ public final class ClazzUtil {
                     }
 
                 } catch (IllegalAccessException e) {
-                    // Ignore inaccessible fields
+                    // Ignore
                 }
             }
         } finally {
@@ -326,16 +287,13 @@ public final class ClazzUtil {
     }
 
     /**
-     * Find annotation on field, with optional meta-annotation search
+     * Find annotation on field
      */
     private static <T extends Annotation> T findAnnotation(Field field, Class<T> annotationClass, boolean searchMetaAnnotation) {
-        // First try direct annotation
         T annotation = field.getAnnotation(annotationClass);
         if (annotation != null || !searchMetaAnnotation) {
             return annotation;
         }
-
-        // Search for meta-annotations
         return Arrays.stream(field.getAnnotations())
                 .map(a -> a.annotationType().getAnnotation(annotationClass))
                 .filter(Objects::nonNull)
@@ -344,14 +302,14 @@ public final class ClazzUtil {
     }
 
     /**
-     * Build field path string
+     * Build field path
      */
     private static String buildFieldPath(String parentPath, String fieldName) {
         return parentPath.isEmpty() ? fieldName : parentPath + "." + fieldName;
     }
 
     /**
-     * Process complex field values (collections, arrays, maps, objects)
+     * Process complex field values
      */
     private static <T extends Annotation> void processComplexFieldValue(
             Object fieldValue,
@@ -361,20 +319,13 @@ public final class ClazzUtil {
             String currentPath,
             boolean searchMetaAnnotation) {
 
-        // Handle collection types
         if (fieldValue instanceof Collection<?> collection) {
             processCollection(collection, annotationClass, results, visited, currentPath, searchMetaAnnotation);
-        }
-        // Handle array types
-        else if (fieldValue.getClass().isArray()) {
+        } else if (fieldValue.getClass().isArray()) {
             processArray((Object[]) fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
-        }
-        // Handle Map types
-        else if (fieldValue instanceof Map<?, ?> map) {
+        } else if (fieldValue instanceof Map<?, ?> map) {
             processMap(map, annotationClass, results, visited, currentPath, searchMetaAnnotation);
-        }
-        // Handle regular complex objects
-        else {
+        } else {
             collectAnnotatedFields(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
         }
     }
@@ -441,7 +392,7 @@ public final class ClazzUtil {
     }
 
     /**
-     * Get all fields of a class (including parent classes)
+     * Get all fields of a class
      */
     private static List<Field> getAllFields(Class<?> clazz) {
         return FIELD_CACHE.computeIfAbsent(clazz, k -> {
@@ -458,7 +409,7 @@ public final class ClazzUtil {
     }
 
     /**
-     * Determine if it's a primitive type or common type
+     * Check if primitive or common type
      */
     private static boolean isPrimitiveOrCommonType(Class<?> clazz) {
         if (clazz == null) {
@@ -472,20 +423,17 @@ public final class ClazzUtil {
     }
 
     /**
-     * Determine if it's a complex object (object that needs recursive processing)
+     * Check if complex object
      */
     private static boolean isComplexObject(Class<?> clazz) {
-        // Collections, arrays, and maps are always complex
         if (isCollection(clazz) || clazz.isArray()) {
             return true;
         }
 
-        // For arrays, check component type
         if (clazz.isArray()) {
             return !isPrimitiveOrCommonType(clazz.getComponentType());
         }
 
-        // Other types are complex if they're not primitive/common types
         return !isPrimitiveOrCommonType(clazz);
     }
 
@@ -497,7 +445,7 @@ public final class ClazzUtil {
     }
 
     /**
-     * Check if field should be skipped (static, final, or transient)
+     * Check if field should be skipped
      */
     private static boolean isFinalAndStatic(Field field) {
         int modifiers = field.getModifiers();
