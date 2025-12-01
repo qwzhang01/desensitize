@@ -185,4 +185,13 @@ public final class StringUtil {
     public static boolean isNotEmpty(String str) {
         return !isEmpty(str);
     }
+
+
+    public static String clearSqlTip(String sql) {
+        if (isEmpty(sql)) {
+            return sql;
+        }
+        return sql.trim().replaceAll("`", "");
+    }
+
 }

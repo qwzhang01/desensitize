@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static io.github.qwzhang01.desensitize.kit.StringUtil.clearSqlTip;
+
 /**
  * @author avinzhang
  */
@@ -38,7 +40,8 @@ public class EncryptFieldTableContainer {
                     if (encryptField != null) {
                         EncryptColumn encryptColumn = getEncryptColumn(t, fieldInfo, encryptField);
                         ENCRYPT_COLUMNS.put(
-                                encryptColumn.getTable() + ":" + encryptColumn.getName(),
+                                String.format("%s:%s",
+                                        clearSqlTip(encryptColumn.getTable()), clearSqlTip(encryptColumn.getName())),
                                 encryptColumn);
                     }
                 }
@@ -65,7 +68,7 @@ public class EncryptFieldTableContainer {
         if (!init) {
             init();
         }
-        return ENCRYPT_COLUMNS.containsKey(tableName + ":" + columnName);
+        return ENCRYPT_COLUMNS.containsKey(clearSqlTip(tableName) + ":" + clearSqlTip(columnName));
     }
 
     public boolean hasEncrypt() {
@@ -79,7 +82,7 @@ public class EncryptFieldTableContainer {
         if (!init) {
             init();
         }
-        EncryptColumn column = ENCRYPT_COLUMNS.get(tableName + ":" + columnName);
+        EncryptColumn column = ENCRYPT_COLUMNS.get(clearSqlTip(tableName) + ":" + clearSqlTip(columnName));
         if (column == null) {
             return DefaultEncryptionAlgo.class;
         }

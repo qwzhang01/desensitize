@@ -75,7 +75,7 @@ public final class ParamUtil {
      * Analyze QueryWrapper parameters
      */
     private static List<ParameterEncryptInfo> analyzeQueryWrapperParameters(Map<String, Object> paramMap,
-                                                                            List<SqlParam> sqlAnalysis, List<SqlTable> tables) {
+                                                                            List<SqlParam> params, List<SqlTable> tables) {
         log.debug("Analyzing QueryWrapper parameters: {}", paramMap.keySet());
 
         Object wrapper = paramMap.get("ew");
@@ -111,7 +111,7 @@ public final class ParamUtil {
                 if (paramValue instanceof String) {
                     log.debug("Checking QueryWrapper field: {} -> param: {} = {}", fieldName, paramName, paramValue);
 
-                    ParameterEncryptInfo encryptInfo = FieldMatchUtil.matchParameterToTableField(fieldName, (String) paramValue, sqlAnalysis, tables);
+                    ParameterEncryptInfo encryptInfo = FieldMatchUtil.matchParameterToTableField(fieldName, (String) paramValue, params, tables);
                     if (encryptInfo != null) {
                         String parameterKey = "ew.paramNameValuePairs." + paramName;
                         encryptInfo.setParameterKey(parameterKey);
@@ -135,7 +135,7 @@ public final class ParamUtil {
      */
     private static List<ParameterEncryptInfo> analyzeMapParameters(Map<String, Object> paramMap,
                                                                    List<ParameterMapping> parameterMappings,
-                                                                   List<SqlParam> sqlAnalysis, List<SqlTable> tables) {
+                                                                   List<SqlParam> params, List<SqlTable> tables) {
         List<ParameterEncryptInfo> encryptInfos = new ArrayList<>();
         log.debug("Analyzing Map parameters: {}", paramMap.keySet());
 
@@ -155,7 +155,7 @@ public final class ParamUtil {
                     log.debug("Checking parameter: {} = {}", property, value);
 
                     ParameterEncryptInfo encryptInfo = matchParameterToSqlField(
-                            property, (String) value, sqlAnalysis, tables, parameterMappings);
+                            property, (String) value, params, tables, parameterMappings);
                     if (encryptInfo != null) {
                         encryptInfo.setParameterKey(property);
                         encryptInfo.setParameterMap(paramMap);
@@ -179,7 +179,7 @@ public final class ParamUtil {
 
                 if (!alreadyProcessed) {
                     ParameterEncryptInfo encryptInfo = FieldMatchUtil.matchParameterToTableField(
-                            paramName, (String) paramValue, sqlAnalysis, tables);
+                            paramName, (String) paramValue, params, tables);
                     if (encryptInfo != null) {
                         encryptInfo.setParameterKey(paramName);
                         encryptInfo.setParameterMap(paramMap);
@@ -228,26 +228,25 @@ public final class ParamUtil {
      * Map parameter to SQL field
      */
     private static ParameterEncryptInfo matchParameterToSqlField(String paramProperty, String paramValue,
-                                                                 List<SqlParam> allFields, List<SqlTable> tables,
+                                                                 List<SqlParam> params, List<SqlTable> tables,
                                                                  List<ParameterMapping> parameterMappings) {
         int paramIndex = findParameterIndex(paramProperty, parameterMappings);
 
-        if (paramIndex >= 0 && paramIndex < allFields.size()) {
-            SqlParam condition = allFields.get(paramIndex);
-            String sqlFieldName = condition.getColumn();
+        if (paramIndex >= 0 && paramIndex < params.size()) {
+            SqlParam param = params.get(paramIndex);
 
-            for (SqlTable tableInfo : tables) {
-                String tableName = tableInfo.getName();
-                ParameterEncryptInfo encryptInfo = FieldMatchUtil.createEncryptInfo(tableName, sqlFieldName, paramValue);
+            for (SqlTable table : tables) {
+                ParameterEncryptInfo encryptInfo = FieldMatchUtil
+                        .createEncryptInfo(table.getName(), param.getColumn(), paramValue);
                 if (encryptInfo != null) {
                     log.debug("Position mapping found encryption field: param[{}] -> SQL field[{}] -> table[{}] (index:{})",
-                            paramProperty, sqlFieldName, tableName, paramIndex);
+                            paramProperty, param.getColumn(), table.getName(), paramIndex);
                     return encryptInfo;
                 }
             }
         }
         String fieldName = StringUtil.extractFieldName(paramProperty);
-        return FieldMatchUtil.matchParameterToTableField(fieldName, paramValue, allFields, tables);
+        return FieldMatchUtil.matchParameterToTableField(fieldName, paramValue, params, tables);
     }
 
     /**
