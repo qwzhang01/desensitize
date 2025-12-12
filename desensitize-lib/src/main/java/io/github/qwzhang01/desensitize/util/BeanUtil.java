@@ -3,13 +3,14 @@ package io.github.qwzhang01.desensitize.util;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.github.qwzhang01.desensitize.domain.CallCopy;
 import io.github.qwzhang01.desensitize.exception.BeanCopyException;
+import io.github.qwzhang01.reflection.objectmapper.ObjectToMapConverter;
 import org.springframework.beans.BeanUtils;
 
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Bean 操作工具
@@ -127,5 +128,40 @@ public class BeanUtil {
             target.setRecords(copyToList(page.getRecords(), targetType, callback));
         }
         return target;
+    }
+
+    /**
+     * 删除下一个元素不满足条件的元素
+     *
+     * @param list
+     * @param condition
+     * @param <T>
+     */
+    public static <T> void removeIfNextFails(List<T> list, BiPredicate<T, T> condition) {
+        if (list.size() < 2) {
+            return;
+        }
+
+        IntStream.range(0, list.size() - 1)
+                .boxed()
+                .sorted(Comparator.reverseOrder())
+                .filter(i -> !condition.test(list.get(i), list.get(i + 1)))
+                .forEach(i -> list.remove(i.intValue()));
+
+    }
+
+    /**
+     * 对象转 map
+     *
+     * @param obj 对象
+     * @return map
+     */
+    public static Map<String, Object> objectToMap(Object obj) {
+        if (obj == null) {
+            return Collections.emptyMap();
+        }
+
+        ObjectToMapConverter converter = new ObjectToMapConverter();
+        return converter.toMap(obj);
     }
 }
