@@ -25,6 +25,7 @@
 
 package io.github.qwzhang01.desensitize.mask;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.github.qwzhang01.desensitize.domain.AnnotatedField;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
@@ -181,7 +182,12 @@ public final class MaskAlgoContainer {
         }
 
         try {
-            if (data instanceof List<?> list) {
+            if (data instanceof Page<?> page) {
+                List<?> records = page.getRecords();
+                if (records != null && !records.isEmpty()) {
+                    maskList(records);
+                }
+            } else if (data instanceof List<?> list) {
                 maskList(list);
             } else {
                 maskSingleObject(data);
@@ -198,7 +204,12 @@ public final class MaskAlgoContainer {
     private void maskList(List<?> list) throws IllegalAccessException {
         log.debug("Masking list with {} elements", list.size());
         for (Object data : list) {
-            if (data instanceof List<?> listInner) {
+            if (data instanceof Page<?> page) {
+                List<?> records = page.getRecords();
+                if (records != null && !records.isEmpty()) {
+                    maskList(records);
+                }
+            } else if (data instanceof List<?> listInner) {
                 maskList(listInner);
             } else {
                 maskSingleObject(data);
