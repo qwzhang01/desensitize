@@ -231,17 +231,6 @@ public final class MaskAlgoContainer {
             return;
         }
 
-        Set<String> maskFieldSet = null;
-        if (data instanceof MaskVo maskVo) {
-            if (!Boolean.TRUE.equals(maskVo.getMaskFlag())) {
-                return;
-            }
-            List<String> maskFieldName = maskVo.getMaskFields();
-            if (maskFieldName != null && !maskFieldName.isEmpty()) {
-                maskFieldSet = new HashSet<>(maskFieldName);
-            }
-        }
-
         // Find all fields with @Mask annotation (including meta-annotations)
         List<AnnotatedField<Mask>> maskFields =
                 ClazzUtil.getMetaAnnotatedFields(data, Mask.class);
@@ -254,14 +243,7 @@ public final class MaskAlgoContainer {
         log.debug("Masking {} fields in object of type: {}", maskFields.size(), data.getClass().getName());
 
         for (AnnotatedField<Mask> maskField : maskFields) {
-            if (maskFieldSet == null) {
-                maskSingleField(maskField);
-            } else {
-                if (maskFieldSet.contains(maskField.fieldPath())) {
-                    maskSingleField(maskField);
-                }
-            }
-
+            maskSingleField(maskField);
         }
     }
 
@@ -283,10 +265,25 @@ public final class MaskAlgoContainer {
         Object containingObject = maskField.obj();
         Object fieldValue = maskField.getFieldValue();
         Field field = maskField.field();
+        String path = maskField.fieldPath();
 
         if (fieldValue == null) {
             log.debug("Skipping null field: {}", field.getName());
             return;
+        }
+
+        if (containingObject instanceof MaskVo maskVo) {
+            if (!Boolean.TRUE.equals(maskVo.getMaskFlag())) {
+                return;
+            }
+
+            List<String> maskFieldName = maskVo.getMaskFields();
+            if (maskFieldName != null && !maskFieldName.isEmpty()) {
+                Set<String> maskFieldSet = new HashSet<>(maskFieldName);
+                if (!maskFieldSet.contains(path)) {
+                    return;
+                }
+            }
         }
 
         // Get the appropriate masking algorithm

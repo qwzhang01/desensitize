@@ -269,12 +269,10 @@ public final class ClazzUtil {
                         }
                     }
 
-                    if (!searchMetaAnnotation) {
-                        Object fieldValue = field.get(obj);
-                        if (fieldValue != null && isComplexObject(fieldValue.getClass())) {
-                            String currentPath = buildFieldPath(fieldPath, field.getName());
-                            processComplexFieldValue(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
-                        }
+                    Object fieldValue = field.get(obj);
+                    if (fieldValue != null && isComplexObject(fieldValue.getClass())) {
+                        String currentPath = buildFieldPath(fieldPath, field.getName());
+                        processComplexFieldValue(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
                     }
 
                 } catch (IllegalAccessException e) {
