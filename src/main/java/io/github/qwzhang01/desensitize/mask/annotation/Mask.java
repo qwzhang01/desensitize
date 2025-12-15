@@ -78,4 +78,13 @@ public @interface Mask {
      * @return the masking algorithm class
      */
     Class<? extends CoverAlgo> value() default DefaultCoverAlgo.class;
+
+    /**
+     * 是否需要继承遗志
+     * <p>
+     * 需要则上一级类必须要有Mask 的 meta 注解
+     *
+     * @return
+     */
+    boolean behest() default false;
 }

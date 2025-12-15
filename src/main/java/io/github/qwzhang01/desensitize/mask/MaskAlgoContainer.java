@@ -26,13 +26,13 @@
 package io.github.qwzhang01.desensitize.mask;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.github.qwzhang01.desensitize.domain.AnnotatedField;
 import io.github.qwzhang01.desensitize.domain.Encrypt;
 import io.github.qwzhang01.desensitize.exception.DesensitizeException;
-import io.github.qwzhang01.desensitize.kit.ClazzUtil;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
 import io.github.qwzhang01.desensitize.mask.annotation.Mask;
+import io.github.qwzhang01.desensitize.mask.domain.MaskField;
 import io.github.qwzhang01.desensitize.mask.domain.MaskVo;
+import io.github.qwzhang01.desensitize.mask.kit.ClassUtil;
 import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
 import io.github.qwzhang01.desensitize.mask.shield.DefaultCoverAlgo;
 import org.slf4j.Logger;
@@ -40,9 +40,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Field;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -232,8 +230,7 @@ public final class MaskAlgoContainer {
         }
 
         // Find all fields with @Mask annotation (including meta-annotations)
-        List<AnnotatedField<Mask>> maskFields =
-                ClazzUtil.getMetaAnnotatedFields(data, Mask.class);
+        List<MaskField> maskFields = ClassUtil.getMaskFields(data);
 
         if (CollectionUtils.isEmpty(maskFields)) {
             log.debug("No fields to mask in object of type: {}", data.getClass().getName());
@@ -242,7 +239,7 @@ public final class MaskAlgoContainer {
 
         log.debug("Masking {} fields in object of type: {}", maskFields.size(), data.getClass().getName());
 
-        for (AnnotatedField<Mask> maskField : maskFields) {
+        for (MaskField maskField : maskFields) {
             maskSingleField(maskField);
         }
     }
@@ -260,12 +257,19 @@ public final class MaskAlgoContainer {
      * @param maskField the annotated field result containing field, object, and annotation
      * @throws IllegalAccessException if field access fails
      */
-    private void maskSingleField(AnnotatedField<Mask> maskField) throws IllegalAccessException {
+    private void maskSingleField(MaskField maskField) throws IllegalAccessException {
+        if (!maskField.behest()) {
+            return;
+        }
+
+        if (!maskField.maskFlag()) {
+            return;
+        }
+
         Mask annotation = maskField.annotation();
         Object containingObject = maskField.obj();
         Object fieldValue = maskField.getFieldValue();
         Field field = maskField.field();
-        String path = maskField.fieldPath();
 
         if (fieldValue == null) {
             log.debug("Skipping null field: {}", field.getName());
@@ -275,14 +279,6 @@ public final class MaskAlgoContainer {
         if (containingObject instanceof MaskVo maskVo) {
             if (!Boolean.TRUE.equals(maskVo.getMaskFlag())) {
                 return;
-            }
-
-            List<String> maskFieldName = maskVo.getMaskFields();
-            if (maskFieldName != null && !maskFieldName.isEmpty()) {
-                Set<String> maskFieldSet = new HashSet<>(maskFieldName);
-                if (!maskFieldSet.contains(path)) {
-                    return;
-                }
             }
         }
 
