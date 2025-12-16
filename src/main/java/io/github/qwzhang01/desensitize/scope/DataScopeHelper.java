@@ -47,7 +47,7 @@ public class DataScopeHelper {
         return context;
     }
 
-    public static <T> List<T> getTopRight() {
+    public static <T> List<T> getSearchRight() {
         @SuppressWarnings("unchecked")
         Context<T> context = (Context<T>) CONTEXT.get();
         if (context == null) {
@@ -56,7 +56,7 @@ public class DataScopeHelper {
                 return null;
             }
         }
-        return context.getTopRight();
+        return context.getSearchRight();
     }
 
     /**
@@ -122,9 +122,9 @@ public class DataScopeHelper {
          */
         private Boolean dataScopeFlag;
         /**
-         * 顶部查询条件，即以 topRight 为最大的查询条件
+         * 查询条件，即是数据权限，也是查询条件，具体取并集还是交集由具体业务实现
          */
-        private List<T> topRight;
+        private List<T> searchRight;
         /**
          * 权限校验数据，在INSERT update delete 的时候使用
          */
@@ -138,23 +138,23 @@ public class DataScopeHelper {
          */
         private Class<? extends DataScopeStrategy<T>> strategy;
 
-        public List<T> getTopRight() {
-            return topRight;
+        public List<T> getSearchRight() {
+            return searchRight;
         }
 
-        public Context<T> setTopRight(T topRight) {
-            if (this.topRight == null) {
-                this.topRight = new ArrayList<>();
+        public Context<T> setSearchRight(T searchRight) {
+            if (this.searchRight == null) {
+                this.searchRight = new ArrayList<>();
             }
-            this.topRight.add(topRight);
+            this.searchRight.add(searchRight);
             return this;
         }
 
-        public Context<T> setTopRight(List<T> topRight) {
-            if (this.topRight == null) {
-                this.topRight = new ArrayList<>();
+        public Context<T> setSearchRight(List<T> searchRight) {
+            if (this.searchRight == null) {
+                this.searchRight = new ArrayList<>();
             }
-            this.topRight.addAll(topRight);
+            this.searchRight.addAll(searchRight);
             return this;
         }
 
