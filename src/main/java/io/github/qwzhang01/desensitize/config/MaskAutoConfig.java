@@ -10,7 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice and this permission notice shall be included in
+ *  all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -33,10 +34,6 @@ import io.github.qwzhang01.desensitize.encrypt.shield.DefaultEncryptionAlgo;
 import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 import io.github.qwzhang01.desensitize.interceptor.SqlRewriteInterceptor;
 import io.github.qwzhang01.desensitize.kit.SpringContextUtil;
-import io.github.qwzhang01.desensitize.mask.MaskAlgoContainer;
-import io.github.qwzhang01.desensitize.mask.advice.MaskAdvice;
-import io.github.qwzhang01.desensitize.mask.shield.CoverAlgo;
-import io.github.qwzhang01.desensitize.mask.shield.DefaultCoverAlgo;
 import io.github.qwzhang01.desensitize.scope.container.DataScopeStrategyContainer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -47,22 +44,25 @@ import org.springframework.core.annotation.Order;
  * Auto-configuration class for data masking and encryption functionality.
  *
  * <p>This configuration class automatically registers default implementations
- * of masking and encryption algorithms when no custom implementations are provided.
- * It follows Spring Boot's auto-configuration pattern to provide sensible defaults
+ * of masking and encryption algorithms when no custom implementations are
+ * provided.
+ * It follows Spring Boot's auto-configuration pattern to provide sensible
+ * defaults
  * while allowing for easy customization.</p>
  *
  * <p>The configuration includes:</p>
  * <ul>
  *   <li>Default data masking algorithm for sensitive data protection</li>
  *   <li>Default encryption algorithm for data encryption/decryption</li>
- *   <li>Spring context utility for accessing beans in non-Spring managed classes</li>
+ *   <li>Spring context utility for accessing beans in non-Spring managed
+ *   classes</li>
  * </ul>
  *
- * <p>MyBatis interceptors are configured separately in {@link MyBatisInterceptorAutoConfig}
+ * <p>MyBatis interceptors are configured separately in
+ * {@link MyBatisInterceptorAutoConfig}
  * to avoid circular dependency issues.</p>
  *
  * @author avinzhang
- * @see CoverAlgo
  * @see EncryptionAlgo
  * @see SpringContextUtil
  * @see MyBatisInterceptorAutoConfig
@@ -78,27 +78,10 @@ public class MaskAutoConfig {
         };
     }
 
-    @Bean
-    @ConditionalOnMissingBean(MaskAdvice.class)
-    public MaskAdvice maskAdvice() {
-        return new MaskAdvice(new MaskAlgoContainer());
-    }
-
-    /**
-     * Provides a default data masking algorithm bean.
-     * This bean is only created if no other CoverAlgo implementation is found in the context.
-     *
-     * @return a new instance of DefaultCoverAlgo with comprehensive masking capabilities
-     */
-    @Bean
-    @ConditionalOnMissingBean(CoverAlgo.class)
-    public CoverAlgo coverAlgo() {
-        return new DefaultCoverAlgo();
-    }
-
     /**
      * Provides a default encryption algorithm bean.
-     * This bean is only created if no other EncryptionAlgo implementation is found in the context.
+     * This bean is only created if no other EncryptionAlgo implementation is
+     * found in the context.
      *
      * @return a new instance of DefaultEncryptionAlgo using DES encryption
      */
@@ -129,7 +112,8 @@ public class MaskAutoConfig {
     /**
      * Provides a Spring context utility bean for accessing Spring-managed beans
      * from non-Spring managed classes.
-     * This bean is only created if no other SpringContextUtil implementation is found in the context.
+     * This bean is only created if no other SpringContextUtil implementation
+     * is found in the context.
      *
      * @return a new instance of SpringContextUtil for bean access operations
      */

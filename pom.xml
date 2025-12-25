@@ -6,13 +6,15 @@
 
     <groupId>io.github.qwzhang01</groupId>
     <artifactId>desensitize</artifactId>
-    <version>1.2.14</version>
+    <version>1.2.15</version>
 
     <url>https://github.com/qwzhang01/desensitize</url>
 
     <name>desensitize</name>
-    <description>A Spring Boot library for MyBatis data encryption, desensitization, and data scope control. Provides
-        automatic field encryption/decryption, sensitive data masking, and fine-grained data access control for
+    <description>A Spring Boot library for MyBatis data encryption,
+        desensitization, and data scope control. Provides
+        automatic field encryption/decryption, sensitive data masking, and
+        fine-grained data access control for
         enterprise applications.
     </description>
 
@@ -37,7 +39,8 @@
 
     <scm>
         <connection>https://github.com/qwzhang01/desensitize.git</connection>
-        <developerConnection>git@github.com:qwzhang01/desensitize.git</developerConnection>
+        <developerConnection>git@github.com:qwzhang01/desensitize.git
+        </developerConnection>
         <url>https://github.com/qwzhang01/desensitize</url>
     </scm>
 
@@ -75,6 +78,11 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>io.github.qwzhang01</groupId>
+            <artifactId>seven-shield</artifactId>
+            <version>1.0</version>
+        </dependency>
         <dependency>
             <groupId>io.github.qwzhang01</groupId>
             <artifactId>sql-tool</artifactId>
@@ -180,7 +188,8 @@
                 <version>0.8.0</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <publishingServerId>avinzhang-opensource</publishingServerId>
+                    <publishingServerId>avinzhang-opensource
+                    </publishingServerId>
                     <tokenAuth>true</tokenAuth>
                 </configuration>
             </plugin>
