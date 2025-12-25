@@ -6,7 +6,7 @@
 
     <groupId>io.github.qwzhang01</groupId>
     <artifactId>desensitize</artifactId>
-    <version>1.2.15</version>
+    <version>1.2.16</version>
 
     <url>https://github.com/qwzhang01/desensitize</url>
 
@@ -61,6 +61,8 @@
         <mybatis-plus.version>3.5.11</mybatis-plus.version>
         <reactor.version>3.7.11</reactor.version>
         <sql-tool.version>1.1.7</sql-tool.version>
+        <seven-shield.version>1.0.1</seven-shield.version>
+        <seven-operating-record.version>1.0.0</seven-operating-record.version>
         <reflection.version>1.2</reflection.version>
         <junit.jupiter.version>5.10.3</junit.jupiter.version>
     </properties>
@@ -81,7 +83,12 @@
         <dependency>
             <groupId>io.github.qwzhang01</groupId>
             <artifactId>seven-shield</artifactId>
-            <version>1.0</version>
+            <version>${seven-shield.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.qwzhang01</groupId>
+            <artifactId>seven-operating-record</artifactId>
+            <version>${seven-operating-record.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.qwzhang01</groupId>
