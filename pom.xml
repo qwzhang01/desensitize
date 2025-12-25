@@ -60,7 +60,7 @@
         <mysql-connector-java.version>8.0.29</mysql-connector-java.version>
         <mybatis-plus.version>3.5.11</mybatis-plus.version>
         <reactor.version>3.7.11</reactor.version>
-        <sql-tool.version>1.1.7</sql-tool.version>
+        <seven-sql-parser.version>1.1.7</seven-sql-parser.version>
         <seven-shield.version>1.0.1</seven-shield.version>
         <seven-operating-record.version>1.0.0</seven-operating-record.version>
         <reflection.version>1.2</reflection.version>
@@ -92,8 +92,8 @@
         </dependency>
         <dependency>
             <groupId>io.github.qwzhang01</groupId>
-            <artifactId>sql-tool</artifactId>
-            <version>${sql-tool.version}</version>
+            <artifactId>seven-sql-parser</artifactId>
+            <version>${seven-sql-parser.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.qwzhang01</groupId>
