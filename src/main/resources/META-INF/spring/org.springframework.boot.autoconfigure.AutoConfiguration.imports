@@ -1,4 +1,4 @@
 # Desensitize Auto Configuration
-io.github.qwzhang01.desensitize.config.MaskAutoConfig
-io.github.qwzhang01.desensitize.config.MyBatisInterceptorAutoConfig
-io.github.qwzhang01.desensitize.config.JacksonConfig
+io.github.qwzhang01.dsecurity.config.MaskAutoConfig
+io.github.qwzhang01.dsecurity.config.JacksonConfig
+io.github.qwzhang01.dsecurity.config.MyBatisInterceptorAutoConfig
