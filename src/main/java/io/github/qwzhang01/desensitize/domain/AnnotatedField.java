@@ -6,7 +6,8 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 
 /**
- * Annotated field result record containing field, containing object, annotation, and field path
+ * Annotated field result record containing field, containing object,
+ * annotation, and field path
  *
  * @param field      the annotated field
  * @param obj        the object containing this field
@@ -46,6 +47,7 @@ public record AnnotatedField<T extends Annotation>(
     @Override
     public String toString() {
         return String.format("AnnotatedField{field=%s, path=%s, annotation=%s}",
-                field.getName(), fieldPath, annotation.annotationType().getSimpleName());
+                field.getName(), fieldPath,
+                annotation.annotationType().getSimpleName());
     }
 }

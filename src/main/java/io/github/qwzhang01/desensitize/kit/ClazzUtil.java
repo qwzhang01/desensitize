@@ -10,7 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice and this permission notice shall be included in
+ *  all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -45,7 +46,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public final class ClazzUtil {
     private final static Set<Class<?>> NO_CLASS = new CopyOnWriteArraySet<>();
-    private static final Map<Class<?>, List<Field>> FIELD_CACHE = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, List<Field>> FIELD_CACHE =
+            new ConcurrentHashMap<>();
     private static final Set<Class<?>> PRIMITIVE_TYPES = Set.of(
             String.class, Integer.class, Long.class, Double.class, Float.class,
             Boolean.class, Byte.class, Short.class, Character.class,
@@ -58,7 +60,8 @@ public final class ClazzUtil {
      */
     public static Object getPropertyValue(Object obj, String propertyName) throws Exception {
         if (obj == null || propertyName == null || propertyName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Object and property name cannot be null");
+            throw new IllegalArgumentException("Object and property name " +
+                    "cannot be null");
         }
 
         if (isPrimitiveOrCommonType(obj.getClass())) {
@@ -83,9 +86,11 @@ public final class ClazzUtil {
     /**
      * Set object property value
      */
-    public static void setPropertyValue(Object obj, String propertyName, Object value) throws Exception {
+    public static void setPropertyValue(Object obj, String propertyName,
+                                        Object value) throws Exception {
         if (obj == null || propertyName == null || propertyName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Object and property name cannot be null");
+            throw new IllegalArgumentException("Object and property name " +
+                    "cannot be null");
         }
 
         String setterName = "set" + StringUtils.capitalize(propertyName);
@@ -112,9 +117,11 @@ public final class ClazzUtil {
     /**
      * Try setter method
      */
-    private static boolean trySetterMethod(Object obj, String methodName, Object value) {
+    private static boolean trySetterMethod(Object obj, String methodName,
+                                           Object value) {
         try {
-            Method setter = obj.getClass().getMethod(methodName, value != null ? value.getClass() : Object.class);
+            Method setter = obj.getClass().getMethod(methodName,
+                    value != null ? value.getClass() : Object.class);
             setter.invoke(obj, value);
             return true;
         } catch (Exception e) {
@@ -137,7 +144,8 @@ public final class ClazzUtil {
     /**
      * Set value via field
      */
-    private static void setFieldValue(Object obj, String fieldName, Object value) throws Exception {
+    private static void setFieldValue(Object obj, String fieldName,
+                                      Object value) throws Exception {
         Field field = findField(obj.getClass(), fieldName);
         if (field == null) {
             throw new DesensitizeException("Cannot set property: " + fieldName);
@@ -194,7 +202,8 @@ public final class ClazzUtil {
      * Internal method for retrieving annotated fields
      */
     private static <T extends Annotation> List<AnnotatedField<T>> getAnnotatedFieldsInternal(
-            Object obj, Class<T> annotationClass, boolean searchMetaAnnotation) {
+            Object obj, Class<T> annotationClass,
+            boolean searchMetaAnnotation) {
         if (obj == null || annotationClass == null) {
             return Collections.emptyList();
         }
@@ -206,7 +215,8 @@ public final class ClazzUtil {
         List<AnnotatedField<T>> results = new ArrayList<>();
         Set<Object> visited = new HashSet<>();
 
-        collectAnnotatedFields(obj, annotationClass, results, visited, "", searchMetaAnnotation);
+        collectAnnotatedFields(obj, annotationClass, results, visited, "",
+                searchMetaAnnotation);
 
         if (results.isEmpty() && !isCollection(obj.getClass()) && !isGenerics(obj.getClass())) {
             NO_CLASS.add(obj.getClass());
@@ -249,30 +259,42 @@ public final class ClazzUtil {
                 field.setAccessible(true);
 
                 try {
-                    T annotation = findAnnotation(field, annotationClass, searchMetaAnnotation);
+                    T annotation = findAnnotation(field, annotationClass,
+                            searchMetaAnnotation);
                     if (annotation != null) {
                         if (searchMetaAnnotation) {
                             Class<?> type = field.getType();
                             if (isComplexObject(type)) {
                                 Object fieldValue = field.get(obj);
-                                String currentPath = buildFieldPath(fieldPath, field.getName());
+                                String currentPath = buildFieldPath(fieldPath
+                                        , field.getName());
                                 if (fieldValue != null) {
-                                    processComplexFieldValue(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+                                    processComplexFieldValue(fieldValue,
+                                            annotationClass, results, visited
+                                            , currentPath,
+                                            searchMetaAnnotation);
                                 }
                             } else {
-                                String currentPath = buildFieldPath(fieldPath, field.getName());
-                                results.add(new AnnotatedField<>(field, obj, annotation, currentPath));
+                                String currentPath = buildFieldPath(fieldPath
+                                        , field.getName());
+                                results.add(new AnnotatedField<>(field, obj,
+                                        annotation, currentPath));
                             }
                         } else {
-                            String currentPath = buildFieldPath(fieldPath, field.getName());
-                            results.add(new AnnotatedField<>(field, obj, annotation, currentPath));
+                            String currentPath = buildFieldPath(fieldPath,
+                                    field.getName());
+                            results.add(new AnnotatedField<>(field, obj,
+                                    annotation, currentPath));
                         }
                     }
 
                     Object fieldValue = field.get(obj);
                     if (fieldValue != null && isComplexObject(fieldValue.getClass())) {
-                        String currentPath = buildFieldPath(fieldPath, field.getName());
-                        processComplexFieldValue(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+                        String currentPath = buildFieldPath(fieldPath,
+                                field.getName());
+                        processComplexFieldValue(fieldValue, annotationClass,
+                                results, visited, currentPath,
+                                searchMetaAnnotation);
                     }
 
                 } catch (IllegalAccessException e) {
@@ -287,7 +309,8 @@ public final class ClazzUtil {
     /**
      * Find annotation on field
      */
-    private static <T extends Annotation> T findAnnotation(Field field, Class<T> annotationClass, boolean searchMetaAnnotation) {
+    private static <T extends Annotation> T findAnnotation(Field field,
+                                                           Class<T> annotationClass, boolean searchMetaAnnotation) {
         T annotation = field.getAnnotation(annotationClass);
         if (annotation != null || !searchMetaAnnotation) {
             return annotation;
@@ -318,13 +341,17 @@ public final class ClazzUtil {
             boolean searchMetaAnnotation) {
 
         if (fieldValue instanceof Collection<?> collection) {
-            processCollection(collection, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+            processCollection(collection, annotationClass, results, visited,
+                    currentPath, searchMetaAnnotation);
         } else if (fieldValue.getClass().isArray()) {
-            processArray((Object[]) fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+            processArray((Object[]) fieldValue, annotationClass, results,
+                    visited, currentPath, searchMetaAnnotation);
         } else if (fieldValue instanceof Map<?, ?> map) {
-            processMap(map, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+            processMap(map, annotationClass, results, visited, currentPath,
+                    searchMetaAnnotation);
         } else {
-            collectAnnotatedFields(fieldValue, annotationClass, results, visited, currentPath, searchMetaAnnotation);
+            collectAnnotatedFields(fieldValue, annotationClass, results,
+                    visited, currentPath, searchMetaAnnotation);
         }
     }
 
@@ -384,7 +411,8 @@ public final class ClazzUtil {
             Object value = entry.getValue();
             if (value != null && isComplexObject(value.getClass())) {
                 collectAnnotatedFields(value, annotationClass, results, visited,
-                        currentPath + "[" + entry.getKey() + "]", searchMetaAnnotation);
+                        currentPath + "[" + entry.getKey() + "]",
+                        searchMetaAnnotation);
             }
         }
     }

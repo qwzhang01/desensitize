@@ -10,7 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice and this permission notice shall be included in
+ *  all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -65,7 +66,8 @@ import java.util.Properties;
 })
 public class SqlRewriteInterceptor implements Interceptor {
 
-    private static final Logger log = LoggerFactory.getLogger(SqlRewriteInterceptor.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(SqlRewriteInterceptor.class);
     // Method name constants for better maintainability
     private static final String METHOD_PREPARE = "prepare";
     private static final String METHOD_UPDATE = "update";
@@ -73,7 +75,8 @@ public class SqlRewriteInterceptor implements Interceptor {
     private static final String METHOD_QUERY_CURSOR = "queryCursor";
 
     /**
-     * Intercepts StatementHandler methods to apply SQL rewriting and parameter encryption.
+     * Intercepts StatementHandler methods to apply SQL rewriting and
+     * parameter encryption.
      */
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -89,7 +92,8 @@ public class SqlRewriteInterceptor implements Interceptor {
     }
 
     /**
-     * Handles the prepare phase where SQL is prepared and parameters are encrypted.
+     * Handles the prepare phase where SQL is prepared and parameters are
+     * encrypted.
      *
      * @param invocation the method invocation
      * @return the result of proceeding with the invocation
@@ -108,7 +112,8 @@ public class SqlRewriteInterceptor implements Interceptor {
     }
 
     /**
-     * Handles the execution phase where SQL is executed and parameters are restored.
+     * Handles the execution phase where SQL is executed and parameters are
+     * restored.
      *
      * @param invocation the method invocation
      * @return the result of the execution
@@ -124,7 +129,8 @@ public class SqlRewriteInterceptor implements Interceptor {
     }
 
     /**
-     * Checks if the method name is an execution method (update/query/queryCursor).
+     * Checks if the method name is an execution method
+     * (update/query/queryCursor).
      *
      * @param methodName the method name to check
      * @return true if it's an execution method
@@ -142,7 +148,7 @@ public class SqlRewriteInterceptor implements Interceptor {
 
     @Override
     public void setProperties(Properties properties) {
-        // 可选：处理配置属性
-        log.debug("处理配置属性: {}", properties);
+        // Optional: Process configuration properties
+        log.debug("Processing configuration properties: {}", properties);
     }
 }

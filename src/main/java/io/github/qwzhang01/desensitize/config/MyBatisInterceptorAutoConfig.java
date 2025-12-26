@@ -10,7 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice and this permission notice shall be included in
+ *  all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -47,8 +48,10 @@ import java.util.List;
 /**
  * Auto-configuration for MyBatis interceptors.
  *
- * <p>This configuration class is responsible for registering MyBatis interceptors
- * after the MyBatis auto-configuration is complete. It's separated from the main
+ * <p>This configuration class is responsible for registering MyBatis
+ * interceptors
+ * after the MyBatis auto-configuration is complete. It's separated from the
+ * main
  * configuration to avoid circular dependency issues.</p>
  *
  * <p>The configuration runs after MybatisAutoConfiguration to ensure that
@@ -74,7 +77,8 @@ public class MyBatisInterceptorAutoConfig {
     }
 
     /**
-     * Adds desensitization interceptors to all available SqlSessionFactory instances.
+     * Adds desensitization interceptors to all available SqlSessionFactory
+     * instances.
      * This method is called after the Spring context is fully initialized,
      * ensuring no circular dependency issues.
      */
@@ -82,9 +86,11 @@ public class MyBatisInterceptorAutoConfig {
     public void addInterceptors() {
         if (sqlSessionFactories != null && !sqlSessionFactories.isEmpty()) {
             for (SqlSessionFactory sqlSessionFactory : sqlSessionFactories) {
-                org.apache.ibatis.session.Configuration configuration = sqlSessionFactory.getConfiguration();
+                org.apache.ibatis.session.Configuration configuration =
+                        sqlSessionFactory.getConfiguration();
                 configuration.addInterceptor(new DecryptInterceptor());
-                configuration.getTypeHandlerRegistry().register(Encrypt.class, EncryptTypeHandler.class);
+                configuration.getTypeHandlerRegistry().register(Encrypt.class
+                        , EncryptTypeHandler.class);
                 configuration.addInterceptor(new SqlPrintInterceptor(environment));
             }
         }

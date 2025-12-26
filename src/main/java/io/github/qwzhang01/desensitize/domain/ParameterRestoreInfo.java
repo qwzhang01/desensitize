@@ -5,23 +5,36 @@ import org.apache.ibatis.reflection.MetaObject;
 import java.util.Map;
 
 /**
- * 参数还原信息
+ * Parameter restoration information holder.
+ *
+ * <p>This class stores information needed to restore parameter values to their
+ * original state after SQL execution. It works in conjunction with
+ * {@link ParameterEncryptInfo} to ensure parameters are encrypted only during
+ * SQL execution and restored afterward.</p>
+ *
+ * <p>The restoration process supports the same three parameter types:</p>
+ * <ul>
+ *   <li>Map parameters</li>
+ *   <li>Object parameters</li>
+ *   <li>QueryWrapper parameters</li>
+ * </ul>
  *
  * @author avinzhang
+ * @see ParameterEncryptInfo
  */
 public class ParameterRestoreInfo {
     private String originalValue;
 
-    // Map 参数相关
+    // Map parameter fields
     private Map<String, Object> parameterMap;
     private String parameterKey;
     private MetaObject metaObject;
 
-    // 对象参数相关
+    // Object parameter fields
     private Object targetObject;
     private String propertyName;
 
-    // QueryWrapper 参数相关
+    // QueryWrapper parameter fields
     private boolean isQueryWrapperParam = false;
     private String queryWrapperParamName;
 

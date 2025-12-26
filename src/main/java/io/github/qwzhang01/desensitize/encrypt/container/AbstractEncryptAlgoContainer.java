@@ -12,7 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Abstract container for encryption algorithm management using Factory Pattern.
  *
- * <p>This base class provides a template for encryption algorithm containers with:</p>
+ * <p>This base class provides a template for encryption algorithm containers
+ * with:</p>
  * <ul>
  *   <li>Lazy instantiation with caching to avoid repeated object creation</li>
  *   <li>Thread-safe operations using ConcurrentHashMap</li>
@@ -24,18 +25,22 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class AbstractEncryptAlgoContainer {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractEncryptAlgoContainer.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(AbstractEncryptAlgoContainer.class);
 
     /**
      * Cache for algorithm instances to avoid repeated creation.
-     * Uses ConcurrentHashMap for thread-safe operations without explicit synchronization.
+     * Uses ConcurrentHashMap for thread-safe operations without explicit
+     * synchronization.
      */
-    private static final ConcurrentHashMap<Class<? extends EncryptionAlgo>, EncryptionAlgo> ALGO_CACHE
+    private static final ConcurrentHashMap<Class<? extends EncryptionAlgo>,
+            EncryptionAlgo> ALGO_CACHE
             = new ConcurrentHashMap<>();
 
     /**
      * Clears the algorithm cache.
-     * Useful for testing scenarios or when algorithms need to be reloaded at runtime.
+     * Useful for testing scenarios or when algorithms need to be reloaded at
+     * runtime.
      */
     public static void clearCache() {
         log.debug("Clearing encryption algorithm cache");
@@ -44,7 +49,8 @@ public abstract class AbstractEncryptAlgoContainer {
 
     /**
      * Gets the default encryption algorithm instance.
-     * This is a convenience method that delegates to the implementation's default algorithm.
+     * This is a convenience method that delegates to the implementation's
+     * default algorithm.
      *
      * @return the default encryption algorithm instance
      */
@@ -53,24 +59,28 @@ public abstract class AbstractEncryptAlgoContainer {
         if (defaultAlgo != null) {
             return defaultAlgo;
         }
-        log.warn("Default encryption algorithm is null, falling back to DefaultEncryptionAlgo");
+        log.warn("Default encryption algorithm is null, falling back to " +
+                "DefaultEncryptionAlgo");
         return getAlgo(DefaultEncryptionAlgo.class);
     }
 
     /**
-     * Gets an encryption algorithm instance by class type using Factory Pattern.
+     * Gets an encryption algorithm instance by class type using Factory
+     * Pattern.
      *
      * <p>The algorithm retrieval follows this priority:</p>
      * <ol>
      *   <li>Return cached instance if available</li>
-     *   <li>Try to get bean from Spring context (supports dependency injection)</li>
+     *   <li>Try to get bean from Spring context (supports dependency
+     *   injection)</li>
      *   <li>Create new instance via reflection</li>
      *   <li>Fallback to default algorithm on failure</li>
      * </ol>
      *
      * @param clazz the encryption algorithm class
      * @return the encryption algorithm instance
-     * @throws DesensitizeException if algorithm cannot be created and no fallback is available
+     * @throws DesensitizeException if algorithm cannot be created and no
+     *                              fallback is available
      */
     public final EncryptionAlgo getAlgo(Class<? extends EncryptionAlgo> clazz) {
         if (clazz == null) {
@@ -88,31 +98,40 @@ public abstract class AbstractEncryptAlgoContainer {
 
     /**
      * Creates a new algorithm instance with fallback mechanism.
-     * This method is called by computeIfAbsent and should not be called directly.
+     * This method is called by computeIfAbsent and should not be called
+     * directly.
      *
      * @param clazz the algorithm class to instantiate
      * @return the created algorithm instance
-     * @throws DesensitizeException if creation fails and no fallback is available
+     * @throws DesensitizeException if creation fails and no fallback is
+     *                              available
      */
-    private EncryptionAlgo createAlgorithmInstance(Class<? extends EncryptionAlgo> clazz) {
-        log.debug("Creating new instance of encryption algorithm: {}", clazz.getName());
+    private EncryptionAlgo createAlgorithmInstance(Class<?
+            extends EncryptionAlgo> clazz) {
+        log.debug("Creating new instance of encryption algorithm: {}",
+                clazz.getName());
 
-        // Strategy 1: Try to get from Spring context (supports dependency injection)
+        // Strategy 1: Try to get from Spring context (supports dependency
+        // injection)
         if (SpringContextUtil.isInitialized()) {
             EncryptionAlgo algo = SpringContextUtil.getBeanSafely(clazz);
             if (algo != null) {
-                log.debug("Retrieved encryption algorithm from Spring context: {}", clazz.getName());
+                log.debug("Retrieved encryption algorithm from Spring " +
+                        "context: {}", clazz.getName());
                 return algo;
             }
         }
 
         // Strategy 2: Try direct instantiation via reflection
         try {
-            EncryptionAlgo instance = clazz.getDeclaredConstructor().newInstance();
-            log.debug("Successfully created encryption algorithm instance: {}", clazz.getName());
+            EncryptionAlgo instance =
+                    clazz.getDeclaredConstructor().newInstance();
+            log.debug("Successfully created encryption algorithm instance: " +
+                    "{}", clazz.getName());
             return instance;
         } catch (Exception e) {
-            log.error("Failed to instantiate encryption algorithm: {}", clazz.getName(), e);
+            log.error("Failed to instantiate encryption algorithm: {}",
+                    clazz.getName(), e);
             return handleInstantiationFailure(clazz, e);
         }
     }
@@ -125,26 +144,31 @@ public abstract class AbstractEncryptAlgoContainer {
      * @return the fallback algorithm instance
      * @throws DesensitizeException if fallback also fails
      */
-    private EncryptionAlgo handleInstantiationFailure(Class<? extends EncryptionAlgo> clazz, Exception cause) {
+    private EncryptionAlgo handleInstantiationFailure(Class<?
+            extends EncryptionAlgo> clazz, Exception cause) {
         // If not already trying the default algorithm, fall back to it
         if (!clazz.equals(DefaultEncryptionAlgo.class)) {
-            log.warn("Falling back to default encryption algorithm due to instantiation failure");
+            log.warn("Falling back to default encryption algorithm due to " +
+                    "instantiation failure");
             try {
                 return new DefaultEncryptionAlgo();
             } catch (Exception ex) {
                 throw new DesensitizeException(
-                        "Failed to create encryption algorithm instance and fallback also failed", ex);
+                        "Failed to create encryption algorithm instance and " +
+                                "fallback also failed", ex);
             }
         }
 
         // If default algorithm itself fails, throw exception
         throw new DesensitizeException(
-                "Failed to create default encryption algorithm instance", cause);
+                "Failed to create default encryption algorithm instance",
+                cause);
     }
 
     /**
      * Returns the default encryption algorithm for this container.
-     * Subclasses must implement this method to provide their specific default algorithm.
+     * Subclasses must implement this method to provide their specific
+     * default algorithm.
      *
      * @return the default encryption algorithm instance
      */

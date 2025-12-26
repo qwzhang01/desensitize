@@ -10,9 +10,11 @@ package io.github.qwzhang01.desensitize.kit;
  *   <li>Parameter name extraction and cleanup</li>
  * </ul>
  *
- * <p><strong>Thread Safety:</strong> All methods are static and stateless, making this class thread-safe.</p>
+ * <p><strong>Thread Safety:</strong> All methods are static and stateless,
+ * making this class thread-safe.</p>
  *
- * <p><strong>Design Pattern:</strong> Utility class pattern with private constructor to prevent instantiation.</p>
+ * <p><strong>Design Pattern:</strong> Utility class pattern with private
+ * constructor to prevent instantiation.</p>
  *
  * @author avinzhang
  */
@@ -22,13 +24,15 @@ public final class StringUtil {
      * Private constructor to prevent instantiation of utility class.
      */
     private StringUtil() {
-        throw new UnsupportedOperationException("StringUtil is a utility class and cannot be instantiated");
+        throw new UnsupportedOperationException("StringUtil is a utility " +
+                "class and cannot be instantiated");
     }
 
     /**
      * Converts camelCase string to snake_case (underscore separated).
      *
-     * <p>This method converts uppercase letters to lowercase and inserts underscores
+     * <p>This method converts uppercase letters to lowercase and inserts
+     * underscores
      * before them using a regex pattern for efficiency.</p>
      *
      * <p><strong>Examples:</strong></p>
@@ -47,7 +51,8 @@ public final class StringUtil {
         if (camelCase == null || camelCase.isEmpty()) {
             return camelCase;
         }
-        // Regex pattern: match lowercase followed by uppercase, insert underscore between them
+        // Regex pattern: match lowercase followed by uppercase, insert
+        // underscore between them
         return camelCase.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
     }
 
@@ -81,7 +86,8 @@ public final class StringUtil {
             if (c == '_') {
                 capitalizeNext = true;
             } else {
-                result.append(capitalizeNext ? Character.toUpperCase(c) : Character.toLowerCase(c));
+                result.append(capitalizeNext ? Character.toUpperCase(c) :
+                        Character.toLowerCase(c));
                 capitalizeNext = false;
             }
         }
@@ -92,7 +98,8 @@ public final class StringUtil {
     /**
      * Cleans a parameter name by removing common MyBatis parameter prefixes.
      *
-     * <p>MyBatis often adds prefixes like "param." or "arg." to parameter names.
+     * <p>MyBatis often adds prefixes like "param." or "arg." to parameter
+     * names.
      * This method removes these prefixes to get the actual field name.</p>
      *
      * <p><strong>Examples:</strong></p>
@@ -138,8 +145,10 @@ public final class StringUtil {
      * StringUtil.extractFieldName(null)                 = null
      * </pre>
      *
-     * @param propertyPath the property path to extract from (may contain dots for nested properties)
-     * @return the extracted field name, or the original string if no dot is found
+     * @param propertyPath the property path to extract from (may contain
+     *                     dots for nested properties)
+     * @return the extracted field name, or the original string if no dot is
+     * found
      */
     public static String extractFieldName(String propertyPath) {
         if (propertyPath == null || propertyPath.isEmpty()) {
@@ -169,23 +178,12 @@ public final class StringUtil {
      * </pre>
      *
      * @param str the string to check
-     * @return {@code true} if the string is null, empty, or whitespace only; {@code false} otherwise
+     * @return {@code true} if the string is null, empty, or whitespace only;
+     * {@code false} otherwise
      */
     public static boolean isEmpty(String str) {
         return str == null || str.trim().isEmpty();
     }
-
-    /**
-     * Checks if a string is not null, not empty, and contains non-whitespace characters.
-     * This is the negation of {@link #isEmpty(String)}.
-     *
-     * @param str the string to check
-     * @return {@code true} if the string is not empty; {@code false} otherwise
-     */
-    public static boolean isNotEmpty(String str) {
-        return !isEmpty(str);
-    }
-
 
     public static String clearSqlTip(String sql) {
         if (isEmpty(sql)) {

@@ -6,7 +6,18 @@ import org.apache.ibatis.reflection.MetaObject;
 import java.util.Map;
 
 /**
- * 参数加密信息
+ * Parameter encryption information holder.
+ *
+ * <p>This class encapsulates all information needed to encrypt a parameter value,
+ * including the table/field metadata, original value, encryption algorithm,
+ * and parameter location information for restoration.</p>
+ *
+ * <p>It supports three types of parameter sources:</p>
+ * <ul>
+ *   <li>Map parameters (typical MyBatis parameter maps)</li>
+ *   <li>Object parameters (entity objects)</li>
+ *   <li>QueryWrapper parameters (MyBatis-Plus wrapper objects)</li>
+ * </ul>
  *
  * @author avinzhang
  */
@@ -16,16 +27,16 @@ public class ParameterEncryptInfo {
     private String originalValue;
     private Class<? extends EncryptionAlgo> algoClass;
 
-    // Map 参数相关
+    // Map parameter fields
     private Map<String, Object> parameterMap;
     private String parameterKey;
     private MetaObject metaObject;
 
-    // 对象参数相关
+    // Object parameter fields
     private Object targetObject;
     private String propertyName;
 
-    // QueryWrapper 参数相关
+    // QueryWrapper parameter fields
     private boolean isQueryWrapperParam = false;
     private String queryWrapperParamName;
 

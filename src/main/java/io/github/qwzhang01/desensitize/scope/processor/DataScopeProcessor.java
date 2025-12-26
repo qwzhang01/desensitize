@@ -14,8 +14,26 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 
+/**
+ * Data scope processor for SQL modification.
+ *
+ * <p>This processor applies data scope (permission control) by modifying SQL
+ * statements to include additional WHERE clauses and JOINs based on the
+ * configured data scope strategy.</p>
+ *
+ * <p><strong>Features:</strong></p>
+ * <ul>
+ *   <li>Transparent SQL rewriting for permission control</li>
+ *   <li>Support for custom JOIN and WHERE conditions</li>
+ *   <li>Thread-safe operation with ThreadLocal context</li>
+ *   <li>Automatic context cleanup after SQL execution</li>
+ * </ul>
+ *
+ * @author avinzhang
+ */
 public class DataScopeProcessor {
-    private static final Logger log = LoggerFactory.getLogger(DataScopeProcessor.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(DataScopeProcessor.class);
 
     private DataScopeProcessor() {
     }
@@ -35,38 +53,44 @@ public class DataScopeProcessor {
      * @throws NoSuchFieldException   if the SQL field cannot be accessed
      * @throws IllegalAccessException if field access is denied
      */
-    public void apply(Invocation invocation) throws NoSuchFieldException, IllegalAccessException {
+    public void apply(Invocation invocation) throws NoSuchFieldException,
+            IllegalAccessException {
         if (!Boolean.TRUE.equals(DataScopeHelper.isStarted())) {
             return;
         }
 
         // Apply data scope if enabled
         boolean started = DataScopeHelper.isStarted();
-        Class<? extends DataScopeStrategy<?>> strategy = DataScopeHelper.getStrategy();
+        Class<? extends DataScopeStrategy<?>> strategy =
+                DataScopeHelper.getStrategy();
         if (!started && strategy != null) {
             return;
         }
 
-        // 清理数据权限信息，避免影响其他 SQL
+        // Clean data scope info to avoid affecting other SQL statements
         DataScopeHelper.cache();
 
-        StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
+        StatementHandler statementHandler =
+                (StatementHandler) invocation.getTarget();
         BoundSql boundSql = statementHandler.getBoundSql();
 
-        // 获取原始 SQL
+        // Get original SQL
         String originalSql = boundSql.getSql();
-        DataScopeStrategyContainer container = SpringContextUtil.getBean(DataScopeStrategyContainer.class);
+        DataScopeStrategyContainer container =
+                SpringContextUtil.getBean(DataScopeStrategyContainer.class);
         DataScopeStrategy<?> obj = container.getStrategy(strategy);
 
         String join = obj.join();
         String where = obj.where();
 
         if (!StringUtil.isEmpty(join) && !StringUtil.isEmpty(where)) {
-            originalSql = ParserHelper.addJoinAndWhere(originalSql.trim(), join.trim(), where.trim());
+            originalSql = ParserHelper.addJoinAndWhere(originalSql.trim(),
+                    join.trim(), where.trim());
         } else if (!StringUtil.isEmpty(join)) {
             originalSql = ParserHelper.addJoin(originalSql.trim(), join.trim());
         } else if (!StringUtil.isEmpty(where)) {
-            originalSql = ParserHelper.addWhere(originalSql.trim(), where.trim());
+            originalSql = ParserHelper.addWhere(originalSql.trim(),
+                    where.trim());
         }
 
         Field field = BoundSql.class.getDeclaredField("sql");
@@ -77,6 +101,7 @@ public class DataScopeProcessor {
     }
 
     private static final class Holder {
-        private static final DataScopeProcessor INSTANCE = new DataScopeProcessor();
+        private static final DataScopeProcessor INSTANCE =
+                new DataScopeProcessor();
     }
 }

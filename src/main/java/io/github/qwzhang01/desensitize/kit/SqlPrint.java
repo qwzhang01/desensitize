@@ -16,6 +16,23 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * SQL statement printing utility for debugging and monitoring.
+ *
+ * <p>This utility formats and prints SQL statements with actual parameter
+ * values replaced, along with execution time and result information.</p>
+ *
+ * <p><strong>Features:</strong></p>
+ * <ul>
+ *   <li>Replaces placeholders with actual values</li>
+ *   <li>Supports various data types (String, Number, Date, LocalDateTime)</li>
+ *   <li>Calculates and displays execution time</li>
+ *   <li>Shows affected/returned row counts</li>
+ *   <li>Thread-safe singleton pattern</li>
+ * </ul>
+ *
+ * @author avinzhang
+ */
 public class SqlPrint {
     private static final Logger log = LoggerFactory.getLogger(SqlPrint.class);
     private final static String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -27,45 +44,52 @@ public class SqlPrint {
         return SqlPrint.Holder.INSTANCE;
     }
 
-    public void print(Configuration configuration, BoundSql boundSql, String sqlId, long startTime, Object result) {
-        // 获取完整执行的SQL
+    public void print(Configuration configuration, BoundSql boundSql,
+                      String sqlId, long startTime, Object result) {
+        // Get complete executable SQL
         String sql = getSql(configuration, boundSql);
-        // 打印SQL，执行时间，执行结果
+        // Print SQL, execution time, and result
         printSql(sqlId, sql, System.currentTimeMillis() - startTime, result);
     }
 
-    /*** 获取完整的SQL语句 */
+    /**
+     * Constructs complete SQL statement with parameter values.
+     */
     private String getSql(Configuration configuration, BoundSql boundSql) {
-        // 输入sql字符串空判断
+        // Check for null/empty SQL string
         String sql = boundSql.getSql();
         if (StringUtil.isEmpty(sql)) {
             return "";
         }
-        // 美化sql
+        // Format SQL (normalize whitespace)
         sql = sql.replaceAll("[\\s\n ]+", " ");
-        // 填充占位符, 目前基本不用mybatis存储过程调用,故此处不做考虑
+        // Fill placeholders (stored procedures are not considered here)
         Object parameterObject = boundSql.getParameterObject();
-        List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
-        TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
+        List<ParameterMapping> parameterMappings =
+                boundSql.getParameterMappings();
+        TypeHandlerRegistry typeHandlerRegistry =
+                configuration.getTypeHandlerRegistry();
         List<String> parameters = new ArrayList<>();
         if (parameterMappings != null) {
-            MetaObject metaObject = parameterObject == null ? null : configuration.newMetaObject(parameterObject);
+            MetaObject metaObject = parameterObject == null ? null :
+                    configuration.newMetaObject(parameterObject);
             for (ParameterMapping parameterMapping : parameterMappings) {
                 if (parameterMapping.getMode() != ParameterMode.OUT) {
-                    // 参数值
+                    // Parameter value
                     Object value;
                     String propertyName = parameterMapping.getProperty();
-                    // 获取参数名称
+                    // Get parameter name
                     if (boundSql.hasAdditionalParameter(propertyName)) {
-                        // 获取参数值
+                        // Get parameter value
                         value = boundSql.getAdditionalParameter(propertyName);
                     } else if (parameterObject == null) {
                         value = null;
                     } else if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
-                        // 如果是单个值则直接赋值
+                        // If single value, assign directly
                         value = parameterObject;
                     } else {
-                        value = metaObject == null ? null : metaObject.getValue(propertyName);
+                        value = metaObject == null ? null :
+                                metaObject.getValue(propertyName);
                     }
                     if (value instanceof Number) {
                         parameters.add(String.valueOf(value));
@@ -91,14 +115,19 @@ public class SqlPrint {
         return sql;
     }
 
-    /*** 打印SQL、打印耗时 */
-    private void printSql(String sqlId, String sql, long costTime, Object result) {
+    /**
+     * Prints SQL statement with execution time and result information.
+     */
+    private void printSql(String sqlId, String sql, long costTime,
+                          Object result) {
         if (result instanceof ArrayList resultList) {
-            log.info("=== 执行SQL ===\n方法：{}\n执行SQL：{}\n耗时：{} ms\n返回：{} 行数据", sqlId, sql, costTime, resultList.size());
+            log.info("=== SQL Execution ===\nMethod: {}\nSQL: {}\nTime: {} ms\nReturned: {} rows",
+                    sqlId, sql, costTime, resultList.size());
             return;
         }
         if (result instanceof Number row) {
-            log.info("=== 执行SQL ===\n方法：{}\n执行SQL：{}\n耗时：{} ms\n影响：{} 行数据", sqlId, sql, costTime, row);
+            log.info("=== SQL Execution ===\nMethod: {}\nSQL: {}\nTime: {} ms\nAffected: {} rows",
+                    sqlId, sql, costTime, row);
         }
     }
 

@@ -10,7 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice and this permission notice shall be included in
+ *  all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -39,14 +40,18 @@ import java.util.List;
 /**
  * MyBatis interceptor for automatic decryption of query results.
  *
- * <p>This interceptor intercepts {@link ResultSetHandler#handleResultSets} to automatically
- * decrypt encrypted fields in query results. It processes both single objects and lists,
- * finding fields annotated with {@link EncryptField} and applying the configured decryption
+ * <p>This interceptor intercepts {@link ResultSetHandler#handleResultSets}
+ * to automatically
+ * decrypt encrypted fields in query results. It processes both single
+ * objects and lists,
+ * finding fields annotated with {@link EncryptField} and applying the
+ * configured decryption
  * algorithm.</p>
  *
  * <p><strong>Features:</strong></p>
  * <ul>
- *   <li>Automatic detection of encrypted fields via @EncryptField annotation</li>
+ *   <li>Automatic detection of encrypted fields via @EncryptField
+ *   annotation</li>
  *   <li>Support for both selectOne and selectList operations</li>
  *   <li>Multiple encryption algorithm support through Strategy Pattern</li>
  *   <li>Thread-safe operation</li>
@@ -81,13 +86,16 @@ import java.util.List;
 })
 public class DecryptInterceptor implements Interceptor {
 
-    private static final Logger log = LoggerFactory.getLogger(DecryptInterceptor.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(DecryptInterceptor.class);
 
     /**
      * Intercepts query result handling to decrypt encrypted fields.
      *
-     * <p>This method is called after a query executes but before results are returned
-     * to the application. It processes both single results (selectOne) and lists (selectList).</p>
+     * <p>This method is called after a query executes but before results are
+     * returned
+     * to the application. It processes both single results (selectOne) and
+     * lists (selectList).</p>
      *
      * @param invocation the method invocation details
      * @return the result object with decrypted fields

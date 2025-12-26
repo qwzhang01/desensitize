@@ -11,27 +11,45 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
- * 字段匹配工具类
+ * Field matching utility for encryption field identification.
+ *
+ * <p>This utility class provides methods to:</p>
+ * <ul>
+ *   <li>Match SQL parameters to database table fields</li>
+ *   <li>Identify fields that require encryption</li>
+ *   <li>Retrieve appropriate encryption algorithms for fields</li>
+ *   <li>Support multiple naming conventions (camelCase and snake_case)</li>
+ * </ul>
  *
  * @author avinzhang
  */
 public final class FieldMatchUtil {
 
-    private static final Logger log = LoggerFactory.getLogger(FieldMatchUtil.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(FieldMatchUtil.class);
 
     private FieldMatchUtil() {
-        throw new UnsupportedOperationException("ParamUtil is a utility class and cannot be instantiated");
+        throw new UnsupportedOperationException("ParamUtil is a utility class" +
+                " and cannot be instantiated");
     }
 
     /**
-     * 获取字段对应的加密算法类
+     * Retrieves the encryption algorithm class for a specific table field.
      *
-     * @param tableName 表名
-     * @param fieldName 字段名
-     * @return 加密算法类，如果不是加密字段则返回null
+     * <p>This method tries multiple naming format variants to match the field:</p>
+     * <ul>
+     *   <li>Original field name</li>
+     *   <li>camelCase to snake_case conversion</li>
+     *   <li>snake_case to camelCase conversion</li>
+     * </ul>
+     *
+     * @param tableName the table name
+     * @param fieldName the field name
+     * @return the encryption algorithm class, or null if field is not encrypted
      */
     private static Class<? extends EncryptionAlgo> getEncryptAlgo(String tableName, String fieldName) {
-        EncryptFieldTableContainer container = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
+        EncryptFieldTableContainer container =
+                SpringContextUtil.getBean(EncryptFieldTableContainer.class);
 
         // 尝试多种命名格式
         String[] variants = {
@@ -50,15 +68,18 @@ public final class FieldMatchUtil {
     }
 
     /**
-     * 创建加密信息对象
+     * Creates encryption information object for a field.
      *
-     * @param tableName 表名
-     * @param fieldName 字段名
-     * @param value     字段值
-     * @return 加密信息对象，如果不是加密字段则返回null
+     * @param tableName the table name
+     * @param fieldName the field name
+     * @param value     the field value to encrypt
+     * @return encryption information object, or null if field is not encrypted
      */
-    public static ParameterEncryptInfo createEncryptInfo(String tableName, String fieldName, String value) {
-        Class<? extends EncryptionAlgo> algoClass = getEncryptAlgo(tableName, fieldName);
+    public static ParameterEncryptInfo createEncryptInfo(String tableName,
+                                                         String fieldName,
+                                                         String value) {
+        Class<? extends EncryptionAlgo> algoClass = getEncryptAlgo(tableName,
+                fieldName);
         if (algoClass == null) {
             return null;
         }
@@ -73,12 +94,20 @@ public final class FieldMatchUtil {
     }
 
     /**
-     * 匹配参数到表字段
+     * Matches a parameter to a table field for encryption.
      *
-     * @param paramName   参数名
-     * @param paramValue  参数值
-     * @param sqlAnalysis SQL分析信息
-     * @return 加密信息对象，如果不匹配则返回null
+     * <p>The matching process includes:</p>
+     * <ol>
+     *   <li>Direct field name matching across all tables</li>
+     *   <li>SQL condition analysis to find field references</li>
+     *   <li>Multiple naming convention support</li>
+     * </ol>
+     *
+     * @param paramName   the parameter name
+     * @param paramValue  the parameter value
+     * @param sqlAnalysis SQL analysis information
+     * @param tables      list of tables in the SQL
+     * @return encryption information if match found, null otherwise
      */
     public static ParameterEncryptInfo matchParameterToTableField(String paramName, String paramValue,
                                                                   List<SqlParam> sqlAnalysis, List<SqlTable> tables) {
@@ -89,24 +118,28 @@ public final class FieldMatchUtil {
         for (SqlTable tableInfo : tables) {
             String tableName = tableInfo.getName();
 
-            ParameterEncryptInfo encryptInfo = createEncryptInfo(tableName, cleanParamName, paramValue);
+            ParameterEncryptInfo encryptInfo = createEncryptInfo(tableName,
+                    cleanParamName, paramValue);
             if (encryptInfo != null) {
-                log.debug("直接匹配到加密字段: 表[{}] 字段[{}]", tableName, cleanParamName);
+                log.debug("Direct match found for encrypted field: table[{}] field[{}]", tableName, cleanParamName);
                 return encryptInfo;
             }
         }
 
-        // 从 SQL 条件中匹配
+        // Match from SQL conditions
         for (SqlParam condition : sqlAnalysis) {
             String columnName = condition.getColumn();
 
             if (isFieldNameMatch(cleanParamName, columnName)) {
-                // 找到匹配的字段，检查哪个表包含这个加密字段
+                // Found matching field, check which table contains this encrypted field
                 for (SqlTable tableInfo : tables) {
                     String tableName = tableInfo.getName();
-                    ParameterEncryptInfo encryptInfo = createEncryptInfo(tableName, columnName, paramValue);
+                    ParameterEncryptInfo encryptInfo =
+                            createEncryptInfo(tableName, columnName,
+                                    paramValue);
                     if (encryptInfo != null) {
-                        log.debug("通过SQL条件匹配到加密字段: 表[{}] 字段[{}]", tableName, columnName);
+                        log.debug("Matched encrypted field via SQL condition: table[{}] field[{}]", tableName,
+                                columnName);
                         return encryptInfo;
                     }
                 }
@@ -117,13 +150,14 @@ public final class FieldMatchUtil {
     }
 
     /**
-     * 检查字段名是否匹配（支持多种命名格式）
+     * Checks if field name matches (supports multiple naming formats).
      *
-     * @param paramName  参数名
-     * @param columnName 列名
-     * @return 是否匹配
+     * @param paramName  the parameter name
+     * @param columnName the column name
+     * @return true if names match
      */
-    private static boolean isFieldNameMatch(String paramName, String columnName) {
+    private static boolean isFieldNameMatch(String paramName,
+                                            String columnName) {
         if (paramName == null || columnName == null) {
             return false;
         }

@@ -15,12 +15,25 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 /**
- * 解密处理器
+ * Decryption processor for automatic field decryption.
+ *
+ * <p>This processor handles automatic decryption of encrypted fields in query
+ * results. It uses reflection to find fields annotated with {@link EncryptField}
+ * and applies the configured decryption algorithm.</p>
+ *
+ * <p><strong>Features:</strong></p>
+ * <ul>
+ *   <li>Singleton pattern for performance</li>
+ *   <li>Support for both single and list results</li>
+ *   <li>Automatic algorithm selection based on annotation</li>
+ *   <li>Thread-safe operation</li>
+ * </ul>
  *
  * @author avinzhang
  */
 public class DecryptProcessor {
-    private static final Logger log = LoggerFactory.getLogger(DecryptProcessor.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(DecryptProcessor.class);
 
     private DecryptProcessor() {
     }
@@ -44,7 +57,9 @@ public class DecryptProcessor {
 
         for (Object result : resultList) {
             if (result != null) {
-                List<AnnotatedField<EncryptField>> encryptedFields = ClazzUtil.getAnnotatedFields(result, EncryptField.class);
+                List<AnnotatedField<EncryptField>> encryptedFields =
+                        ClazzUtil.getAnnotatedFields(result,
+                                EncryptField.class);
                 decryptFields(encryptedFields);
             }
         }
@@ -56,17 +71,22 @@ public class DecryptProcessor {
      * @param resultObject the query result object
      */
     public void decryptSingle(Object resultObject) {
-        log.debug("Decrypting single result of type: {}", resultObject.getClass().getName());
+        log.debug("Decrypting single result of type: {}",
+                resultObject.getClass().getName());
 
-        List<AnnotatedField<EncryptField>> encryptedFields = ClazzUtil.getAnnotatedFields(resultObject, EncryptField.class);
+        List<AnnotatedField<EncryptField>> encryptedFields =
+                ClazzUtil.getAnnotatedFields(resultObject, EncryptField.class);
         decryptFields(encryptedFields);
     }
 
     /**
-     * Decrypts a collection of encrypted fields using their configured algorithms.
+     * Decrypts a collection of encrypted fields using their configured
+     * algorithms.
      *
-     * <p>This method retrieves the encryption container from Spring context and applies
-     * the appropriate decryption algorithm to each field based on its annotation.</p>
+     * <p>This method retrieves the encryption container from Spring context
+     * and applies
+     * the appropriate decryption algorithm to each field based on its
+     * annotation.</p>
      *
      * @param fields the list of annotated field results to decrypt
      * @throws DesensitizeException if decryption fails
@@ -77,10 +97,13 @@ public class DecryptProcessor {
             return;
         }
 
-        AbstractEncryptAlgoContainer container = SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
+        AbstractEncryptAlgoContainer container =
+                SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
         if (container == null) {
-            log.error("Encryption algorithm container not found in Spring context");
-            throw new DesensitizeException("Encryption algorithm container not available");
+            log.error("Encryption algorithm container not found in Spring " +
+                    "context");
+            throw new DesensitizeException("Encryption algorithm container " +
+                    "not available");
         }
 
         log.debug("Decrypting {} encrypted fields", fields.size());
@@ -90,7 +113,8 @@ public class DecryptProcessor {
                 decryptSingleField(fieldResult, container);
             }
         } catch (IllegalAccessException e) {
-            throw new DesensitizeException("Failed to decrypt fields due to access error", e);
+            throw new DesensitizeException("Failed to decrypt fields due to " +
+                    "access error", e);
         } catch (Exception e) {
             throw new DesensitizeException("Failed to decrypt fields", e);
         }
@@ -103,7 +127,8 @@ public class DecryptProcessor {
      * @param container   the encryption algorithm container
      * @throws IllegalAccessException if field access fails
      */
-    private void decryptSingleField(AnnotatedField<EncryptField> fieldResult, AbstractEncryptAlgoContainer container) throws IllegalAccessException {
+    private void decryptSingleField(AnnotatedField<EncryptField> fieldResult,
+                                    AbstractEncryptAlgoContainer container) throws IllegalAccessException {
         EncryptField annotation = fieldResult.annotation();
         Field field = fieldResult.field();
         Object containingObject = fieldResult.obj();
@@ -123,7 +148,8 @@ public class DecryptProcessor {
         field.setAccessible(true);
         field.set(containingObject, decryptedValue);
 
-        log.debug("Decrypted field: {} in object: {}", field.getName(), containingObject.getClass().getSimpleName());
+        log.debug("Decrypted field: {} in object: {}", field.getName(),
+                containingObject.getClass().getSimpleName());
     }
 
     private static final class Holder {

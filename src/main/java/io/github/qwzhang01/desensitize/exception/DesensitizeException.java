@@ -50,7 +50,8 @@ public class DesensitizeException extends RuntimeException {
     }
 
     /**
-     * Constructs a new desensitize exception with the specified detail message and cause.
+     * Constructs a new desensitize exception with the specified detail
+     * message and cause.
      * This is the most commonly used constructor for proper error reporting.
      *
      * @param message the detail message explaining the reason for the exception

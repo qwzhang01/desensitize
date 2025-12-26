@@ -16,12 +16,25 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
- * 解密处理器
+ * Encryption processor for automatic parameter encryption.
+ *
+ * <p>This processor handles automatic encryption of query parameters before
+ * SQL execution. It parses SQL statements, identifies encrypted fields, and
+ * applies appropriate encryption algorithms.</p>
+ *
+ * <p><strong>Process Flow:</strong></p>
+ * <ol>
+ *   <li>Parse SQL to identify tables and parameters</li>
+ *   <li>Match parameters to encrypted fields</li>
+ *   <li>Encrypt matched parameters</li>
+ *   <li>Save restoration info for later parameter recovery</li>
+ * </ol>
  *
  * @author avinzhang
  */
 public class EncryptProcessor {
-    private static final Logger log = LoggerFactory.getLogger(EncryptProcessor.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(EncryptProcessor.class);
 
     private EncryptProcessor() {
     }
@@ -44,9 +57,11 @@ public class EncryptProcessor {
      * @param invocation the method invocation containing SQL and parameters
      */
     public void encryptParameters(Invocation invocation) {
-        StatementHandler statementHandler = (StatementHandler) invocation.getTarget();
+        StatementHandler statementHandler =
+                (StatementHandler) invocation.getTarget();
         // 获取 ParameterHandler 中的参数对象
-        Object parameterObject = statementHandler.getParameterHandler().getParameterObject();
+        Object parameterObject =
+                statementHandler.getParameterHandler().getParameterObject();
         BoundSql boundSql = statementHandler.getBoundSql();
 
         encryptParameters(boundSql, parameterObject);
@@ -54,21 +69,22 @@ public class EncryptProcessor {
 
     private void encryptParameters(BoundSql boundSql, Object parameterObject) {
         try {
-            EncryptFieldTableContainer container = SpringContextUtil.getBean(EncryptFieldTableContainer.class);
+            EncryptFieldTableContainer container =
+                    SpringContextUtil.getBean(EncryptFieldTableContainer.class);
             if (!container.hasEncrypt()) {
-                // 没有注解加密字段无需走这个拦截器
+                // No encrypted fields, skip this interceptor
                 // return;
             }
 
             String originalSql = boundSql.getSql();
-            log.debug("开始处理查询加密，SQL: {}", originalSql);
+            log.debug("Starting query encryption processing, SQL: {}", originalSql);
 
             if (boundSql.getParameterObject() == null) {
-                log.debug("参数对象为空，跳过加密处理");
+                log.debug("Parameter object is null, skipping encryption");
                 return;
             }
 
-            // 1. 解析 SQL 获取所有涉及的表信息
+            // 1. Parse SQL to get all involved table information
             List<SqlTable> tables = null;
             List<SqlParam> param = null;
             try {
@@ -78,21 +94,23 @@ public class EncryptProcessor {
                 log.error(e.getMessage(), e);
             }
             if (param == null || param.isEmpty() || tables.isEmpty()) {
-                log.debug("未找到表信息，跳过加密处理");
+                log.debug("No table information found, skipping encryption");
                 return;
             }
 
-            // 2. 解析参数对象，获取需要加密的参数
-            List<ParameterEncryptInfo> encryptInfos = ParamUtil.analyzeParameters(
-                    boundSql.getParameterMappings(), param, tables, parameterObject);
+            // 2. Parse parameter object to get parameters that need encryption
+            List<ParameterEncryptInfo> encryptInfos =
+                    ParamUtil.analyzeParameters(
+                            boundSql.getParameterMappings(), param, tables,
+                            parameterObject);
 
-            // 3. 执行参数加密
+            // 3. Execute parameter encryption
             if (!encryptInfos.isEmpty()) {
                 ParamUtil.encryptParameters(encryptInfos);
-                log.debug("完成参数加密，共处理 {} 个参数", encryptInfos.size());
+                log.debug("Completed parameter encryption, processed {} parameters", encryptInfos.size());
             }
         } catch (Exception e) {
-            log.error("查询参数加密处理失败", e);
+            log.error("Query parameter encryption processing failed", e);
         }
     }
 

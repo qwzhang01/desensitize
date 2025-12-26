@@ -8,13 +8,27 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
- * SQL重写上下文
+ * SQL rewrite context for parameter restoration.
+ *
+ * <p>This class provides thread-local storage for parameter restoration
+ * information, ensuring that encrypted parameters are restored to their
+ * original values after SQL execution.</p>
+ *
+ * <p><strong>Workflow:</strong></p>
+ * <ol>
+ *   <li>Parameters are encrypted before SQL execution</li>
+ *   <li>Restoration info is cached in ThreadLocal</li>
+ *   <li>SQL is executed with encrypted values</li>
+ *   <li>Parameters are restored to original values</li>
+ *   <li>ThreadLocal is cleared</li>
+ * </ol>
  *
  * @author avinzhang
  */
 public class SqlRewriteContext {
-    private static final Logger log = LoggerFactory.getLogger(SqlRewriteContext.class);
-    // 用于保存原始值的 ThreadLocal，确保线程安全
+    private static final Logger log =
+            LoggerFactory.getLogger(SqlRewriteContext.class);
+    // ThreadLocal for storing original parameter values (ensures thread safety)
     private static final ThreadLocal<List<ParameterRestoreInfo>> RESTORE_INFO_HOLDER = new ThreadLocal<>();
 
     public static void cache(List<ParameterRestoreInfo> restoreInfos) {

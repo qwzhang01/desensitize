@@ -10,7 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice and this permission notice shall be included in
+ *  all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -35,7 +36,8 @@ import java.lang.annotation.*;
  *
  * <p>This annotation is used to mark entity fields that contain sensitive data
  * and should be encrypted before storage and decrypted when retrieved.
- * The annotation allows specifying a custom encryption algorithm implementation.</p>
+ * The annotation allows specifying a custom encryption algorithm
+ * implementation.</p>
  *
  * <p>Usage example:</p>
  * <pre>

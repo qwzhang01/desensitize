@@ -15,11 +15,26 @@ import java.util.concurrent.ConcurrentHashMap;
 import static io.github.qwzhang01.desensitize.kit.StringUtil.clearSqlTip;
 
 /**
+ * Encrypted field table container for managing encryption metadata.
+ *
+ * <p>This container scans MyBatis-Plus table metadata to identify fields
+ * annotated with {@link EncryptField} and caches their encryption algorithm
+ * information.</p>
+ *
+ * <p><strong>Features:</strong></p>
+ * <ul>
+ *   <li>Lazy initialization with double-checked locking</li>
+ *   <li>Thread-safe caching with ConcurrentHashMap</li>
+ *   <li>Support for custom table and field names via MyBatis-Plus annotations</li>
+ *   <li>Fast lookup by table:column key</li>
+ * </ul>
+ *
  * @author avinzhang
  */
 public class EncryptFieldTableContainer {
 
-    private static final Map<String, EncryptColumn> ENCRYPT_COLUMNS = new ConcurrentHashMap<>();
+    private static final Map<String, EncryptColumn> ENCRYPT_COLUMNS =
+            new ConcurrentHashMap<>();
     private boolean init = false;
 
     public void init() {
@@ -36,12 +51,15 @@ public class EncryptFieldTableContainer {
             tableInfos.forEach(t -> {
                 List<TableFieldInfo> fieldList = t.getFieldList();
                 for (TableFieldInfo fieldInfo : fieldList) {
-                    EncryptField encryptField = fieldInfo.getField().getAnnotation(EncryptField.class);
+                    EncryptField encryptField =
+                            fieldInfo.getField().getAnnotation(EncryptField.class);
                     if (encryptField != null) {
-                        EncryptColumn encryptColumn = getEncryptColumn(t, fieldInfo, encryptField);
+                        EncryptColumn encryptColumn = getEncryptColumn(t,
+                                fieldInfo, encryptField);
                         ENCRYPT_COLUMNS.put(
                                 String.format("%s:%s",
-                                        clearSqlTip(encryptColumn.getTable()), clearSqlTip(encryptColumn.getName())),
+                                        clearSqlTip(encryptColumn.getTable())
+                                        , clearSqlTip(encryptColumn.getName())),
                                 encryptColumn);
                     }
                 }
@@ -51,11 +69,14 @@ public class EncryptFieldTableContainer {
         }
     }
 
-    private EncryptColumn getEncryptColumn(TableInfo tableInfo, TableFieldInfo fieldInfo, EncryptField encryptField) {
+    private EncryptColumn getEncryptColumn(TableInfo tableInfo,
+                                           TableFieldInfo fieldInfo,
+                                           EncryptField encryptField) {
         EncryptColumn encryptColumn = new EncryptColumn();
         encryptColumn.setTable(tableInfo.getTableName());
         encryptColumn.setAlgo(encryptField.value());
-        TableField tableField = fieldInfo.getField().getAnnotation(TableField.class);
+        TableField tableField =
+                fieldInfo.getField().getAnnotation(TableField.class);
         if (tableField != null) {
             encryptColumn.setName(tableField.value());
         } else {
@@ -78,11 +99,13 @@ public class EncryptFieldTableContainer {
         return !ENCRYPT_COLUMNS.isEmpty();
     }
 
-    public Class<? extends EncryptionAlgo> getAlgo(String tableName, String columnName) {
+    public Class<? extends EncryptionAlgo> getAlgo(String tableName,
+                                                   String columnName) {
         if (!init) {
             init();
         }
-        EncryptColumn column = ENCRYPT_COLUMNS.get(clearSqlTip(tableName) + ":" + clearSqlTip(columnName));
+        EncryptColumn column = ENCRYPT_COLUMNS.get(clearSqlTip(tableName) +
+                ":" + clearSqlTip(columnName));
         if (column == null) {
             return DefaultEncryptionAlgo.class;
         }

@@ -3,50 +3,68 @@ package io.github.qwzhang01.desensitize.scope;
 import java.util.List;
 
 /**
- * 数据权限策略接口
- * <p>
- * 定义数据权限过滤的核心方法，用于在SQL查询中添加权限控制条件
+ * Data scope strategy interface.
  *
- * @param <T> 权限数据类型，通常为权限ID或权限对象
+ * <p>Defines core methods for data permission filtering by adding permission
+ * control conditions to SQL queries.</p>
+ *
+ * <p><strong>Usage Example:</strong></p>
+ * <pre>
+ * public class DepartmentScopeStrategy implements DataScopeStrategy&lt;Long&gt; {
+ *     {@code @Override}
+ *     public String join() {
+ *         return "LEFT JOIN department d ON t.dept_id = d.id";
+ *     }
+ *     
+ *     {@code @Override}
+ *     public String where() {
+ *         return "d.id IN (SELECT dept_id FROM user_dept WHERE user_id = ?)";
+ *     }
+ * }
+ * </pre>
+ *
+ * @param <T> permission data type, typically permission ID or permission object
  * @author avinzhang
  */
 public interface DataScopeStrategy<T> {
     /**
-     * 数据权限设置 join 表信息
-     * <p>
-     * 重要，关联表，如果不在脚本中，需要用表全名且不带别名
+     * Data scope JOIN table information.
      *
-     * @return JOIN子句字符串，如果不需要关联表则返回空字符串
+     * <p><strong>Important:</strong> For associated tables not in the original
+     * SQL, use full table names without aliases.</p>
+     *
+     * @return JOIN clause string, or empty string if no join is needed
      */
     String join();
 
     /**
-     * 数据权限设置 Where 条件
-     * <p>
-     * 重要，子查询或exists条件，如果存在表不在脚本中，需要用表全名
+     * Data scope WHERE condition.
      *
-     * @return WHERE条件字符串，如果不需要额外条件则返回空字符串
+     * <p><strong>Important:</strong> For subqueries or EXISTS conditions with
+     * tables not in the original SQL, use full table names.</p>
+     *
+     * @return WHERE condition string, or empty string if no additional
+     * condition is needed
      */
     String where();
 
     /**
-     * 验证和设置有效的权限数据
-     * <p>
-     * 在执行SQL查询前调用，用于处理和验证权限数据
+     * Validates and sets effective permission data.
      *
-     * @param validRights 有效的权限数据列表
+     * <p>Called before SQL execution to process and validate permission data.</p>
+     *
+     * @param validRights list of valid permission data
      */
     void validDs(List<T> validRights);
 
     /**
-     * 验证和设置有效的权限数据
-     * <p>
-     * 在执行SQL查询前调用，用于处理和验证权限数据
-     * <p>
-     * validRights  withoutRights 是或的关系，只要有一个校验通过，则通过
+     * Validates and sets effective permission data with whitelist support.
      *
-     * @param validRights   有效的权限数据列表
-     * @param withoutRights 白名单，无需按照权限校验
+     * <p>The relationship between validRights and withoutRights is OR - if
+     * either validation passes, the check succeeds.</p>
+     *
+     * @param validRights   list of valid permission data
+     * @param withoutRights whitelist that bypasses permission validation
      */
     void validDs(List<T> validRights, List<T> withoutRights);
 }

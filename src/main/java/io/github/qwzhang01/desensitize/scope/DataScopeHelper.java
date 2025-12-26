@@ -10,15 +10,31 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 /**
- * 初始化数据权限工具类
+ * Data scope helper for fine-grained data access control.
+ *
+ * <p>This utility provides thread-local storage for data scope context,
+ * enabling row-level data filtering based on user permissions or business rules.</p>
+ *
+ * <p><strong>Features:</strong></p>
+ * <ul>
+ *   <li>Thread-safe context management</li>
+ *   <li>Strategy pattern support for custom access rules</li>
+ *   <li>Integration with SQL rewriting for transparent filtering</li>
+ *   <li>Support for both search and validation scenarios</li>
+ * </ul>
  *
  * @author avinzhang
  */
 public class DataScopeHelper {
     private static final ThreadLocal<Context<?>> CONTEXT = new ThreadLocal<>();
-    private static final ThreadLocal<Context<?>> CONTEXT_CACHE = new ThreadLocal<>();
+    private static final ThreadLocal<Context<?>> CONTEXT_CACHE =
+            new ThreadLocal<>();
 
-    /*** 判断数据权限是否开启 */
+    /**
+     * Checks if data scope is enabled.
+     *
+     * @return true if data scope is active
+     */
     public static boolean isStarted() {
         Context<?> context = CONTEXT.get();
         if (context == null) {
@@ -28,13 +44,14 @@ public class DataScopeHelper {
     }
 
     /**
-     * 设置线程共享变量 数据权限策略
+     * Sets thread-local data scope strategy.
      *
-     * @param strategy 数据权限策略类
-     * @param <T>      权限数据类型
-     * @return 上下文对象
+     * @param strategy data scope strategy class
+     * @param <T>      permission data type
+     * @return context object for method chaining
      */
-    public static <T> Context<T> strategy(Class<? extends DataScopeStrategy<T>> strategy) {
+    public static <T> Context<T> strategy(Class<?
+            extends DataScopeStrategy<T>> strategy) {
         @SuppressWarnings("unchecked")
         Context<T> context = (Context<T>) CONTEXT.get();
         if (context == null) {
@@ -60,9 +77,9 @@ public class DataScopeHelper {
     }
 
     /**
-     * 获取线程共享变量 数据权限策略
+     * Gets thread-local data scope strategy.
      *
-     * @return 数据权限策略类
+     * @return data scope strategy class
      */
     public static Class<? extends DataScopeStrategy<?>> getStrategy() {
         Context<?> context = CONTEXT.get();
@@ -73,7 +90,7 @@ public class DataScopeHelper {
     }
 
     /**
-     * 清除线程共享数据权限变量
+     * Clears thread-local data scope variables.
      */
     public static void clear() {
         CONTEXT.remove();
@@ -81,11 +98,11 @@ public class DataScopeHelper {
     }
 
     /**
-     * 执行查询
+     * Executes a query with data scope applied.
      *
-     * @param function
-     * @param <R>
-     * @return
+     * @param function the query function to execute
+     * @param <R>      the return type
+     * @return the query result
      */
     public static <R> R execute(Callable<R> function) {
         Context<?> context = CONTEXT.get();
@@ -114,27 +131,27 @@ public class DataScopeHelper {
     }
 
     /**
-     * 数据权限信息
+     * Data scope context information.
      */
     public static final class Context<T> {
         /**
-         * 数据权限开关
+         * Data scope enable flag
          */
         private Boolean dataScopeFlag;
         /**
-         * 查询条件，即是数据权限，也是查询条件，具体取并集还是交集由具体业务实现
+         * Search conditions (used as data scope filter)
          */
         private List<T> searchRight;
         /**
-         * 权限校验数据，在INSERT update delete 的时候使用
+         * Validation rights (used in INSERT/UPDATE/DELETE operations)
          */
         private List<T> validRights;
         /**
-         * 排除权限校验数据，在INSERT update delete 的时候使用
+         * Excluded rights (whitelist for INSERT/UPDATE/DELETE operations)
          */
         private List<T> withoutRights;
         /**
-         * 数据权限查询策略
+         * Data scope query strategy
          */
         private Class<? extends DataScopeStrategy<T>> strategy;
 
@@ -217,7 +234,8 @@ public class DataScopeHelper {
         }
 
         public <R> R execute(Callable<R> function) {
-            DataScopeStrategyContainer container = SpringContextUtil.getBean(DataScopeStrategyContainer.class);
+            DataScopeStrategyContainer container =
+                    SpringContextUtil.getBean(DataScopeStrategyContainer.class);
             DataScopeStrategy<?> obj = container.getStrategy(strategy);
             // 由于容器返回的是通配符类型，这里需要进行类型转换
             @SuppressWarnings("unchecked")

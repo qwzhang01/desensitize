@@ -10,7 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice and this permission notice shall be included in
+ *  all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -30,7 +31,8 @@ import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
 /**
  * Concrete implementation of encryption algorithm container.
  *
- * <p>This container manages encryption algorithm instances using the Factory Pattern
+ * <p>This container manages encryption algorithm instances using the Factory
+ * Pattern
  * combined with Strategy Pattern. It provides:</p>
  * <ul>
  *   <li>Dependency injection support for the default algorithm</li>
@@ -38,8 +40,10 @@ import io.github.qwzhang01.desensitize.encrypt.shield.EncryptionAlgo;
  *   <li>Automatic fallback mechanism on instantiation failures</li>
  * </ul>
  *
- * <p><strong>Thread Safety:</strong> This class is thread-safe. The default algorithm
- * is immutable after construction, and the cache operations are handled by the parent
+ * <p><strong>Thread Safety:</strong> This class is thread-safe. The default
+ * algorithm
+ * is immutable after construction, and the cache operations are handled by
+ * the parent
  * class using ConcurrentHashMap.</p>
  *
  * @author avinzhang
@@ -56,7 +60,8 @@ public final class EncryptionAlgoContainer extends AbstractEncryptAlgoContainer 
     /**
      * Constructs an EncryptionAlgoContainer with a specified default algorithm.
      *
-     * <p>The default algorithm should be a fully configured, ready-to-use instance
+     * <p>The default algorithm should be a fully configured, ready-to-use
+     * instance
      * that will be returned when no specific algorithm is requested or when
      * instantiation of other algorithms fails.</p>
      *
@@ -65,14 +70,16 @@ public final class EncryptionAlgoContainer extends AbstractEncryptAlgoContainer 
      */
     public EncryptionAlgoContainer(EncryptionAlgo defaultEncryptionAlgo) {
         if (defaultEncryptionAlgo == null) {
-            throw new IllegalArgumentException("Default encryption algorithm cannot be null");
+            throw new IllegalArgumentException("Default encryption algorithm " +
+                    "cannot be null");
         }
         this.defaultEncryptionAlgo = defaultEncryptionAlgo;
     }
 
     /**
      * Returns the default encryption algorithm for this container.
-     * This implementation returns the algorithm instance provided during construction.
+     * This implementation returns the algorithm instance provided during
+     * construction.
      *
      * @return the default encryption algorithm instance, never null
      */

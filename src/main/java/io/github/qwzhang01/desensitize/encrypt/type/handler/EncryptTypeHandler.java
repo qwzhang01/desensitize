@@ -10,7 +10,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice and this permission notice shall be included in
+ *  all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -40,7 +41,8 @@ import java.sql.SQLException;
 
 /**
  * Encryption and decryption type converter.
- * This MyBatis type handler automatically encrypts data when storing to database
+ * This MyBatis type handler automatically encrypts data when storing to
+ * database
  * and decrypts data when retrieving from database.
  *
  * @author avinzhang
@@ -53,12 +55,14 @@ public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
      * Set parameter
      */
     @Override
-    public void setNonNullParameter(PreparedStatement ps, int i, Encrypt parameter, JdbcType jdbcType) throws SQLException {
+    public void setNonNullParameter(PreparedStatement ps, int i,
+                                    Encrypt parameter, JdbcType jdbcType) throws SQLException {
         if (parameter == null || parameter.getValue() == null) {
             ps.setString(i, null);
             return;
         }
-        AbstractEncryptAlgoContainer container = SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
+        AbstractEncryptAlgoContainer container =
+                SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
         String encrypt = container.getAlgo().encrypt(parameter.getValue());
         ps.setString(i, encrypt);
     }
@@ -97,7 +101,8 @@ public class EncryptTypeHandler extends BaseTypeHandler<Encrypt> {
         if (null == value) {
             return null;
         }
-        AbstractEncryptAlgoContainer container = SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
+        AbstractEncryptAlgoContainer container =
+                SpringContextUtil.getBean(AbstractEncryptAlgoContainer.class);
         return new Encrypt(container.getAlgo().decrypt(value));
     }
 }
