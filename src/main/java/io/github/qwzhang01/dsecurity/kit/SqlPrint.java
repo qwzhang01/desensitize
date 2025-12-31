@@ -26,8 +26,8 @@ public class SqlPrint {
     // 线程安全的日期格式化器
     private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT =
             ThreadLocal.withInitial(
-            () -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-    );
+                    () -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+            );
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -40,11 +40,16 @@ public class SqlPrint {
 
     public void print(Configuration configuration, BoundSql boundSql,
                       String sqlId, long startTime, Object result) {
-        String sql = getSql(configuration, boundSql);
-        if (sql.isEmpty()) {
-            return;
+        try {
+            String sql = getSql(configuration, boundSql);
+            if (sql.isEmpty()) {
+                return;
+            }
+            printSql(sqlId, sql, System.currentTimeMillis() - startTime,
+                    result);
+        } catch (Exception e) {
+            log.error("print sql error", e);
         }
-        printSql(sqlId, sql, System.currentTimeMillis() - startTime, result);
     }
 
     /**
