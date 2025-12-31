@@ -17,7 +17,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * 改进版 SQL 打印工具类
@@ -47,9 +46,6 @@ public class SqlPrint {
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter TIME_FORMATTER =
             DateTimeFormatter.ofPattern("HH:mm:ss");
-    
-    // 用于压缩多余空白，但保留字符串内容
-    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 
     private SqlPrint() {
     }
