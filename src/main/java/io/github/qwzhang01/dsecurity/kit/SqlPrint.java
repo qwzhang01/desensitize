@@ -109,9 +109,18 @@ public class SqlPrint {
                 }
             }
         }
+
+        StringBuilder sqlBuilder = new StringBuilder(sql);
+        int offset = 0;
         for (String value : parameters) {
-            sql = sql.replaceFirst("\\?", value);
+            int index = sqlBuilder.indexOf("?", offset);
+            if (index != -1) {
+                sqlBuilder.replace(index, index + 1, value);
+                offset = index + value.length();
+            }
         }
+        sql = sqlBuilder.toString();
+
         return sql;
     }
 
@@ -121,12 +130,14 @@ public class SqlPrint {
     private void printSql(String sqlId, String sql, long costTime,
                           Object result) {
         if (result instanceof ArrayList resultList) {
-            log.info("=== SQL Execution ===\nMethod: {}\nSQL: {}\nTime: {} ms\nReturned: {} rows",
+            log.info("=== SQL Execution ===\nMethod: {}\nSQL: {}\nTime: {} " +
+                            "ms\nReturned: {} rows",
                     sqlId, sql, costTime, resultList.size());
             return;
         }
         if (result instanceof Number row) {
-            log.info("=== SQL Execution ===\nMethod: {}\nSQL: {}\nTime: {} ms\nAffected: {} rows",
+            log.info("=== SQL Execution ===\nMethod: {}\nSQL: {}\nTime: {} " +
+                            "ms\nAffected: {} rows",
                     sqlId, sql, costTime, row);
         }
     }
